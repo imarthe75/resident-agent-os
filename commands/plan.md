@@ -1,13 +1,34 @@
 # 📌 Command: /plan
 
-El comando `/plan` obliga al agente a suspender toda actividad de edición de código y concentrarse exclusivamente en el diseño y trazado del plan de trabajo.
+Obliga al agente a suspender toda actividad de código y concentrarse en diseñar el plan de trabajo antes de implementar.
 
-## 🚀 Comportamiento del Arnés
+## Comportamiento
 
-1. El agente debe listar los archivos del proyecto para entender el alcance.
-2. Generará un archivo `implementation_plan.md` en el directorio de artefactos con la siguiente estructura:
-   - **Objetivo técnico**
-   - **Archivos a modificar/crear**
-   - **Plan de pruebas automatizadas y manuales**
-   - **Preguntas abiertas**
-3. El agente esperará de forma bloqueante la confirmación del usuario para proceder.
+1. El agente explora el alcance (archivos relevantes, dependencias).
+2. Genera el artefacto de plan siguiendo el skill **`skills/writing-plans/SKILL.md`**.
+3. Guarda en `docs/plans/YYYY-MM-DD-<nombre>.md`.
+4. **Espera confirmación del usuario** antes de proceder a cualquier implementación.
+
+## Estructura del plan generado
+
+- **Objetivo técnico** — qué se construye y por qué
+- **Mapa de archivos** — qué se crea/modifica/testea
+- **Tareas granulares** — 2-5 min cada una, con test de verificación incluido
+- **Restricciones CaSmarts** — UUID v7, audit triggers, auth, fallback local
+- **Preguntas abiertas** — decisiones que requieren input del usuario
+
+## Relación con OpenSpec
+
+Para cambios formales (features, migraciones, integraciones):
+```
+/opsx-propose  ←── genera proposal.md + spec.md + tasks.md
+/plan          ←── genera el plan de implementación detallado
+/opsx-apply    ←── ejecuta las tareas del plan
+```
+
+Para cambios pequeños (< 3 archivos, < 15 min): usar `/plan` directamente sin OpenSpec.
+
+## Ver también
+
+- `skills/writing-plans/SKILL.md` — cómo escribir planes sin ambigüedad
+- `commands/opsx-propose.md` — para cambios que requieren spec formal

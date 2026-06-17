@@ -1,96 +1,238 @@
-# 🌌 Resident Agent Framework: Master Blueprint (MIT License)
+# Resident Agent Framework
 
-Este repositorio contiene la arquitectura de referencia, la infraestructura base y la lógica de control cognitivo para inicializar un **Agente Residente** con soberanía de datos local, memoria de corto plazo (**Valkey**) y memoria de largo plazo (PostgreSQL + pgvector).
+Framework de referencia para inicializar un **Agente Residente Soberano** con memoria local multinivel, heurísticas cognitivas y workflows de desarrollo estructurado.
 
-> [!NOTE]
-> **Atribución y Licenciamiento:** Este proyecto se inspira fuertemente e incorpora las mejores prácticas, estructuras de subagentes, hooks y patrones de arnés del proyecto de código abierto [affaan-m/ECC](https://github.com/affaan-m/ECC), el cual se distribuye bajo la Licencia MIT. Agradecemos a los contribuidores de ECC por sentar las bases del desarrollo orientado a arneses nativos de IA.
+> **Atribución:** Este proyecto integra y adapta las mejores prácticas de [affaan-m/ECC](https://github.com/affaan-m/ECC), [obra/superpowers](https://github.com/obra/superpowers), [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) y [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — todos bajo Licencia MIT.
 
 ---
 
-## 🛠️ Requisitos del Host
+## Qué es
+
+Un **Agente Residente** es un agente de IA que:
+- Mantiene estado cognitivo entre sesiones (no empieza desde cero cada vez)
+- Persiste memoria a corto plazo en **Valkey** (Redis-compatible) y a largo plazo en **PostgreSQL + pgvector**
+- Tiene reglas, heurísticas y límites operacionales definidos en `.agent/`
+- Sigue workflows estructurados de desarrollo (TDD, debugging sistemático, verificación antes de declarar "listo")
+
+---
+
+## Estructura del repositorio
+
+```
+resident-agent-framework/
+├── .agent/                     # Estado cognitivo del agente (por sesión)
+│   ├── AGENT.md                # Leyes operacionales del agente
+│   ├── CONTEXT.md              # Propósito del proyecto
+│   ├── HEURISTICS.md           # Heurísticas cognitivas (Nielsen + Sweller)
+│   ├── MAP.md                  # Mapa de puertos y directorios
+│   ├── RULES.md                # Reglas de flujo y hooks
+│   ├── SPECS.md                # Especificaciones activas (capa OpenSpec)
+│   ├── STATE.md                # Bitácora de sesión (Rito de Inicio/Cierre)
+│   └── SYSTEM_PROMPT.md        # Prompt cognitivo del sistema v3
+│
+├── agents/                     # Personas de sub-agentes
+│   ├── architect.md
+│   ├── code-reviewer.md
+│   ├── planner.md
+│   └── security-reviewer.md
+│
+├── changes/                    # Workflow OpenSpec (cambios activos e histórico)
+│   ├── README.md               # Cómo usar el workflow
+│   ├── TEMPLATE-proposal.md    # Plantilla de proposal
+│   ├── TEMPLATE-spec.md        # Plantilla de spec
+│   ├── TEMPLATE-tasks.md       # Plantilla de tasks
+│   └── archive/                # Cambios completados
+│
+├── commands/                   # Slash commands del agente
+│   ├── plan.md                 # /plan — diseño sin código
+│   ├── quality-gate.md         # /quality-gate — gate de calidad
+│   ├── opsx-propose.md         # /opsx-propose — iniciar cambio formal
+│   ├── opsx-apply.md           # /opsx-apply — ejecutar tareas
+│   ├── opsx-archive.md         # /opsx-archive — cerrar cambio
+│   ├── opsx-verify.md          # /opsx-verify — validar vs spec
+│   ├── ponytail-review.md      # /ponytail-review — auditar diff
+│   ├── ponytail-audit.md       # /ponytail-audit — escanear repo
+│   └── ponytail-debt.md        # /ponytail-debt — ledger de deuda
+│
+├── contexts/                   # Cargadores de contexto
+│   ├── dev.md                  # Contexto de desarrollo
+│   ├── research.md             # Contexto de investigación
+│   └── review.md               # Contexto de revisión
+│
+├── DECISIONS/                  # ADRs (Architecture Decision Records)
+│   ├── 0001-genesis-architecture.md
+│   └── 0002-heuristics-mandate.md
+│
+├── docs/                       # Documentación del framework
+│   ├── resident_agent_genesis.md     # Manual maestro de operaciones
+│   ├── HEURISTICAS_MASTER_GUIDE.md   # Fundamento de heurísticas
+│   ├── guia-de-estilo-sql.md         # Estándares SQL corporativos
+│   ├── instalacion-postgresql.md     # Guía PostgreSQL 18
+│   └── instalacion-pgpool.md         # Guía PgPool
+│
+├── hooks/                      # Automatizaciones del harness
+│   └── hooks.json
+│
+├── memory/                     # Módulos de memoria (Python)
+│   ├── agent_state.py          # Estado del agente
+│   ├── long_term_memory.py     # Persistencia en PostgreSQL + pgvector
+│   └── semantic_cache.py       # Caché semántica en Valkey
+│
+├── resident-ui/                # UI de monitoreo (Next.js)
+│
+├── rules/                      # Reglas de código por lenguaje
+│   ├── common/
+│   │   ├── coding-style.md
+│   │   ├── database-style.md
+│   │   ├── efficiency.md       # Ponytail efficiency ladder (6 peldaños)
+│   │   ├── git-workflow.md
+│   │   ├── security.md
+│   │   └── testing.md
+│   ├── python/rules.md
+│   └── typescript/rules.md
+│
+├── scripts/
+│   └── distribute_framework.py # Distribuye el framework a otros proyectos
+│
+├── skills/                     # Skills del agente Claude Code
+│   ├── blueprint/              # Generación de blueprints
+│   ├── database-liquibase-postgresql/
+│   ├── postgres-audit/         # Setup de audit triggers
+│   ├── systematic-debugging/   # Debugging de 4 fases (Superpowers)
+│   ├── test-driven-development/ # TDD RED-GREEN-REFACTOR (Superpowers)
+│   ├── using-git-worktrees/    # Desarrollo aislado (Superpowers)
+│   ├── verification-before-completion/ # No "listo" sin evidencia (Superpowers)
+│   └── writing-plans/          # Planes sin ambigüedad (Superpowers)
+│
+├── sql/
+│   └── auditoria.sql           # Setup de audit trail (schema + triggers)
+│
+├── docker-compose.yml          # Stack: PostgreSQL 18 + pgvector + Valkey
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Instalación rápida
+
+### Requisitos
+
 - Docker & Docker Compose
-- Python 3.10+
-- `redis` (librería cliente para interactuar con Valkey), `psycopg2-binary`, `numpy`
+- Python 3.12+
+- `redis`, `psycopg2-binary`, `numpy` (para los módulos de memoria)
 
----
+### 1. Levantar infraestructura soberana
 
-## 🚀 Guía de Inicialización (Paso a Paso)
-
-Para incorporar este agente a cualquier proyecto nuevo del ecosistema, sigue estos pasos:
-
-### 1. Clonar e Inicializar la Estructura Cognitiva y Heurística (ECC Harness)
-La heurística y la inteligencia artificial son partes fundamentales del ciclo de vida de todo proyecto generado a partir de este framework. Para inicializar un nuevo proyecto, ejecuta el comando de arnés o copia la estructura `.agent/` de forma mandatoria:
-- `.agent/AGENT.md` (Las Leyes de tu Agente)
-- `.agent/CONTEXT.md` (El propósito de tu proyecto)
-- `.agent/MAP.md` (El mapa de puertos y directorios)
-- `.agent/STATE.md` (La bitácora de sesión)
-- `.agent/SPECS.md` (La capa de especificaciones persistente de OpenSpec)
-- `.agent/SYSTEM_PROMPT.md` (El prompt del sistema cognitivo integrado v3)
-- `.agent/RULES.md` (Las reglas de flujo y hooks de sistema de ECC)
-- `.agent/HEURISTICS.md` (La heurística cognitivo-aplicada y guías de decisión de la IA)
-- `docs/resident_agent_genesis.md` (Manual Maestro de Operaciones)
-
-> [!IMPORTANT]
-> **Heurística Mandatoria (Guía + Código):** 
-> Todo proyecto derivado debe:
-> 1. Configurar al arnés del agente para leer e incorporar `HEURISTICS.md` antes de tomar cualquier decisión de diseño o modificación.
-> 2. **Implementar heurística dentro de la lógica del desarrollo o aplicación** (ej. algoritmos heurísticos para procesamiento rápido de datos, sistemas de fallback locales y priorización autorregulada de tareas sin depender exclusivamente de llamadas de IA externas).
-
-### 2. Levantar la Infraestructura Soberana de Memoria (Valkey + Postgres)
-Copia el archivo `docker-compose.yml` en la raíz de tu proyecto y levanta las bases de datos locales:
 ```bash
 docker compose up -d
+# Crea ./data/postgres y ./data/valkey (persistentes, en .gitignore)
 ```
-> [!IMPORTANT]
-> Esto creará las carpetas `./data/valkey` y `./data/postgres` en tu host. Los datos persistirán de forma segura incluso si eliminas los contenedores. Valkey reemplaza por completo a Redis para toda la gestión de caché semántica y estados de sesión de corto plazo.
 
-### 3. Ejecutar el Rito de Inicio (Bootstrapping)
-Al iniciar tu sesión de desarrollo, tu agente debe leer `.agent/STATE.md` y verificar las reglas en `.agent/RULES.md` para sincronizarse con los pendientes de la sesión anterior.
+### 2. Inicializar el audit trail
 
-### 4. Integrar la Memoria Corta (Caché Semántica en Valkey)
-Utiliza la clase `SemanticCache` para evitar llamadas redundantes a las APIs de modelos de lenguaje, comparando la similitud semántica de la consulta:
+```bash
+psql -U admin -d db_resident_knowledge -h localhost < sql/auditoria.sql
+```
+
+### 3. Leer el estado del agente (Rito de Inicio)
+
+```bash
+cat .agent/STATE.md     # pendientes de la última sesión
+cat .agent/AGENT.md     # leyes operacionales
+cat .agent/HEURISTICS.md
+```
+
+### 4. Usar la memoria
+
 ```python
 from memory.semantic_cache import SemanticCache
-
-# Conexión directa a Valkey
-cache = SemanticCache(host="localhost", port=6379)
-# Busca si la consulta conceptualmente ya fue respondida en Valkey
-response = cache.get(query_embedding)
-if not response:
-    # Generar respuesta de LLM y guardarla
-    cache.set(query_text, query_embedding, response_text)
-```
-
-### 5. Integrar la Memoria de Largo Plazo (Embeddings en pgvector)
-Almacena resúmenes y lecciones de forma persistente en PostgreSQL:
-```python
 from memory.long_term_memory import LongTermMemory
 
-db_memory = LongTermMemory()
-db_memory.store_lesson("Lección aprendida: Usar UUID v7 para IDs", embedding_vector)
-```
+cache = SemanticCache(host="localhost", port=6379)
+db_mem = LongTermMemory()
 
-### 6. Ejecutar el Rito de Cierre e Higiene Cognitiva (ECC)
-Al terminar tu sesión, ejecuta el proceso de control cognitivo:
-- **Summarization**: Condensa la actividad y lecciones.
-- **Bitácora**: Actualiza `.agent/STATE.md` documentando los cambios y los siguientes pasos.
-- **Persistencia**: Almacena las lecciones de la sesión en la base de datos local mediante embeddings.
+# Búsqueda semántica (0 tokens si hay cache hit)
+response = cache.get(query_embedding)
+if not response:
+    response = await llm.generate(query)
+    cache.set(query_text, query_embedding, response)
+
+# Persistencia de lecciones
+db_mem.store_lesson("Usar uuid7() en PG18+ para PKs", embedding)
+lessons = db_mem.search_lessons(query_embedding, limit=3)
+```
 
 ---
 
-## 🗄️ 7. Gobernanza de Bases de Datos & Estilo SQL
+## Workflows
 
-El framework incorpora un sistema estricto de gobernanza de base de datos detallado en las [Database Style Guidelines](rules/common/database-style.md).
+### Workflow de desarrollo (feature nueva)
 
-> [!IMPORTANT]
-> **Regla obligatoria de PKs:** Todas las llaves primarias (`id`) de tablas nuevas deben ser de tipo `uuid`. No se permite `integer`, `bigint`, `serial` ni `GENERATED BY DEFAULT AS IDENTITY` como PK. Las llaves foráneas que referencien un `id uuid` también deben ser de tipo `uuid`. Usar `DEFAULT gen_random_uuid()` (PG ≤ 17) o `DEFAULT uuidv7()` (PG 18+).
+```
+/opsx-propose "descripción"   → proposal.md + spec.md + tasks.md
+/plan                          → plan detallado en docs/plans/
+/opsx-apply                    → ejecutar tareas (TDD + verificación)
+/opsx-verify                   → validar vs spec antes del PR
+/opsx-archive --with-lesson    → cerrar y persistir lección en memory.lessons
+```
 
-### 🛠️ Estructura de Auditoría (auditoria.sql)
-Para habilitar el rastreo transaccional de DML (INSERT/UPDATE/DELETE), se provee el script modular [sql/auditoria.sql](sql/auditoria.sql), el cual:
-- Crea el esquema central `auditoria` y su correspondiente `log_auditoria` con PK `uuid` y almacenamiento en formato JSONB.
-- Registra el trigger `auditoria_biu` para automatizar fechas (`fecha_creacion`, `fecha_modificacion`), control de concurrencia optimista (`row_version`), y claves estables (`ref` usando `gen_random_uuid()` con upgrade a `uuidv7()` cuando disponible).
-- Registra el trigger `auditoria_aiud` para loguear deltas con hashes de verificación de integridad (sha256).
+### Workflow de debugging
 
-### 🕵️ Automatización con el Skill de Auditoría
-El framework incluye el skill [postgres-audit-setup](skills/postgres-audit/SKILL.md) para guiar al agente de forma interactiva en la creación de las tablas, validación de esquemas y asignación idempotente de triggers en cualquier proyecto derivado.
+```
+1. skill: systematic-debugging  → 4 fases: root cause → pattern → hypothesis → fix
+2. skill: test-driven-development → test que reproduce el bug primero
+3. skill: verification-before-completion → confirmar fix con evidencia
+```
 
+### Workflow de calidad
+
+```
+/ponytail-review    → auditar diff actual contra efficiency ladder
+/ponytail-audit     → escanear repo completo
+/quality-gate       → gate de calidad pre-merge
+```
+
+---
+
+## Heurísticas cognitivas
+
+El framework implementa los 10 principios de Nielsen y heurísticas de Sweller en el código generado. Ver [docs/HEURISTICAS_MASTER_GUIDE.md](docs/HEURISTICAS_MASTER_GUIDE.md).
+
+**Limit ECC: máximo 3 intentos de auto-corrección.** Al cuarto: halt y consulta a `memory.lessons`.
+
+---
+
+## Distribución a otros proyectos
+
+```bash
+python scripts/distribute_framework.py --target /ruta/al/nuevo-proyecto
+```
+
+Copia `.agent/`, `rules/`, `skills/`, `commands/`, `contexts/`, `hooks/` al proyecto destino.
+
+---
+
+## Gobernanza de base de datos
+
+Ver [rules/common/database-style.md](rules/common/database-style.md).
+
+**Regla obligatoria:** Todas las PKs son `UUID` (no `INTEGER`, `SERIAL`, ni `BIGINT`).
+
+El script [sql/auditoria.sql](sql/auditoria.sql) instala:
+- Schema `auditoria` con tabla `log_auditoria` (JSONB + SHA256)
+- Trigger `auditoria_biu` — fechas y `row_version` (concurrencia optimista)
+- Trigger `auditoria_aiud` — delta log con hash de integridad
+
+Skill interactivo: [skills/postgres-audit/SKILL.md](skills/postgres-audit/SKILL.md)
+
+---
+
+## Rito de Cierre
+
+Al terminar cada sesión:
+
+1. Ejecutar `/opsx-verify` en cambios activos
+2. Actualizar `.agent/STATE.md` con tareas completadas y próximos pasos
+3. Ejecutar `/opsx-archive --with-lesson` para persistir aprendizajes
+4. Verificar que `docker compose ps` muestra todos los servicios running
