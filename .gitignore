@@ -1,0 +1,41 @@
+# Datos persistentes de contenedores (nunca versionar)
+data/
+
+# Secretos y credenciales
+.env
+.env.*
+secrets/
+*.key
+*.pem
+*.p12
+
+# Memoria privada del agente (brain ephémero)
+.agent/brain/
+
+# Node.js
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
