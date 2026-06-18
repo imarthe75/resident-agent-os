@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "H001",
+      "priority": 1,
+      "condition": {
+        "and": [
+          {"eq": ["context.has_external_api", true]},
+          {"eq": ["context.has_local_alternative", true]}
+        ]
+      },
+      "action": "use_local",
+      "description": "Prefer local service over external API to maintain data sovereignty."
+    },
+    {
+      "id": "H002",
+      "priority": 2,
+      "condition": {
+        "and": [
+          {"eq": ["context.has_query", true]},
+          {"eq": ["context.valkey_available", true]}
+        ]
+      },
+      "action": "check_semantic_cache",
+      "description": "Check Valkey semantic cache before any expensive computation or LLM call."
+    },
+    {
+      "id": "H003",
+      "priority": 3,
+      "condition": {
+        "gte": ["context.retry_count", 3]
+      },
+      "action": "halt_and_reflect",
+      "description": "Stop after 3 failed attempts. Compare error logs with pgvector lessons."
+    },
+    {
+      "id": "H004",
+      "priority": 4,
+      "condition": {
+        "eq": ["context.new_dependency_added", true]
+      },
+      "action": "create_adr",
+      "description": "Automatically create an ADR when a new dependency is introduced."
+    },
+    {
+      "id": "H005",
+      "priority": 5,
+      "condition": {
+        "eq": ["context.spec_missing", true]
+      },
+      "action": "require_spec_before_code",
+      "description": "Reject code changes unless a valid spec contract exists in SPECS.md."
+    }
+  ]
+}
