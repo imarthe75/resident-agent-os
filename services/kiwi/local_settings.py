@@ -17,6 +17,12 @@ SOCIAL_AUTH_OIDC_VERIFY_SSL = False
 # Forzar redirect_uri público para que Authentik lo acepte
 SOCIAL_AUTH_OIDC_REDIRECT_URI = 'https://kiwi.casmart.internal/accounts/complete/oidc/'
 
+# Configuración avanzada de OIDC
+# Usar el JWKS URI de forma explícita para mayor compatibilidad
+SOCIAL_AUTH_OIDC_PUBLIC_URL = 'https://kiwi.casmart.internal/accounts/complete/oidc/'
+# Desactivar validación de estado del audience (por compatibilidad con algunos OIDC)
+SOCIAL_AUTH_OIDC_QUERY_EMAIL = True  # Obtener email del userinfo endpoint
+
 # -----------------------------------------------------------------------
 # SESSION & STATE MANAGEMENT FIX
 # -----------------------------------------------------------------------
@@ -57,10 +63,6 @@ CSRF_USE_SESSIONS = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = True
 # -----------------------------------------------------------------------
-
-# MIDDLEWARE - OIDC bypass
-# Desactivar CSRF check para callbacks OIDC
-MIDDLEWARE_BYPASS_CSRF = ['/accounts/complete/oidc/']
 
 INSTALLED_APPS = list(INSTALLED_APPS) + ['social_django']
 

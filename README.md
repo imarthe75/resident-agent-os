@@ -135,7 +135,39 @@ docker compose up -d
 psql -U admin -d db_resident_knowledge -h localhost < sql/auditoria.sql
 ```
 
-### 3. Leer el estado del agente (Rito de Inicio)
+### 3. Levantar Servicios Satélites y Proxy Inverso (Kiwi, Plane y Proxy)
+
+Este framework incluye manifiestos pre-configurados para levantar Kiwi TCMS y Plane usando la base de datos centralizada de desarrollo, pre-configurando OIDC para Authentik, y enrutando todo mediante un Proxy Inverso Global (Caddy) para habilitar SSL en los puertos estándar `80` y `443`:
+
+#### Kiwi TCMS:
+```bash
+cd services/kiwi
+docker compose up -d
+```
+- **Configuración de base de datos:** Conectado directamente a la base de datos remota `kiwi_db` en `10.4.3.23:5432`.
+- **Configuración OIDC:** Se gestiona mediante las variables `SOCIAL_AUTH_OIDC_KEY` y `SOCIAL_AUTH_OIDC_SECRET` en [services/kiwi/docker-compose.yml](file:///opt/prism/services/kiwi/docker-compose.yml).
+
+#### Plane:
+```bash
+cd services/plane
+docker compose --env-file variables.env up -d
+```
+- **Configuración de base de datos:** Conectado directamente a `plane_db` en `10.4.3.23:5432`.
+- **Configuración OIDC:** Configurable a través del portal de administración (`/god-mode/authentication/oidc`) usando las variables de referencia en [services/plane/variables.env](file:///opt/prism/services/plane/variables.env).
+
+#### Proxy Inverso Global (Caddy):
+```bash
+cd services/reverse-proxy
+docker compose up -d
+```
+- **Acceso a los servicios:**
+  - **Kiwi TCMS:** `https://kiwi.casmart.internal` (Puerto 443 estándar)
+  - **Plane:** `https://plane.casmart.internal` (Puerto 443 estándar)
+- **SSL/TLS:** Caddy genera y renueva automáticamente certificados SSL auto-firmados (CA interna de Caddy) para los dominios `.internal` locales.
+
+Consulte las instrucciones detalladas de configuración y URLs de callback de OIDC con Authentik en el [reporte de despliegue](file:///home/kiwi/.gemini/antigravity-ide/brain/d2294703-1ee8-49bc-8c1c-c5e308424758/walkthrough.md).
+
+### 4. Leer el estado del agente (Rito de Inicio)
 
 ```bash
 cat .agent/STATE.md     # pendientes de la última sesión

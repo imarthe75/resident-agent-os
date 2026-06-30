@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  gitea-bridge:
+    build: .
+    container_name: gitea-bridge
+    restart: always
+    environment:
+      - AUTHENTIK_BASE=https://auth.casmart.internal
+      - OIDC_APP_SLUG=plane
+    extra_hosts:
+      - "auth.casmart.internal:10.4.3.208"
+    networks:
+      - plane_net
+
+networks:
+  plane_net:
+    name: plane_default
+    external: true

@@ -28,28 +28,28 @@ print_info() {
 
 # Test 1: Verificar que el contenedor Kiwi está corriendo
 echo "Test 1: Verificar que Kiwi está corriendo..."
-CONTAINER_ID=$(docker-compose -f services/kiwi/docker-compose.yml ps -q kiwi 2>/dev/null || echo "")
+CONTAINER_ID=$(docker compose -f services/kiwi/docker compose.yml ps -q kiwi 2>/dev/null || echo "")
 if [ -n "$CONTAINER_ID" ]; then
     print_status 0 "Contenedor Kiwi está corriendo (ID: ${CONTAINER_ID:0:12})"
 else
     print_info "Contenedor no está corriendo. Iniciando..."
-    docker-compose -f services/kiwi/docker-compose.yml up -d
+    docker compose -f services/kiwi/docker compose.yml up -d
     sleep 10
-    CONTAINER_ID=$(docker-compose -f services/kiwi/docker-compose.yml ps -q kiwi)
+    CONTAINER_ID=$(docker compose -f services/kiwi/docker compose.yml ps -q kiwi)
     print_status 0 "Contenedor iniciado (ID: ${CONTAINER_ID:0:12})"
 fi
 
 # Test 2: Verificar tabla de sesiones en BD
 echo ""
 echo "Test 2: Verificar tabla de sesiones en base de datos..."
-docker-compose -f services/kiwi/docker-compose.yml exec -T kiwi python manage.py shell -c \
+docker compose -f services/kiwi/docker compose.yml exec -T kiwi python manage.py shell -c \
     "from django.contrib.sessions.models import Session; print(f'Sessions in DB: {Session.objects.count()}')" > /dev/null 2>&1
 print_status $? "Tabla de sesiones accesible"
 
 # Test 3: Verificar configuración OIDC
 echo ""
 echo "Test 3: Verificar configuración OIDC..."
-docker-compose -f services/kiwi/docker-compose.yml exec -T kiwi python manage.py shell -c "
+docker compose -f services/kiwi/docker compose.yml exec -T kiwi python manage.py shell -c "
 from django.conf import settings
 
 checks = [
@@ -76,7 +76,7 @@ print_status $? "Todas las configuraciones OIDC correctas"
 # Test 4: Verificar custom_urls.py tiene csrf_exempt
 echo ""
 echo "Test 4: Verificar custom_urls.py tiene csrf_exempt en callback..."
-docker-compose -f services/kiwi/docker-compose.yml exec -T kiwi grep -q "csrf_exempt" /venv/lib/python3.12/site-packages/tcms/settings/custom_urls.py
+docker compose -f services/kiwi/docker compose.yml exec -T kiwi grep -q "csrf_exempt" /venv/lib/python3.12/site-packages/tcms/settings/custom_urls.py
 print_status $? "csrf_exempt importado y usado en custom_urls.py"
 
 # Test 5: Probar que el servidor responde
@@ -114,6 +114,6 @@ echo "  3. Completar autenticación en Authentik"
 echo "  4. Si se redirige correctamente a Kiwi = ✓ FIX EXITOSO"
 echo ""
 echo "🔍 Diagnosticar si falla:"
-echo "  - docker-compose -f services/kiwi/docker-compose.yml logs -f kiwi"
+echo "  - docker compose -f services/kiwi/docker compose.yml logs -f kiwi"
 echo "  - Buscar 'AuthStateMissing' o 'CSRF' en logs"
 echo ""

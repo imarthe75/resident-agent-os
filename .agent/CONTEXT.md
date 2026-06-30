@@ -11,3 +11,8 @@ El propósito del Agente Residente es servir como un operador inteligente con co
 - **Valkey Semantic Cache:** Caché inteligente basada en similitud de embeddings para entregar respuestas ultra-rápidas a consultas repetitivas de LLMs.
 - **Postgres pgvector:** Memoria semántica persistente en disco local.
 - **MCP (Model Context Protocol):** La pasarela segura para interactuar con herramientas del sistema operativo.
+
+## 🏢 Ecosistema Casmart
+- **Kiwi TCMS**: Sistema de gestión de casos de prueba.
+- **Plane**: Herramienta de gestión de proyectos, integrada mediante un puente Gitea para utilizar Authentik como IdP (Identity Provider).
+- **Infraestructura**: Host local (10.4.3.30), Authentik Server (10.4.3.208), DB Server (10.4.3.23).
