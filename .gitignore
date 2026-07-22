@@ -8,6 +8,8 @@ secrets/
 *.key
 *.pem
 *.p12
+*.ppk
+*.pub
 
 # Memoria privada del agente (brain ephémero)
 .agent/brain/

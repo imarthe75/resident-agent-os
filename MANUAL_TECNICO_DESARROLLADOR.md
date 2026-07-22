@@ -1,7 +1,9 @@
 # Manual Técnico Completo para Desarrolladores — Módulo ConsultaSmart (Universal RAG)
-**C&A Smart Systems — Edición Profesional Ampliada v3.0 (Julio 2026)**
+**C&A Smart Systems — Edición Profesional Ampliada v3.1 (Julio 2026)**
 
-Este documento contiene la documentación técnica exhaustiva, diagramas de secuencia, arquitectura de microservicios, estructura completa en PostgreSQL, pipeline de RAG, sistema de caché en Redis, referencia completa de la API REST (con matriz real de autenticación/autorización por endpoint), rate limiting, hallazgos y remediación de la auditoría de seguridad del 2026-07-22, conformidad con los estándares de `docs/skills/` y `docs/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`, y guía de extensión para desarrolladores.
+Este documento contiene la documentación técnica exhaustiva, diagramas de secuencia, arquitectura de microservicios, estructura completa en PostgreSQL, pipeline de RAG (incluyendo retrieval híbrido y LLM personalizado por tema), sistema de caché en Redis, referencia completa de la API REST (con matriz real de autenticación/autorización por endpoint), rate limiting, hallazgos y remediación de dos rondas de auditoría de seguridad (2026-07-22 mañana y tarde), conformidad con los estándares de `docs/skills/` y `docs/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`, y guía de extensión para desarrolladores.
+
+**Nota de procedencia:** la segunda ronda de funcionalidades (salud de indexado, regresión de prompts, feedback de usuario, retrieval híbrido, LLM por tema, observabilidad) fue implementada por el equipo con **Google Antigravity**; esta revisión verificó ese código contra el sistema real en ejecución (contenedor Docker `consulta-smart-backend`, base de datos PostgreSQL real) y corrigió los hallazgos encontrados — ver §14.
 
 **Convención de confianza usada en este documento** (ver `docs/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` §0): cada hallazgo se marca **[Cierto]** (verificado leyendo el código real, citado archivo:línea), **[Probable]** (inferido de patrones consistentes) o **[Hipótesis]** (sospecha razonable, no verificada). Ningún hallazgo de esta ronda se declara "100% corregido" sin la cita exacta del cambio aplicado.
 
@@ -65,9 +67,10 @@ Todas las entidades están modeladas en SQLAlchemy Async (`app/infrastructure/mo
 | `document_chunks` | `id`, `document_id` (FK), `chunk_number`, `text`, `token_count`, `embedding` (`Vector(384)`, pgvector, nullable), `doc_metadata` | El `embedding` puede ser `NULL` si la generación falló (ver hallazgo RAG-01) |
 | `vector_embeddings` | — | Tabla presente en el modelo pero sin uso activo confirmado en las rutas actuales (los embeddings reales viven en `document_chunks.embedding`) |
 | `chat_sessions` | `id`, `user_id` (FK), `title`, `doc_metadata`, `total_tokens_used` | `messages` con cascade delete-orphan |
-| `chat_messages` | `id`, `session_id` (FK), `role`, `content`, `sources` (JSON), `tokens_used` | |
+| `chat_messages` | `id`, `session_id` (FK), `role`, `content`, `sources` (JSON), `feedback_rating` (`'up'`/`'down'`/`NULL`, nuevo), `feedback_text` (nuevo), `tokens_used` | Columnas de feedback agregadas 2026-07-22 tarde — ver hallazgo MIG-01 (§14) sobre por qué requirieron un parche de esquema manual |
 | `system_configs` | `key` (PK), `value`, `description` | Config genérica clave/valor |
-| `chatbot_profiles` | `id` (str50, PK **libre, sin FK a tenant/owner**), `name`, `system_prompt`, `welcome_message`, `title`, `subtitle`, `logo_url`, `icon`, `primary_color`, `strictness_level`, `strictness_score`, `temperature`, `top_p`, `forbidden_topics`, `rejection_message`, `config_metadata` (JSON), `is_active` | **Sin columna `owner_id`/`created_by`** — ver hallazgo AUTH-04 |
+| `chatbot_profiles` | `id` (str50, PK **libre, sin FK a tenant/owner**), `name`, `system_prompt`, `welcome_message`, `title`, `subtitle`, `logo_url`, `icon`, `primary_color`, `strictness_level`, `strictness_score`, `temperature`, `top_p`, `forbidden_topics`, `rejection_message`, `llm_provider` (nuevo, default `"default"`), `llm_model` (nuevo), `custom_api_key` (nuevo, **cifrado at rest** — ver §14.5), `config_metadata` (JSON), `is_active` | **Sin columna `owner_id`/`created_by`** — ver hallazgo AUTH-04 |
+| `prompt_test_cases` | `id`, `profile_id` (FK→`chatbot_profiles.id`), `query`, `expected_keywords` (JSON, lista), `description` | Nueva tabla (2026-07-22 tarde) — batería de regresión de prompts por tema, ver §14.2 |
 
 ### DDL de referencia (`chatbot_profiles`)
 
@@ -225,14 +228,20 @@ Ningún endpoint tenía límite de tasa antes de esta auditoría (hallazgo DOS-0
 | GET/POST | `/api/v1/admin/configs`, `/configs/{key}` | `require_admin` (antes: ninguna) | |
 | POST | `/api/v1/admin/generate-prompt` | `require_admin` + rate limit (antes: ninguna) | Meta-prompting CRAFT/CREA/ASPECCT |
 | GET | `/api/v1/admin/chatbot/profiles` | Pública (por diseño, widget embebible) | `response_model` sanitizado — ya no expone `system_prompt`/guardrails |
-| POST | `/api/v1/admin/chatbot/profiles` | `require_admin` (antes: ninguna) | Crea/actualiza tema+guardrails de un tenant |
+| GET | `/api/v1/admin/chatbot/profiles/admin-list` | `require_admin` | Nuevo — perfiles completos con `llm_provider`/`llm_model` y `custom_api_key` **enmascarada** (nunca en claro) |
+| POST | `/api/v1/admin/chatbot/profiles` | `require_admin` (antes: ninguna) | Crea/actualiza tema+guardrails de un tenant; `custom_api_key` se cifra antes de guardar (§14.5) |
 | DELETE | `/api/v1/admin/chatbot/profiles/{id}` | `require_admin` | Ya tenía protección; se centralizó el chequeo |
-| GET | `/api/v1/admin/chatbot/documents` | `require_admin` (antes: ninguna) | |
+| GET | `/api/v1/admin/chatbot/profiles/{id}/test-cases` \| POST \| DELETE `/test-cases/{case_id}` | `require_admin` | Nuevo — CRUD de casos de regresión de prompts (§14.2) |
+| POST | `/api/v1/admin/chatbot/profiles/{id}/run-regression` | `require_admin` | Nuevo — ejecuta la batería de regresión contra el System Prompt vigente (§14.2) |
+| GET | `/api/v1/admin/chatbot/documents` | `require_admin` (antes: ninguna) | Ahora incluye `embedded_chunk_count`/`health_pct` por documento (§14.1) |
 | POST | `/api/v1/admin/chatbot/documents/upload` | `require_admin` + rate limit (antes: ninguna) | |
+| POST | `/api/v1/admin/chatbot/documents/{id}/reindex` | `require_admin` | Nuevo — reintenta el embedding de un documento sin re-subir el archivo (§14.1) |
 | DELETE | `/api/v1/admin/chatbot/documents/{id}` | `require_admin` | |
 | POST | `/api/v1/admin/chatbot/documents/{id}/toggle` \| `/category` | `require_admin` (antes: ninguna) | |
 | GET | `/api/v1/admin/users` | `require_admin` | |
 | POST | `/api/v1/admin/users/{id}/role` | `require_admin` | Escalación de privilegios; frontend ahora pide confirmación |
+| GET | `/api/v1/admin/stats/llm-router` | `require_admin` | Nuevo — panel de observabilidad: proveedores activos, feedback agregado, estado de caché (§14.4) |
+| POST | `/api/v1/chat/messages/{id}/feedback` | Autenticado + dueño (BOLA corregido) | Nuevo — 👍/👎 por respuesta; verificaba solo que el mensaje existiera, sin checar dueño de la sesión — corregido con `JOIN` a `chat_sessions.user_id` (§14.3) |
 | POST | `/api/v1/documents/upload` | `require_admin` + rate limit | |
 | GET | `/api/v1/documents/{id}` | Autenticado + dueño u admin (BOLA correcto) | |
 | GET | `/api/v1/documents` | Autenticado | Ya no filtra a "todos" como fallback (hallazgo BOLA-02 corregido) |
@@ -303,7 +312,52 @@ Cada uno documenta únicamente cambios de impacto estructural/de seguridad (no t
 
 ---
 
-## 12. Manual de Despliegue de SDK Widget Web
+## 14. Segunda Ronda — Funcionalidades de IA/UX y su Revisión (2026-07-22, tarde)
+
+Esta ronda implementó (equipo + Google Antigravity) las tres propuestas iniciales del informe de análisis de sistemas CA-CS-A-01 más varias adicionales. Cada una se verificó contra el contenedor real `consulta-smart-backend` en ejecución (no solo lectura de código) — incluyendo consultas directas a la base de datos PostgreSQL real y pruebas de construcción de objetos Python dentro del contenedor.
+
+### 14.1 Salud de indexado y reintento (Prioridad #2 del informe)
+
+`GET /api/v1/admin/chatbot/documents` ahora calcula, por documento, `embedded_chunk_count` y `health_pct` (porcentaje de chunks con embedding real vs. total) mediante una subconsulta agregada (`func.count`/`func.sum(case(...))`). `POST /admin/chatbot/documents/{id}/reindex` reconstruye los chunks a partir del texto ya extraído (sin re-subir el archivo) y regenera los embeddings, actualizando `chunk_count`/`status`/`processing_error`. En el frontend, `components/DocumentUpload.jsx` muestra una barra de salud con color semántico (`--cs-success`/`--cs-warning`/`--cs-danger` según `health_pct`) y un botón "Reintentar" con estados `loading`/`done`/`error` y auto-limpieza. **Verificado [Cierto]:** construcción y llamada real dentro del contenedor, sin errores; consulta agregada probada contra la tabla `document_chunks` real.
+
+### 14.2 Batería de regresión de prompts (Prioridad #6 del informe)
+
+Nueva tabla `prompt_test_cases` (pregunta + `expected_keywords` esperadas por tema) y endpoint `POST /admin/chatbot/profiles/{id}/run-regression`, que ejecuta cada caso guardado contra `chat_service.process_query()` real y marca `is_passed` según si la respuesta contiene las palabras clave esperadas. Permite detectar si un cambio al System Prompt de un tema rompió respuestas que antes eran correctas, antes de publicarlo.
+
+### 14.3 Feedback de usuario 👍/👎 (Prioridad #5 del informe) — BOLA corregido
+
+`POST /api/v1/chat/messages/{id}/feedback` guarda `feedback_rating`/`feedback_text` en `ChatMessageModel`. **Hallazgo [Cierto] encontrado y corregido en esta revisión:** la versión original resolvía el mensaje únicamente por `message_id`, sin verificar que perteneciera a una sesión del usuario autenticado — cualquier usuario con sesión válida podía calificar (o adjuntar comentario a) un mensaje de **otro usuario** si conocía o adivinaba su UUID. Se corrigió agregando un `JOIN` con `ChatSessionModel` filtrando por `user_id` del solicitante, más validación de que `rating` sea exactamente `'up'`/`'down'` y que el mensaje calificado sea de rol `assistant`. `ChatInterface.jsx` ya renderizaba correctamente los botones de feedback con estado visual persistente (`feedbackState`/`msg.feedback_rating`).
+
+### 14.4 Retrieval híbrido y observabilidad del router LLM (Prioridades #3 y #9)
+
+`knowledge_base.py` ahora ejecuta búsqueda léxica (`to_tsvector`/`ts_rank` en español, con fallback `ILIKE`) **en paralelo** con la búsqueda vectorial (`pgvector`, distancia coseno `<=>`), fusionando y deduplicando resultados — resuelve el punto débil documentado de los embeddings puros para folios/identificadores exactos. Las consultas usan SQL parametrizado (`sqlalchemy.text` con bind params), sin riesgo de inyección. `GET /admin/stats/llm-router` expone proveedores activos (Groq/Vertex/NVIDIA NIM/Ollama), tasa de satisfacción agregada (`feedback_rating`) y estado de la caché semántica.
+
+### 14.5 LLM personalizado por tema/tenant — bug de integración corregido + cifrado en reposo
+
+`ChatbotProfileModel` agregó `llm_provider`/`llm_model`/`custom_api_key` para permitir que un tema use un proveedor LLM distinto al global. Dos hallazgos reales encontrados y corregidos en esta revisión:
+
+- **[Cierto] Bug de integración que rompía la función por completo:** `chat_service.py` invocaba `SmartLLMRouter(custom_provider=..., custom_api_key=..., custom_model=...)`, pero el constructor de `SmartLLMRouter` no aceptaba esos parámetros (`TypeError` en cada intento, silenciosamente absorbido por el `try/except` de fallback — la función nunca llegó a usar el proveedor personalizado, aunque el UI y el DTO ya lo exponían). Se implementó `SmartLLMRouter.__init__(custom_provider, custom_api_key, custom_model)` con soporte real para `groq`, `gemini`, `nvidia` y `openai` (vía un adaptador mínimo compatible con la API de OpenAI); `vertex`/`ollama` no aceptan una API key simple y lanzan `ValueError` explícito, capturado por el mismo fallback ya existente. **Verificado [Cierto]:** construcción real de `SmartLLMRouter` con cada variante dentro del contenedor, incluyendo el rechazo correcto de `ollama`.
+- **[Cierto] `custom_api_key` se guardaba y usaba en texto plano** en PostgreSQL — un campo que contiene credenciales reales de terceros (OpenAI/Anthropic/etc., con facturación asociada), no un dato decorativo. Se agregó `app/core/crypto.py` (Fernet, clave derivada de `SECRET_KEY`) — se cifra al guardar (`save_chatbot_profile`), se descifra solo en memoria para enmascarar en `admin-list` y para la llamada real al proveedor en `chat_service.py`. Compatible hacia atrás: si un valor no descifra como token Fernet válido (legado), se usa tal cual en vez de fallar. **Verificado [Cierto]:** no había ningún tema con `custom_api_key` configurada en la base real al momento de la revisión, por lo que no fue necesaria una migración de datos existentes.
+
+### 14.6 Corrección de esquema — columnas nuevas ausentes en la base real (MIG-01)
+
+**[Cierto] Hallazgo de mayor severidad práctica de esta ronda:** el proyecto no usa Alembic (está en `requirements.txt` pero nunca se inicializó — sin `alembic.ini` ni `migrations/`); `init_db()` solo ejecuta `Base.metadata.create_all`, que **crea tablas nuevas pero nunca altera una tabla ya existente para agregarle una columna**. Se verificó por introspección directa (`information_schema.columns`) contra la base real que `chatbot_profiles.llm_provider/llm_model/custom_api_key` sí existían (la tabla se recreó después de agregar esos campos al modelo), pero `chat_messages.feedback_rating/feedback_text` **no existían** — cualquier llamada a `GET /admin/stats/llm-router` o `POST /chat/messages/{id}/feedback` fallaba con un error real de PostgreSQL (columna inexistente). Se corrigió en dos niveles: (1) se aplicó `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS ...` directamente contra la base real; (2) se agregó `_apply_schema_patches()` en `app/core/database.py`, ejecutado en cada arranque junto a `create_all`, para que futuras columnas nuevas en tablas existentes no vuelvan a quedar huérfanas. **Recomendación de fondo:** inicializar Alembic formalmente en la próxima iteración mayor de esquema — este parche es una mitigación, no un reemplazo de migraciones versionadas.
+
+### 14.7 Componentes construidos pero nunca conectados — corregido
+
+**[Cierto]** `components/admin/PromptRegressionPanel.jsx` y `components/admin/LLMObservabilityPanel.jsx` (que implementan §14.2 y §14.4 en el frontend) existían como archivos completos y funcionales, pero **no estaban importados por ningún otro archivo del proyecto** — confirmado por grep sobre todo `frontend/src`. El backend de ambas funcionalidades funcionaba (probado directamente contra la API), pero el administrador no tenía forma de acceder a ellas desde la interfaz. Se conectaron en `AdminPage.jsx`: `LLMObservabilityPanel` como una tercera pestaña "Observabilidad", y `PromptRegressionPanel` embebido debajo del panel de configuración del tema activo (recibe `profileId={selectedProfileId}`). De paso se corrigieron dos detalles menores en `PromptRegressionPanel.jsx`: un fragmento `k.strip ? k.strip() : k.trim()` (sintaxis de Python colada en JS — inofensivo porque `.strip` no existe en `String.prototype` y el ternario siempre caía al `.trim()`, pero confuso) y la ausencia de confirmación antes de `handleDeleteTestCase` (ahora usa `window.confirm`, igual que el resto del panel).
+
+### 14.8 Bug de CSS preexistente — `@import` de fuente después de Tailwind
+
+**[Cierto]** `frontend/src/index.css` tenía `@import "tailwindcss";` antes de `@import url(...fonts.googleapis.com...)`. Esto no lo introdujo ninguna de las dos rondas de esta sesión (confirmado con `git diff` contra el último commit: el orden ya era así) pero se detectó al observar los logs del contenedor `consulta-smart-frontend` en vivo: Vite reportaba `@import must precede all other statements` porque Tailwind v4 expande su propio `@import` en miles de líneas de utilidades, empujando el `@import` de la fuente fuera de la posición "primero en el archivo" que exige la especificación CSS. Se corrigió invirtiendo el orden (fuente primero, Tailwind después) — verificado en los logs del contenedor tras el cambio: la advertencia desapareció.
+
+### 14.9 Tokens de diseño semánticos (Prioridad #4 del informe)
+
+`frontend/src/index.css` agregó tokens `--color-success/warning/danger/info` (vía `@theme` de Tailwind v4) y sus equivalentes `--cs-*` con variantes light/dark, más utilidades `.cs-chip--{success,warning,danger,info}`. Reemplazan los colores Tailwind ad hoc (`emerald-600`, `blue-500/10`, etc.) que antes se elegían por archivo. Usados consistentemente en la barra de salud de indexado, las citas de fuente y los chips de estado.
+
+---
+
+## 15. Manual de Despliegue de SDK Widget Web
 
 El widget flotante se integra agregando el snippet oficial en el archivo HTML del cliente:
 
@@ -322,15 +376,16 @@ El widget consume `GET /api/v1/admin/chatbot/profiles` (público, ahora sanitiza
 
 ---
 
-## 13. Firmas de Conformidad Técnica
+## 16. Firmas de Conformidad Técnica
 
 | Elaboró e Implementó | Aprobó y Autorizó |
 | :--- | :--- |
-| **Israel Martínez Hernández**<br>*Líder de Arquitectura e Inteligencia Artificial*<br>_(auditoría y remediación de seguridad 2026-07-22 asistida por Claude)_ | **Yareth Mora Resendiz**<br>*Directora de Tecnología y Sistemas* |
+| **Israel Martínez Hernández**<br>*Líder de Arquitectura e Inteligencia Artificial*<br>_(auditoría y remediación de seguridad 2026-07-22 asistida por Claude; funcionalidades de la ronda de tarde con Google Antigravity)_ | **Yareth Mora Resendiz**<br>*Directora de Tecnología y Sistemas* |
 
 ### Control de versiones
 
 | Versión | Fecha | Autor | Descripción del cambio |
 |---|---|---|---|
 | 2.5 | Julio 2026 | Israel Martínez Hernández | Edición profesional ampliada original |
-| 3.0 | 2026-07-22 | Claude (asistido) | Se incorpora: modelo de datos completo (todas las tablas), sección de autenticación/autorización real, matriz de auth por endpoint, rate limiting, auditoría de seguridad completa con hallazgos [Cierto] y su remediación aplicada en código, documentación colocalizada por módulo, y conformidad con `docs/skills/`. El contenido de arquitectura/auditoría que antes vivía incorrectamente en el manual de usuario `CA-CS-M-01` se consolidó aquí. |
+| 3.0 | 2026-07-22 (mañana) | Claude (asistido) | Se incorpora: modelo de datos completo (todas las tablas), sección de autenticación/autorización real, matriz de auth por endpoint, rate limiting, auditoría de seguridad completa con hallazgos [Cierto] y su remediación aplicada en código, documentación colocalizada por módulo, y conformidad con `docs/skills/`. El contenido de arquitectura/auditoría que antes vivía incorrectamente en el manual de usuario `CA-CS-M-01` se consolidó aquí. |
+| 3.1 | 2026-07-22 (tarde) | Claude (asistido) | Se documentan las funcionalidades de la segunda ronda (Google Antigravity): salud de indexado + reintento, regresión de prompts, feedback de usuario, retrieval híbrido, LLM personalizado por tema, observabilidad del router, tokens de diseño semánticos (§14). Se corrigen y documentan 4 hallazgos reales encontrados al verificar ese código contra el sistema en ejecución: columnas de BD faltantes en la tabla real (MIG-01), BOLA en el endpoint de feedback, `custom_api_key` en texto plano (ahora cifrada), y un bug de integración que dejaba completamente no-funcional el LLM personalizado por tema. |

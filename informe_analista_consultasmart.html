@@ -1,0 +1,352 @@
+<title>Informe de Análisis de Sistemas — ConsultaSmart</title>
+<style>
+  :root{
+    --bg:#f4f6fa;
+    --surface:#ffffff;
+    --surface-alt:#eaeff5;
+    --ink:#142032;
+    --ink-muted:#5b6b7e;
+    --line:#dbe2ea;
+    --accent:#1a3a5c;
+    --accent-2:#142e4a;
+    --good:#0f8f5f;
+    --good-bg:#e3f5ec;
+    --warn:#a56a08;
+    --warn-bg:#fbf1de;
+    --crit:#b23a3a;
+    --crit-bg:#fbe9e9;
+    --info:#2563a8;
+    --info-bg:#e8f0fa;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --sans: 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1420;
+      --surface:#111d2c;
+      --surface-alt:#16243a;
+      --ink:#e8edf3;
+      --ink-muted:#93a2b5;
+      --line:#25344a;
+      --accent:#6ea8dd;
+      --accent-2:#8fbfec;
+      --good:#4fd699;
+      --good-bg:#0f2a20;
+      --warn:#e0ad4f;
+      --warn-bg:#2c220e;
+      --crit:#e77b7b;
+      --crit-bg:#2c1414;
+      --info:#7fb2e8;
+      --info-bg:#132437;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1420; --surface:#111d2c; --surface-alt:#16243a; --ink:#e8edf3; --ink-muted:#93a2b5;
+    --line:#25344a; --accent:#6ea8dd; --accent-2:#8fbfec; --good:#4fd699; --good-bg:#0f2a20;
+    --warn:#e0ad4f; --warn-bg:#2c220e; --crit:#e77b7b; --crit-bg:#2c1414; --info:#7fb2e8; --info-bg:#132437;
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f6fa; --surface:#ffffff; --surface-alt:#eaeff5; --ink:#142032; --ink-muted:#5b6b7e;
+    --line:#dbe2ea; --accent:#1a3a5c; --accent-2:#142e4a; --good:#0f8f5f; --good-bg:#e3f5ec;
+    --warn:#a56a08; --warn-bg:#fbf1de; --crit:#b23a3a; --crit-bg:#fbe9e9; --info:#2563a8; --info-bg:#e8f0fa;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+       -webkit-font-smoothing:antialiased;}
+  .page{max-width:920px;margin:0 auto;padding:56px 24px 96px;}
+
+  h1,h2,h3{font-family:var(--serif);text-wrap:balance;color:var(--ink);font-weight:600;}
+  h1{font-size:2.1rem;margin:0 0 6px;letter-spacing:-0.01em;}
+  h2{font-size:1.4rem;margin:0 0 4px;}
+  h3{font-size:1.05rem;margin:0 0 2px;font-style:italic;color:var(--accent);}
+  p{margin:0 0 14px;max-width:68ch;}
+  .lede{color:var(--ink-muted);font-size:1.02rem;max-width:60ch;}
+
+  /* ---- header / masthead ---- */
+  .masthead{border-bottom:3px solid var(--accent);padding-bottom:20px;margin-bottom:8px;}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+           color:var(--accent);margin-bottom:10px;}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:16px;font-family:var(--mono);
+        font-size:.78rem;color:var(--ink-muted);}
+  .meta b{color:var(--ink);font-weight:600;}
+
+  /* ---- table of contents ---- */
+  nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+          padding:18px 22px;margin:32px 0 40px;}
+  nav.toc .eyebrow{margin-bottom:8px;}
+  nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:32px;}
+  nav.toc li{margin-bottom:6px;font-size:.92rem;}
+  nav.toc a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent;}
+  nav.toc a:hover{border-color:var(--accent);}
+
+  section{margin:48px 0;}
+  section > .eyebrow{margin-bottom:6px;}
+
+  .status-row{display:flex;align-items:center;gap:10px;margin:2px 0 18px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.7rem;
+        font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:100px;
+        border:1px solid transparent;}
+  .chip.good{background:var(--good-bg);color:var(--good);border-color:color-mix(in srgb, var(--good) 35%, transparent);}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb, var(--warn) 35%, transparent);}
+  .chip.crit{background:var(--crit-bg);color:var(--crit);border-color:color-mix(in srgb, var(--crit) 35%, transparent);}
+  .chip.info{background:var(--info-bg);color:var(--info);border-color:color-mix(in srgb, var(--info) 35%, transparent);}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:14px;}
+  .card + .card{margin-top:14px;}
+  .card .tag{font-family:var(--mono);font-size:.68rem;color:var(--ink-muted);letter-spacing:.03em;}
+  code, .code{font-family:var(--mono);font-size:.85em;background:var(--surface-alt);
+       padding:1px 5px;border-radius:4px;color:var(--accent-2);}
+  :root[data-theme="dark"] code, :root[data-theme="dark"] .code{color:var(--accent);}
+  @media (prefers-color-scheme: dark){ code, .code{color:var(--accent);} }
+
+  .finding{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;}
+  .finding + .finding{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+
+  .before-after{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0;}
+  .before-after .box{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:var(--surface);}
+  .before-after .box h4{margin:0 0 8px;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;
+       text-transform:uppercase;color:var(--ink-muted);}
+  .before-after .box ul{margin:0;padding-left:1.1em;font-size:.9rem;}
+  .before-after .box li{margin-bottom:6px;}
+  @media (max-width:640px){ .before-after{grid-template-columns:1fr;} nav.toc ol{columns:1;} }
+
+  /* ---- priority table ---- */
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+  table.priority{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--surface);}
+  table.priority th{text-align:left;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;
+       text-transform:uppercase;color:var(--ink-muted);background:var(--surface-alt);
+       padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.priority td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.priority tr:last-child td{border-bottom:none;}
+  table.priority td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-muted);}
+  .badge{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:700;
+        padding:2px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em;}
+  .badge.alto{background:var(--crit-bg);color:var(--crit);}
+  .badge.medio{background:var(--warn-bg);color:var(--warn);}
+  .badge.bajo{background:var(--good-bg);color:var(--good);}
+
+  footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
+         font-family:var(--mono);font-size:.75rem;color:var(--ink-muted);
+         display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+
+  ::selection{background:color-mix(in srgb, var(--accent) 30%, transparent);}
+  a{color:var(--accent);}
+</style>
+
+<div class="page">
+
+  <div class="masthead">
+    <div class="eyebrow">Informe de análisis de sistemas · Interno</div>
+    <h1>ConsultaSmart — Consistencia, Experiencia y Producto</h1>
+    <p class="lede">Lectura del sistema real (código de <code>consulta-smart/frontend</code> y <code>backend</code> más las capturas de pantalla compartidas de <code>/documentos</code>, <code>/guia-widget</code>, <code>/documentacion</code> y <code>/admin</code>) desde la perspectiva de un analista de sistemas: qué tan consistente es la interfaz, qué tan bien resuelve la tarea del administrador, y dónde el motor de IA/RAG tiene margen real de mejora.</p>
+    <div class="meta">
+      <span><b>Documento</b> CA-CS-A-01</span>
+      <span><b>Fecha</b> 22/07/2026</span>
+      <span><b>Para</b> Israel Martínez Hernández</span>
+      <span><b>Alcance</b> consulta-smart (frontend + backend)</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <div class="eyebrow">Contenido</div>
+    <ol>
+      <li><a href="#consistencia">1. Consistencia visual — ya corregida</a></li>
+      <li><a href="#ux">2. Experiencia de usuario y navegación</a></li>
+      <li><a href="#producto">3. Producto y funcionalidad</a></li>
+      <li><a href="#ia">4. Inteligencia artificial y RAG</a></li>
+      <li><a href="#priorizacion">5. Matriz de priorización</a></li>
+      <li><a href="#cierre">6. Cierre</a></li>
+    </ol>
+  </nav>
+
+  <section id="consistencia">
+    <div class="eyebrow">01 · Diseño</div>
+    <h2>Consistencia visual de los banners de módulo</h2>
+    <div class="status-row"><span class="chip good">Corregido en código</span></div>
+    <p>Confirmé en las capturas exactamente lo que señalas: cuatro páginas, cuatro tratamientos de encabezado distintos. <code>DocumentsPage.jsx</code> usaba un degradado <code>from-blue-700 via-indigo-700 to-slate-900</code>; <code>DocumentationPage.jsx</code> uno distinto (<code>from-slate-900 via-indigo-950</code>) con badge e icono decorativo de otro tamaño; <code>AdminPage.jsx</code> y <code>WidgetIntegrationPage.jsx</code> no tenían banner alguno, solo texto plano. Ninguno de los cuatro usaba los tokens de marca reales del proyecto (<code>--color-primary: #1a3a5c</code>, <code>--color-secondary: #142e4a</code> definidos en <code>index.css</code>) — cada quien eligió azules de Tailwind a mano.</p>
+
+    <div class="before-after">
+      <div class="box">
+        <h4>Antes</h4>
+        <ul>
+          <li>4 recetas de degradado distintas, ninguna con los tokens de marca</li>
+          <li>2 páginas sin banner (Admin, Widget)</li>
+          <li>3 tamaños de título distintos (text-2xl / text-3xl / text-3xl-md-4xl)</li>
+          <li>Icono decorativo con tamaños arbitrarios (200 / 240 / ausente)</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>Después</h4>
+        <ul>
+          <li>Un solo componente <code>ModuleBanner.jsx</code>, un solo degradado <code>from-primary via-secondary</code></li>
+          <li>Banner añadido a Admin y Widget — ya no hay páginas de módulo sin encabezado</li>
+          <li>Título, badge e icono decorativo con una única escala</li>
+          <li>Slots (<code>actions</code>, <code>tabs</code>) para lo que cada página necesita sin romper el patrón visual</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tag">Recomendación de seguimiento — no aplicada aún</span>
+      <p style="margin-top:8px">El banner ya está unificado, pero los colores <em>secundarios</em> (badges de estado, botones) siguen siendo Tailwind ad hoc: <code>emerald-600</code> en "Guardar"/"Hacer Admin", <code>blue-500/10</code> en el badge de Widget, un <code>yellow</code> implícito para el pill "indexed" en Documentos. Vale la pena declarar esos como tokens semánticos en <code>@theme</code> (<code>--color-success</code>, <code>--color-warning</code>, <code>--color-danger</code>) para que cualquier desarrollador nuevo los reutilice en vez de escoger un tono de verde distinto cada vez — el mismo problema que tenían los banners, un nivel más abajo.</p>
+    </div>
+  </section>
+
+  <section id="ux">
+    <div class="eyebrow">02 · Experiencia de usuario</div>
+    <h2>Navegación, densidad y mantenibilidad de la interfaz</h2>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3>Documentación duplicada en dos lugares con dos UIs distintas</h3>
+        <p><code>DocumentationPage.jsx</code> tiene una pestaña interna "2. Manual del Administrador" que explica el panel de administración con texto — al mismo tiempo que <code>AdminPage.jsx</code> es el panel real. Un administrador nuevo tiene que decidir cuál de los dos confiar. Sugerencia: la pestaña "Manual del Administrador" debería enlazar/incrustar el manual real (el <code>CA-CS-M-01</code> que acabamos de reescribir) en vez de mantener una segunda copia de la explicación que se puede desincronizar del panel real.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3><code>AdminPage.jsx</code> es un componente monolítico de más de 1400 líneas</h3>
+        <p>Selector de tema, generador de prompts, galería de plantillas, guardrails, sandbox y gestión de usuarios viven en un solo archivo. Esto no solo es deuda técnica: es la razón estructural por la que es fácil que un botón nuevo (como "Hacer Admin") se agregue sin el mismo cuidado de confirmación o estilo que el resto — nadie ve el panel completo a la vez al editarlo. Dividir en <code>&lt;ThemeSelector/&gt;</code>, <code>&lt;PromptGenerator/&gt;</code>, <code>&lt;GuardrailsPanel/&gt;</code>, <code>&lt;SandboxPanel/&gt;</code>, <code>&lt;UserRoleTable/&gt;</code> hace que cada uno sea revisable (y diseñable) de forma aislada.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip info">Bajo</span>
+      <div>
+        <h3>El selector de tema es un <code>&lt;select&gt;</code> nativo con 6+ chatbots y creciendo</h3>
+        <p>Funciona hoy con pocos temas (general, control_escolar, rpp…), pero un <code>&lt;select&gt;</code> plano no escala bien más allá de ~15-20 opciones ni permite buscar por nombre. Si el catálogo de tenants va a crecer (nuevas dependencias, nuevos sectores), conviene un combobox con búsqueda antes de que se vuelva un problema real de uso, no después.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip info">Bajo</span>
+      <div>
+        <h3>Feedback de operaciones: patrón correcto, implementación repetida</h3>
+        <p>El patrón <code>setMessage({'{'}type, text{'}'})</code> con banner de éxito/error ya existe y es el correcto (visibilidad de estado, heurística de Nielsen #1) — pero está reimplementado por página en vez de vivir en un <code>&lt;Toast/&gt;</code>/<code>useToast()</code> compartido. Mismo patrón del hallazgo de banners: la duplicación es donde la inconsistencia futura entra.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="producto">
+    <div class="eyebrow">03 · Producto</div>
+    <h2>Funcionalidad — brechas entre lo que el backend ya sabe hacer y lo que el panel expone</h2>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3>El versionado de documentos existe en el modelo pero no en la UI</h3>
+        <p><code>Document</code> ya tiene <code>group_id</code>/<code>version</code>/<code>version_label</code> en el backend (pensado para reemplazar un reglamento por una versión más nueva sin perder historial), pero ni <code>DocumentsPage.jsx</code> ni <code>AdminPage.jsx</code> muestran versiones anteriores ni permiten revertir. Es una funcionalidad ya pagada en el modelo de datos que no se está capitalizando en el producto.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip crit">Alto</span>
+      <div>
+        <h3>Sin "salud del índice" visible para el admin</h3>
+        <p>Ya documentamos en la auditoría que un fallo de embedding dura un chunk (o un documento completo) sin avisar al administrador — el documento aparece "indexed" pero puede no ser recuperable por búsqueda vectorial. Propuesta concreta: un indicador por documento (% de chunks con embedding real) y un botón "Reintentar indexado", visible en la misma tabla de <code>DocumentsPage.jsx</code> — convierte un bug silencioso en una señal que el propio admin puede resolver sin pedir soporte.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3>El sandbox prueba una pregunta a la vez; no hay regresión de prompts</h3>
+        <p>Cada vez que se edita un System Prompt o un guardrail, no hay forma de confirmar que las respuestas "buenas" de ayer siguen siendo buenas hoy — solo se prueba lo que a alguien se le ocurre escribir en el momento. Propuesta: permitir guardar un set de preguntas de referencia por tema (5-10 casos reales) y, al editar el prompt, correrlas todas automáticamente mostrando qué cambió — un arnés de regresión mínimo para prompts, no solo para código.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip info">Bajo</span>
+      <div>
+        <h3>Aislamiento multi-tenant a nivel de administración (ya reportado en auditoría)</h3>
+        <p>Hoy cualquier administrador ve y edita los temas de <em>todas</em> las dependencias. Si el plan de negocio es que cada institución tenga su propio equipo administrador (en vez de un solo equipo central para todos los tenants, como parece ser hoy), es una decisión de producto que vale la pena tomar explícitamente — el cambio de esquema (columna <code>owner_id</code> en <code>chatbot_profiles</code>) es sencillo técnicamente, pero cambia el modelo de permisos por completo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="ia">
+    <div class="eyebrow">04 · Inteligencia artificial</div>
+    <h2>Dónde el motor RAG tiene el margen de mejora más alto</h2>
+
+    <div class="finding">
+      <span class="chip crit">Alto</span>
+      <div>
+        <h3>Citas de fuente visibles en el chat, no solo en el manual</h3>
+        <p>La documentación interna promete "Cero Alucinaciones" y "Grounding Check", y el modelo <code>ChatMessageModel</code> ya guarda <code>sources</code> (JSON). Pero no confirmé que el usuario final vea, junto a cada respuesta, de qué documento/reglamento salió el dato. En un dominio legal/registral (RPP, IRCEP, Catastro) esto no es un "nice to have": es lo que le permite a un ciudadano o funcionario verificar la respuesta contra el reglamento real en vez de confiar a ciegas en el chatbot. Si <code>sources</code> no se está renderizando ya en <code>ChatInterface.jsx</code>, es la mejora de mayor impacto de confianza de todo el sistema.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3>Retrieval híbrido para folios, artículos y montos</h3>
+        <p>La búsqueda actual es vectorial pura (<code>pgvector</code>). Los embeddings son excelentes para similitud semántica ("¿cómo renuevo mi licencia?"), pero notoriamente débiles para coincidencia exacta de identificadores — un folio como <code>20040200000000117476</code> o un número de artículo legal específico. Combinar la búsqueda vectorial con una búsqueda léxica (full-text/BM25 de PostgreSQL, que ya está en el mismo motor) sobre esos mismos chunks resolvería justo el tipo de consulta donde un RAG puramente semántico falla con más frecuencia en un dominio registral.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip warn">Medio</span>
+      <div>
+        <h3>Retroalimentación del usuario final (👍/👎) como insumo de mejora continua</h3>
+        <p>Hoy no hay una señal explícita de "esta respuesta sirvió o no" capturada en <code>ChatMessageModel</code>. Agregar un control simple de aprobación/rechazo por respuesta —con comentario opcional— crea el dataset real para decidir qué documentos faltan, qué prompts confunden al modelo y qué guardrails están rechazando de más, en vez de depender solo de la intuición del administrador en el sandbox.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip info">Bajo</span>
+      <div>
+        <h3>Observabilidad del enrutador multi-proveedor</h3>
+        <p><code>smart_llm_router.py</code> ya hace fallback automático entre Groq/GCP/NVIDIA NIM, y el sandbox del admin ya muestra qué proveedor respondió — buena señal de transparencia que vale la pena extender: un panel con tasa de fallback, latencia y costo aproximado por proveedor a lo largo del tiempo, para decidir con datos (no con percepción) cuándo cambiar el proveedor por defecto.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <span class="chip info">Bajo</span>
+      <div>
+        <h3>Caché semántica, no solo exacta</h3>
+        <p>Existe una capa de caché híbrida (Redis + embeddings) mencionada en la arquitectura. Vale la pena confirmar que dos preguntas casi idénticas en redacción pero no idénticas carácter por carácter (frecuentísimo en lenguaje natural) sí comparten caché por similitud de embedding, y no solo por igualdad exacta de string — ahí vive la mayor parte del ahorro real de costo de LLM en un chatbot de atención ciudadana.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="priorizacion">
+    <div class="eyebrow">05 · Síntesis</div>
+    <h2>Matriz de priorización</h2>
+    <p>Ordenado por impacto real sobre confianza del usuario final y costo operativo, con el esfuerzo de implementación estimado a partir del código ya existente.</p>
+    <div class="table-wrap">
+      <table class="priority">
+        <thead>
+          <tr><th>#</th><th>Propuesta</th><th>Categoría</th><th>Impacto</th><th>Esfuerzo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td>Confirmar/activar citas de fuente visibles en el chat</td><td>IA / Confianza</td><td><span class="badge alto">Alto</span></td><td><span class="badge bajo">Bajo</span></td></tr>
+          <tr><td class="num">2</td><td>Indicador de salud de indexado + reintento por documento</td><td>Producto</td><td><span class="badge alto">Alto</span></td><td><span class="badge medio">Medio</span></td></tr>
+          <tr><td class="num">3</td><td>Retrieval híbrido (vectorial + léxico) para folios/artículos</td><td>IA / RAG</td><td><span class="badge alto">Alto</span></td><td><span class="badge medio">Medio</span></td></tr>
+          <tr><td class="num">4</td><td>Tokens semánticos de color (success/warning/danger)</td><td>Diseño</td><td><span class="badge medio">Medio</span></td><td><span class="badge bajo">Bajo</span></td></tr>
+          <tr><td class="num">5</td><td>👍/👎 en cada respuesta del chat</td><td>IA / Datos</td><td><span class="badge medio">Medio</span></td><td><span class="badge bajo">Bajo</span></td></tr>
+          <tr><td class="num">6</td><td>Set de regresión de prompts por tema</td><td>Producto</td><td><span class="badge medio">Medio</span></td><td><span class="badge medio">Medio</span></td></tr>
+          <tr><td class="num">7</td><td>Unificar manual del admin embebido (quitar duplicado)</td><td>UX</td><td><span class="badge medio">Medio</span></td><td><span class="badge bajo">Bajo</span></td></tr>
+          <tr><td class="num">8</td><td>Dividir <code>AdminPage.jsx</code> en subcomponentes</td><td>UX / Mantenibilidad</td><td><span class="badge medio">Medio</span></td><td><span class="badge alto">Alto</span></td></tr>
+          <tr><td class="num">9</td><td>Panel de observabilidad del enrutador LLM</td><td>IA / Operación</td><td><span class="badge bajo">Bajo</span></td><td><span class="badge medio">Medio</span></td></tr>
+          <tr><td class="num">10</td><td>Decisión de producto: admin por tenant vs. global</td><td>Producto / Seguridad</td><td><span class="badge alto">Alto</span></td><td><span class="badge alto">Alto</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="cierre">
+    <div class="eyebrow">06 · Cierre</div>
+    <h2>Qué haría primero</h2>
+    <p>Si solo se atacan tres cosas este trimestre: confirmar y, si falta, exponer las citas de fuente en el chat (#1) — es lo que más pesa en la confianza del usuario final en un dominio legal/registral; el indicador de salud de indexado (#2) — porque hoy un fallo se ve exactamente igual que un éxito; y los tokens de color semánticos (#4) — porque es la misma clase de deuda que ya pagamos al unificar los banners, y cuesta poco cerrarla ahora que el patrón está fresco.</p>
+  </section>
+
+  <footer>
+    <span>ConsultaSmart · Informe de análisis de sistemas</span>
+    <span>Claude (asistido) para C&amp;A Smart Systems</span>
+  </footer>
+
+</div>
