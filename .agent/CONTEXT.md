@@ -1,13 +1,19 @@
 # 🌌 Contexto del Agente Residente (CONTEXT.md)
 
-Este framework está diseñado para levantar agentes autónomos que coexisten en el host local de forma segura y autorregulada.
+Este framework está diseñado para gobernar y normar cómo se comportan los agentes de IA dentro de un ecosistema compuesto por el Agente Residente y tres satélites principales.
 
-## 🎯 Propósito
-El propósito del Agente Residente es servir como un operador inteligente con continuidad y memoria permanente entre sesiones. No es un script stateless que se destruye tras ejecutarse; es una entidad cognitiva que lee su historial, aprende de sus fallas pasadas (a través de la memoria semántica en Postgres) y optimiza sus respuestas gracias a la caché semántica (Valkey).
+## 🎯 Propósito del Agente Residente
+El propósito del Agente Residente es servir como un operador inteligente soberano y centralizado que mantiene el control y la bitácora del estado cognitivo de todos los proyectos en el host local.
 
-## 🛠️ Tecnologías Enlazadas
-- **ECC (Embedded Cognitive Control):** Diseñado para mantener el control interno y verificación del agente antes y después de cada acción en el código.
-- **LangGraph & Valkey:** Orquestación de flujos de trabajo asíncronos y persistencia del grafo de estados en memoria de corto plazo de Valkey.
-- **Valkey Semantic Cache:** Caché inteligente basada en similitud de embeddings para entregar respuestas ultra-rápidas a consultas repetitivas de LLMs.
-- **Postgres pgvector:** Memoria semántica persistente en disco local.
-- **MCP (Model Context Protocol):** La pasarela segura para interactuar con herramientas del sistema operativo.
+## 🛰️ Satélites Coexistentes
+1. **Consulta-Smart (`/consulta-smart`):** Chatbot impulsado por IA con RAG para consultas y análisis de documentos.
+2. **LexiVault AI (`/lexivault-ai`):** Bóveda documental segura e inteligente con extracción estructural y cifrado dinámico.
+3. **IDP-Smart (`/idp-smart`):** Extractor inteligente de PDFs a formato JSON.
+
+## 🛠️ Servicios e Integración Comunes
+El ecosistema centraliza sus servicios en la raíz y utiliza componentes corporativos compartidos:
+- **Base de Datos Externa:** Servidor PostgreSQL en `10.4.3.23` que almacena los datos de los tres proyectos satélite.
+- **Gestión de Identidad y Secretos:** Servidor Authentik y HashiCorp Vault en `10.4.3.208`.
+- **Caché y Celery Broker (`casmarts-core-cache`):** Valkey 8 local en puerto `6379`.
+- **Almacenamiento S3 (`casmarts-core-storage`):** SeaweedFS local sirviendo en puertos `9333` (master), `8080` (volume) y `8333` (S3).
+- **Procesamiento de LLM / Embeddings:** Integración directa por API con NVIDIA NIM (se configurará la clave API más adelante).

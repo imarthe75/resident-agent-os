@@ -7,25 +7,28 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 1. Lee tu leyes en `.agent/AGENT.md`.
 2. Lee tu propósito en `.agent/CONTEXT.md`.
 3. Revisa la lista de pendientes de la última sesión en la sección **"Próximos Pasos"** de este archivo.
-4. Verifica que los servicios de Valkey y Postgres estén saludables.
+4. Revisa que los servicios comunes (`casmarts-core-cache`, `casmarts-core-storage`) estén saludables.
 
 ---
 
 ## 📅 Bitácora de Sesión Actual
 
 ### 🔑 Estado del Agente:
-- **Última Conexión:** 2026-06-03
-- **Estado Cognitivo:** Operacional ✅
-- **ADRs Registrados:** 0001 (ADR Inicial de Génesis)
+- **Última Conexión:** 2026-06-30
+- **Estado Cognitivo:** Operacional - Integración Satélites Completa (Sin Docling Local) ✅
+- **Proyectos Gobernados:** `resident-agent-os`, `consulta-smart`, `lexivault-ai`, `idp-smart`
 
 ### 🛠️ Tareas Completadas hoy:
-- [x] Creación de la estructura del framework base.
-- [x] Configuración de docker-compose para Valkey y Postgres (pgvector).
-- [x] Redacción de leyes operacionales (AGENT.md) y contexto (CONTEXT.md).
+- [x] Configuración centralizada de servicios en la raíz (`docker-compose.yml` para cache, storage y dashboard). Se excluyó Docling local para usar NVIDIA NIM en su lugar.
+- [x] Vinculación de `consulta-smart` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
+- [x] Vinculación de `lexivault-ai` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
+- [x] Vinculación de `idp-smart` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
+- [x] Conceptualización del contexto cognitivo (`CONTEXT.md`, `MAP.md` y `STATE.md`) para gobernanza unificada.
 
 ### 🚨 Lecciones Aprendidas:
-- *La consistencia en las rutas de datos relativas al host asegura la portabilidad del contenedor y preservación del estado.*
+- *El uso de extra_hosts en los contenedores docker permite la resolución DNS de servidores centrales sin intervenir la configuración del host.*
+- *La exclusión de servicios pesados locales (como docling local) optimiza el uso de CPU/RAM del host y facilita el uso de APIs externas de alto rendimiento como NVIDIA NIM.*
 
 ### 🚀 Próximos Pasos:
-- [ ] Implementar los scripts del núcleo de memoria (`semantic_cache.py` y `long_term_memory.py`).
-- [ ] Configurar el archivo README.md de inicialización para desarrolladores.
+- [ ] Inicializar y ejecutar todos los servicios con la nueva configuración.
+- [ ] Validar conectividad de cada servicio satélite a la base de datos y al administrador de secretos Vault.

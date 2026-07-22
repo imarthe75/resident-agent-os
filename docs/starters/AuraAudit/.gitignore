@@ -1,0 +1,11 @@
+# Archivos de entorno y llaves
+.env
+
+# Entornos virtuales de Python
+venv/
+__pycache__/
+*.pyc
+
+# Directorio de reportes locales
+reportes_auditoria_aura/
+reportes_auditoria/

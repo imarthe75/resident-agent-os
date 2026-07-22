@@ -1,0 +1,59 @@
+stages:
+  - docs
+
+
+wikijs-docs-publish:
+  image: alpine:3.20
+  stage: docs
+  tags:
+    - docker
+  before_script:
+    - apk add --no-cache git bash
+  script:
+    - |
+      set -e
+      test -n "$DOCS_PUBLISH_REPO"
+      test -n "$DOCS_PUBLISH_USER"
+      test -n "$DOCS_PUBLISH_TOKEN"
+      export PROJECT_DIR="docs-export/${CI_PROJECT_PATH_SLUG}"
+      mkdir -p "$PROJECT_DIR"
+
+      {
+        echo "# ${CI_PROJECT_NAME}"
+        echo ""
+        echo "## Proyecto"
+        echo ""
+        echo "- Ruta: ${CI_PROJECT_PATH}"
+        echo "- Rama: ${CI_COMMIT_REF_NAME}"
+        echo "- Commit: ${CI_COMMIT_SHA}"
+        echo "- Pipeline: ${CI_PIPELINE_URL}"
+        echo ""
+        echo "## README del repositorio"
+        echo ""
+      } > "$PROJECT_DIR/index.md"
+
+      if [ -f README.md ]; then
+        cat README.md >> "$PROJECT_DIR/index.md"
+      else
+        echo "No existe README.md en este proyecto." >> "$PROJECT_DIR/index.md"
+      fi
+
+      git clone "http://${DOCS_PUBLISH_USER}:${DOCS_PUBLISH_TOKEN}@${DOCS_PUBLISH_REPO#http://}" docs-publish
+      mkdir -p "docs-publish/${PROJECT_DIR}"
+      cp "$PROJECT_DIR/index.md" "docs-publish/${PROJECT_DIR}/index.md"
+
+      cd docs-publish
+      git config user.name "GitLab Docs Bot"
+      git config user.email "docs-bot@casmart.internal"
+      git add .
+
+      if git diff --cached --quiet; then
+        echo "No hay cambios de documentación para publicar."
+        exit 0
+      fi
+
+      git commit -m "docs: update ${CI_PROJECT_PATH} (${CI_COMMIT_SHORT_SHA})"
+      git push origin HEAD
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+      when: on_success
