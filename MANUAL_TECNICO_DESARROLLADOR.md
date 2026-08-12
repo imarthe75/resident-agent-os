@@ -510,14 +510,38 @@ Estado tras esta pasada: **63 pruebas se ejecutan, 34 pasan genuinamente** (incl
 
 ---
 
-## 17. Manual de Despliegue de SDK Widget Web
+## 17. Quinta Ronda — Incidentes de disponibilidad y auth (2026-08-04 / 2026-08-12)
+
+### 17.1 Colisión de `preferred_username` de Authentik — 500 en cascada en todo el panel admin (2026-08-04)
+
+**Síntoma:** consola del navegador con 500 en `/auth/me`, `/admin/users`, `/admin/chatbot/profiles/admin-list`, bitácora de auditoría, casos de regresión y creación de temas — prácticamente todo el panel `/admin` inoperante a la vez.
+
+**Causa raíz:** `get_current_user` (`app/core/auth_utils.py`) auto-registra usuarios nuevos de Authentik usando el claim `preferred_username` del JWT como `username` local único, sin verificar colisión antes de insertar. Authentik entregó `preferred_username="admin_starter"` a dos cuentas reales distintas, violando el índice único `ix_users_username` con un `IntegrityError` sin manejar. Como `get_current_user` es la dependencia de autenticación de prácticamente todo endpoint protegido (`require_admin` la envuelve), el fallo tumbaba con 500 cualquier request de ese usuario, en cualquier endpoint.
+
+**Corrección:** antes de insertar, se verifica si el `username` ya existe y se desambigua con sufijo; el `commit()` captura `IntegrityError` como red de seguridad final (rollback + reintento de búsqueda por email). La causa raíz real — por qué Authentik entrega el mismo `preferred_username` a cuentas distintas — vive en la configuración de `auth.casmart.internal`, fuera de este repositorio; no existe ningún token de administración de Authentik en los `.env` de este monorepo (solo credenciales de cliente OIDC, que no sirven para administrar Authentik). Queda documentado como pendiente explícito, no corregido, por decisión del admin.
+
+**Hallazgo adyacente:** Vault (`10.4.3.208:8200`, compartido por todo el portafolio) estaba sellado tras un re-init del mismo día. Se desselló, se actualizó `VAULT_TOKEN` en `consulta-smart/.env`, y se re-sembró `secret/data/consulta-smart` con los mismos valores ya vigentes por fallback local (`SECRET_KEY`, `JWT_SECRET`, `DB_PASSWORD`, `GROQ_API_KEY`, `WIDGET_PASSWORD`) — **sin rotarlos**, ya que rotar `SECRET_KEY` habría vuelto indescifrables las `custom_api_key` ya cifradas de temas existentes, y rotar `WIDGET_PASSWORD` requiere actualizar en paralelo su hash en BD. Rotación real queda pendiente como tarea aparte con su propia migración.
+
+### 17.2 `consulta-smart-backend` muerto en silencio 2 días tras reinicio del host (2026-08-12)
+
+**Síntoma:** el selector de "Tema Activo" en `/admin` aparecía completamente vacío, sin ninguna opción y sin ningún error 500 visible en la consola del navegador (a diferencia del incidente de §17.1).
+
+**Causa raíz:** no era un bug de aplicación. El host completo se reinició el 2026-08-10T00:33:07Z (`casmarts-core-proxy` y `consulta-smart-backend` con idéntico `StartedAt`). En ese arranque, `init_db()` (`app/core/database.py`) intentó conectar una sola vez a Postgres externo (`10.4.3.208:5432`) antes de que la ruta de red del host estuviera lista, y falló (`OSError: [Errno 113] Connect call failed`). La excepción abortó el `lifespan` de FastAPI (`ERROR: Application startup failed. Exiting.`). Como el contenedor corre `uvicorn --reload`, el proceso *reloader* (PID 1, el que Docker supervisa) no muere cuando el worker falla su arranque — solo queda esperando un cambio de archivo para reintentar. `restart: always` de Docker nunca se disparó (PID 1 seguía "vivo"), y el contenedor quedó marcado `Up` en `docker ps` durante 2 días sin nada escuchando realmente en el puerto 8000. `nginx` (`casmarts-core-proxy`) devolvía 502 (`connect() failed: Connection refused`) en cada request a `/api/v1/*` — visible en los logs del proxy, no en los del backend (que no procesaba ninguna request).
+
+**Corrección:** `init_db()` ahora reintenta la conexión inicial (`SELECT 1`) hasta 5 veces con 5s de espera entre intentos antes de abortar, cubriendo la ventana de arranque en la que la red del host aún no está lista tras un reinicio (contrato formal en `.agent/SPECS.md` → `[CS-009]`). Restart manual para recuperar el servicio de inmediato. Verificado: `/docs` → 200 (host y vía proxy interno); `/auth/me` y `/admin/chatbot/profiles/admin-list` sin token → 401 limpio. Revisados de paso `casmarts-idp-api/-worker`, `lexivault-backend/-worker` y `consulta-smart-frontend`: los 5 arrancaron sin problema en el mismo reinicio del host — el fallo fue específico a la ventana de conexión a Postgres de este servicio.
+
+**Lección de diagnóstico:** `docker ps` mostrando `Up` no es evidencia de que el proceso esté sirviendo tráfico. Ante "todo falla sin ningún log de error en el backend", conviene revisar primero si el backend está genuinamente recibiendo requests (logs de acceso del proxy) antes de asumir que el silencio significa ausencia de problema.
+
+---
+
+## 18. Manual de Despliegue de SDK Widget Web
 
 El widget flotante se integra agregando el snippet oficial en el archivo HTML del cliente:
 
 ```html
 <!-- ConsultaSmart Widget Snippet -->
-<script 
-  src="https://chat.casmart.internal/widget.js" 
+<script
+  src="https://chat.casmart.internal/widget.js"
   data-tenant-id="control_escolar"
   data-primary-color="#059669"
   data-title="Control Escolar"
@@ -529,11 +553,11 @@ El widget consume `GET /api/v1/admin/chatbot/profiles` (público, ahora sanitiza
 
 ---
 
-## 18. Firmas de Conformidad Técnica
+## 19. Firmas de Conformidad Técnica
 
 | Elaboró e Implementó | Aprobó y Autorizó |
 | :--- | :--- |
-| **Israel Martínez Hernández**<br>*Líder de Arquitectura e Inteligencia Artificial*<br>_(auditoría y remediación de seguridad 2026-07-22 asistida por Claude; funcionalidades de la ronda de tarde con Google Antigravity; rondas del 2026-07-29 asistidas por Claude)_ | **Yareth Mora Resendiz**<br>*Directora de Tecnología y Sistemas* |
+| **Israel Martínez Hernández**<br>*Líder de Arquitectura e Inteligencia Artificial*<br>_(auditoría y remediación de seguridad 2026-07-22 asistida por Claude; funcionalidades de la ronda de tarde con Google Antigravity; rondas del 2026-07-29, 2026-08-04 y 2026-08-12 asistidas por Claude)_ | **Yareth Mora Resendiz**<br>*Directora de Tecnología y Sistemas* |
 
 ### Control de versiones
 
@@ -547,3 +571,4 @@ El widget consume `GET /api/v1/admin/chatbot/profiles` (público, ahora sanitiza
 | 3.4 | 2026-07-29 | Claude (asistido) | Tercera ronda (§15): se corrige la causa raíz real de la fuga RPP→`general` (el "valor de fábrica" restaurado en 3.2 era en sí mismo el bug — un fallback de código específico de RPP aplicado universalmente) y se corrige el dato en la BD real; el generador de System Prompt ahora incorpora los Guardrails ya configurados (§15.2); se completa el motor LLM por tema (Ollama/Anthropic/Mistral implementados, antes solo listados en el selector; `vertex` retirado del override por tema; nueva columna `custom_base_url`) y se corrige un bug donde 3 de 7 proveedores ignoraban el `system` prompt en runtime (§15.3); se reemplaza la lista estática de modelos sugeridos por un catálogo consultado en vivo a cada proveedor (§15.4, endpoint `POST /admin/llm/list-models`). |
 | 3.5 | 2026-07-29 | Claude (asistido) | Cuarta ronda (§16): auditoría técnica integral siguiendo `SKILL_AUDITORIA_SISTEMAS_COMPLETA.md`/`ESTANDARES_AUDITORIA.md` (6 capas). Corregidos: sin cabeceras de seguridad HTTP en el proxy público (HSTS/nosniff/Referrer-Policy globales + X-Frame-Options/CSP dedicado a `/admin`), compresión gzip inactiva para JSON/JS/CSS por falta de `gzip_types`, y mensajes de excepción interna expuestos al cliente en 8 endpoints de `chat.py`/`search.py`. Documentados y diferidos con justificación: TLS deshabilitado hacia el JWKS de Authentik (ya triado en ronda anterior, bloqueado por certificado externo), ingesta de documentos sin batching de embeddings/flush, ausencia de concurrencia optimista en `chatbot_profiles`, cobertura de pruebas de frontend en cero, y 2 CVEs moderados en `react-router-dom` (bloqueados por conflicto de peer-deps preexistente). Cero hallazgos Críticos nuevos; sin regresiones en lo ya remediado. |
 | 3.6 | 2026-07-29 | Claude (asistido) | Cierre de 4 de los 5 hallazgos diferidos en 3.5 (§16.6): embeddings en lote en los 4 puntos reales de ingesta (2 bugs adicionales encontrados de paso: import equivocado en `auto_ingest_service.py`/`documents.py`, y la ruta de Celery `document_usecases.py` llamaba métodos inexistentes — corregida aunque los workers están detenidos); concurrencia optimista (`chatbot_profiles.version`, 409 en conflicto) en `save_chatbot_profile` y `AdminPage.jsx`; conflicto de peer-deps `lucide-react`/React 19 resuelto (habilitó fix del CVE alto de `postcss`); y la suite de pruebas de frontend — que existía completa en `frontend/tests/` pero nunca había podido ejecutar por dependencias faltantes — se dejó corriendo (63 pruebas, 34 pasan) tras reescribir `Stores.test.js`, que probaba una versión mockeada de sí mismo en vez del código real. Solo SEC-TLS-001 sigue diferido (bloqueado por certificado externo fuera de este repo). Hallazgo nuevo documentado sin corregir: VITE-DEV-001, el contenedor de frontend corre `vite dev` en producción en vez de una build real. |
+| 3.7 | 2026-08-04 / 2026-08-12 | Claude (asistido) | Quinta ronda (§17), dos incidentes de disponibilidad reales: (§17.1) colisión de `preferred_username` de Authentik entre cuentas distintas tumbaba con 500 todo endpoint autenticado (`get_current_user` sin manejo de `IntegrityError` en el auto-registro) — corregido con desambiguación de username + captura de la excepción; causa raíz en la configuración de Authentik queda fuera de este repo y sin corregir por decisión explícita del admin. Vault (compartido por el portafolio) se encontró sellado tras un re-init y se re-sembró con los mismos secretos ya vigentes, sin rotarlos. (§17.2) `consulta-smart-backend` quedó muerto en silencio 2 días tras un reinicio del host: `init_db()` fallaba una sola vez si Postgres externo no estaba aún alcanzable al arrancar, y `uvicorn --reload` no reinicia el worker tras un fallo de arranque (solo ante cambios de archivo), por lo que `restart: always` de Docker nunca se disparó — corregido con retry con backoff (`[CS-009]`). |
