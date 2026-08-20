@@ -644,4 +644,45 @@ El selector de íconos con nombre del admin (biblioteca de 12 íconos) guardaba 
 
 **Lección de diagnóstico:** un `session.rollback()` correcto para recuperar una transacción abortada tiene un efecto secundario real con `AsyncSession` — expira objetos ya cargados, y accederlos después fuera de un `await` directo falla con un error que no menciona la causa original (la sintaxis rota de `to_tsquery`). Cuando un error de infraestructura async parece "sin relación" con el síntoma reportado por el usuario, vale la pena revisar el log completo de la request, no solo la última excepción — la causa raíz suele estar unas líneas más arriba.
 
+## 21. Séptima Ronda — Primer dominio público por tenant, fuga RAG entre tenants, y comportamiento conversacional configurable (2026-08-19/20)
+
+### Contexto de negocio
+
+Se desplegó el primer tenant con dominio público propio, `chat.teca.ca-smarts.com` (TECA — Tribunal Estatal de Conciliación y Arbitraje, Edo. de México), embebido como widget dentro de su propio sistema (Angular). El proceso destapó una cadena de incidentes de infraestructura, un bug de fuga de datos entre tenants preexistente, y motivó una ronda de features de personalización por tema pedidas explícitamente por el usuario ("que se sienta lo más parecido posible a un asistente de IA general", "la mayor flexibilidad posible para el administrador"). Detalle completo, con evidencia paso a paso, en `docs/BITACORA_ANALISIS_CAUSAL.md` (entradas 2026-08-19/20) y contratos formales en `SPECS.md` `[CS-021]` a `[CS-026]`; aquí un resumen técnico.
+
+### 21.1 Multi-dominio público por tenant sin proyecto/deploy separado
+
+ConsultaSmart ya soporta múltiples temas (`chatbot_profiles`) sobre el mismo deploy — la pregunta no era "¿otro proyecto?" sino cómo hacer que un dominio público nuevo sirviera el mismo build, con un tema fijo (sin selector) y autenticando correctamente. Solución: `frontend/src/config/domainLock.js` (`DOMAIN_LOCKED_PROFILE`: hostname → `profile_id` fijo; `DOMAIN_AUTHORITY`/`resolveAuthority()`: hostname → issuer de OIDC), consumido por `App.jsx` (config de `react-oidc-context`), `LoginPage.jsx` (oculta el aviso de certificado autofirmado cuando no aplica) y `ChatInterface.jsx` (fuerza el `profile_id` y oculta el selector "Asistente Activo"). Ver `[CS-021]`.
+
+La cadena de infraestructura para llegar ahí (fuera de este repo, en `.26`/`.208`) tuvo 4 causas raíz distintas, cada una con síntoma engañoso — detalle completo en la Bitácora: (1) regex de CORS en el nginx gateway de `.208` que solo aceptaba `*.casmart.internal`; (2) certificado autofirmado de `auth.casmart.internal` bloqueando el intercambio de token en segundo plano (resuelto autenticando `chat.teca.ca-smarts.com` contra `auth.teca.ca-smarts.com`, mismo Authentik, certificado público real); (3) Redirect URI faltante en el provider de Authentik; (4) el Signing Key del provider se vació solo al editar el punto anterior, rompiendo el login de TODOS los dominios hasta corregirse.
+
+### 21.2 Fuga de documentos RAG entre tenants (bug preexistente, no una regresión)
+
+Al usar el chat de `teca` por primera vez aparecieron citados documentos de OTROS temas (RPP/IRCEP) como "Fuentes Oficiales". Causa raíz: `KnowledgeBase.search_in_knowledge_async` (búsqueda híbrida vectorial+texto) solo aplicaba el filtro `category` en la rama de texto — la rama vectorial (pgvector) nunca lo había tenido desde su implementación original, y el fallback `ILIKE` de la rama de texto tampoco. Bug real, presente para todos los temas desde siempre, nunca notado porque hasta ahora ningún tenant era "suficientemente distinto" para que alguien comparara el contenido citado contra lo esperado. Corregido agregando `d.category = :category` a las 3 consultas SQL crudas. Verificado con `scripts/verify_rag_category_isolation.py` contra la BD real (con y sin filtro, sobre datos de producción). Ver `[CS-022]`.
+
+### 21.3 Comportamiento conversacional configurable por tema
+
+A petición del usuario ("que se sienta lo más parecido posible a un asistente de IA general"), se agregó a `chat_service.py`:
+- **Preguntas de aclaración:** cuando una consulta es ambigua-pero-válida en dominio, el LLM pide el dato faltante en vez de adivinar o rechazar — con prioridad EXPLÍCITA (ajustada tras feedback del usuario) de responder con contenido ya recuperado del RAG por encima de preguntar, para no introducir fricción innecesaria cuando ya hay una respuesta grounded disponible.
+- **Sugerencias de seguimiento:** 2-4 preguntas relacionadas al final de cada respuesta, en un marcador interno (`SUGERENCIAS_JSON: [...]`) extraído por regex+`json.loads` con degradación silenciosa a `[]` si el LLM no siguió el formato — nunca se filtra al texto visible.
+- **Estilo de respuesta** (`concise`/`detailed`) y **saludo vía LLM** (en vez del atajo local de siempre) como sufijos/flags adicionales, mismo mecanismo.
+- **Contexto de conversación en la búsqueda RAG:** el rewriter de búsqueda ahora antepone los últimos 2 mensajes del historial a la query antes de decidir si reescribe y antes de construir la query de búsqueda real — corrige que una respuesta corta de seguimiento ("Puebla", tras una pregunta de aclaración del propio asistente) perdiera el tema original en la recuperación RAG.
+
+Los 4 comportamientos (aclaración, sugerencias, estilo, saludo) son activables/desactivables por tema vía `config_metadata`, todos con default que preserva el comportamiento previo al contrato. Ver `[CS-023]` para requisitos completos y evidencia de verificación (11 perfiles reales probados en vivo).
+
+### 21.4 Interruptores de personalización y visibilidad por tema
+
+Se agregaron, todos vía `config_metadata` (columna JSON ya existente, sin migración): `show_sources`, `show_provider_debug` (ya existían de una iteración previa de esta misma sesión), y nuevos `enable_feedback_buttons`, `enable_widget_embed`. De estos, solo `enable_widget_embed` tiene relevancia de seguridad real (controla si un tema puede usarse desde el canal público/embebible) — se reforzó tanto en frontend (`WidgetPage.jsx`, antes de `guestLogin()`) como en backend (`POST /chat/query` rechaza con `403` una sesión de invitado — JWT con `is_widget: true`, ver `auth_utils.py::get_current_user` — dirigida a un tema con el flag apagado; un usuario autenticado normal nunca se ve afectado). Los demás 3 flags de esta ronda (más `show_sources`/`show_provider_debug`) son candados solo de frontend/generación, documentados como tal en `SPECS.md` `[CS-024]` y como riesgo aceptado en `docs/REGISTRO_DE_RIESGOS.md` (R-12).
+
+### 21.5 La caché híbrida no sabía nada de la configuración vigente
+
+Al verificar `response_style` en vivo se encontró que `cache_layer.py` indexaba solo por `profile_id` — una respuesta cacheada bajo una configuración (ej. `concise`) se servía tal cual bajo cualquier otra configuración del mismo tema (ej. `detailed`). Corregido con un namespace de caché compuesto (`profile_id` + los flags que cambian el CONTENIDO de la respuesta), construido en `chat_service.py` después de cargar `config_metadata` pero antes del primer chequeo de caché (se reordenó el flujo de la función). De paso se corrigió que la caché tampoco persistía `suggestions` — ahora sí sobrevive un cache-hit. Ver `[CS-025]`, verificado con 3 llamadas reales encadenadas (concise → detailed sin pegar en caché → concise repetida sí pegando en caché con `suggestions` restauradas).
+
+### 21.6 El widget nunca debe desbordarse horizontalmente
+
+Reportado independientemente por dos personas viendo el widget embebido en el sitio de TECA: un nombre de fuente largo se veía "más ancho que el widget". La hipótesis inicial (`transform`/`zoom` heredado del layout Angular del sitio host) se descartó con evidencia real de DevTools (`getComputedStyle` de `body`/`app-root`: sin transform, sin zoom; el panel medía exactamente sus 380px de CSS). Causa real: bug clásico de flexbox — el `<span className="truncate">` del nombre de archivo no tenía `min-w-0` en sí mismo (solo lo tenía un contenedor ancestro), y sin eso el mínimo de ancho por defecto de un flex item (`min-width:auto`, que para texto `nowrap` equivale a su ancho completo) impide que el truncado con elipsis tenga efecto. Corregido agregando `min-w-0` al span, más `overflow-x-hidden` en el contenedor de mensajes como barrera adicional. Ver `[CS-026]`.
+
+### Evidencia de verificación (resumen de toda la ronda)
+Todo lo anterior se verificó contra sistemas reales, no mocks: `curl` directo con `Origin`/JWKS para la cadena de infraestructura de Authentik/CORS; `scripts/verify_rag_category_isolation.py` y `scripts/verify_conversational_behavior.py` contra la BD real de producción; llamadas HTTP reales con JWT de invitado real para el refuerzo backend de `enable_widget_embed` (403/200 confirmados); 3 llamadas encadenadas reales para la caché consciente de configuración; 27 tests de frontend nuevos/existentes en verde sin regresiones (`npm test`, 8 archivos).
+
 ---
