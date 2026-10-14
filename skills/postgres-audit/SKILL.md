@@ -19,7 +19,7 @@ Este skill instruye al Agente sobre cómo inicializar, configurar y validar el e
 El agente debe seguir estos pasos para desplegar la estructura de auditoría:
 
 ### Paso A: Ejecutar DDL Base
-Aplicar el archivo maestro de DDL [auditoria.sql](file:///home/ia/ecosistema-casmarts/resident-agent-framework/auditoria.sql) en el catalog objetivo. Este script se encarga de:
+Aplicar el archivo maestro de DDL [auditoria.sql](../../sql/auditoria.sql) en el catalog objetivo. Este script se encarga de:
 1.  Crear el esquema `auditoria`.
 2.  Crear la tabla `auditoria.log_auditoria` con los índices necesarios para consultas rápidas de auditoría por tabla, fecha o UUID.
 3.  Desplegar la función de trigger `auditoria.auditoria_biu()` (control de UUIDv7/gen_random_uuid, row_version, y marcas de tiempo).

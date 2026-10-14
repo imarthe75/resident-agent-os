@@ -43,7 +43,7 @@ Expertise en PrimeNG 21, Angular 21 moderno (standalone, Signals) y localizació
 ## Workflow
 1. Antes de generar un componente, verifica en `llms-full.txt` si hubo cambios en los `@Input`s de la v21.
 2. Asegúrate de que el componente sea accesible (A11y) usando los atributos `aria-*` sugeridos en la doc.
-3. Si el componente requiere un tema o color institucional, consulta la skill de Theming antes de proceder.
+3. Si el componente requiere un tema o color institucional, usa el sistema de diseño/tema que defina el proyecto (no inventes valores) antes de proceder.
 
 ## 6. Análisis de Tarea y Carga de Skills
 
@@ -51,7 +51,7 @@ Dependiendo de lo que el usuario solicite, usted DEBE cargar y aplicar las regla
 
 | Si la tarea es...          | Cargar estas Skills (Obligatorio)                                    |
 | :------------------------- | :------------------------------------------------------------------- |
-| **Maquetación / HTML**     | `./generacion-componentes-html/SKILL.md` y `./generacion-estilos/SKILL.md`        |
+| **Maquetación / HTML**     | `./generacion-componentes-html/SKILL.md` y la guía de estilos del proyecto        |
 | **Lógica de Componente**   | `./generacion-componentes-ts/SKILL.md` y `./generacion-dtos/SKILL.md`        |
 | **Conexión a API**         | `./generacion-servicios/SKILL.md` y `./generacion-dtos/SKILL.md`            |
 | **Pruebas de Servicios**   | `./generacion-pruebas-servicios/SKILL.md`                                   |
@@ -62,7 +62,7 @@ Dependiendo de lo que el usuario solicite, usted DEBE cargar y aplicar las regla
 
 - **Standalone First:** Todo componente, directiva o pipe nuevo debe ser `standalone: true`.
 - **Feature-Based Structure:** Todo componente nuevo debe crearse bajo `src/app/features/[modulo]/pages/` (Smart Components) o `src/app/features/[modulo]/components/` (Dumb Components). Los Smart Components inyectan servicios y manejan estado; los Dumb Components solo reciben `input()` y emiten `output()`.
-- **Identidad:** Los colores y espaciados deben extraerse de `generacion-estilos.md`. No use colores "hardcoded".
+- **Identidad:** Los colores y espaciados deben extraerse de la guía de estilos/tema del proyecto. No use colores "hardcoded".
 - **PrimeNG:** Use componentes de PrimeNG (p-table, p-dialog, etc.) antes de crear elementos HTML nativos.
 - **Inyección de Dependencias:** Use la función `inject()` para servicios si es posible, manteniendo consistencia con Java 21 en el naming de los DTOs.
 

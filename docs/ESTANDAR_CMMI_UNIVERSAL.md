@@ -1,23 +1,16 @@
-# Estándar Universal de Prácticas CMMI — Portafolio C&A Smart Systems
+# Estándar Universal de Prácticas CMMI — Setag
 
-**Alcance: universal / multi-proyecto.** Igual que `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`
-(seguridad) y `docs/skills/generacion-documentacion/SKILL.md` (documentación), este
-documento es portable — aplica a `consulta-smart`, `idp-smart`, `lexivault-ai` y
-cualquier proyecto nuevo del portafolio, sin importar el stack. Se copia tal cual a
-cada repositorio o se referencia desde su `CLAUDE.md`/`AGENTS.md`.
+**Alcance: universal / multi-proyecto.** Igual que `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` (seguridad), este documento es portable: aplica a cualquier
+proyecto de Setag, sin importar el stack. Se copia tal cual a cada repositorio o se referencia desde su `CLAUDE.md`/`AGENTS.md`.
 
-**Origen y alcance del mandato:** el 2026-07-22 se comunicó que todos los proyectos
-deben cumplir con CMMI. El framework real vigente es **CMMI 2.0** (la numeración
-"v5" que motivó este documento se interpreta como el objetivo de **Nivel de Madurez 5
-— Optimización**, el nivel más alto de la escala 1-5, no una "versión 5" del modelo).
-Este documento traduce las áreas de proceso de los Niveles 2 a 5 en prácticas
-concretas y verificables con las herramientas que este equipo ya usa (git, revisión
-de código, documentación colocalizada, auditorías de seguridad) — **no sustituye**
-una evaluación formal SCAMPI por evaluadores certificados, que es lo único que
-otorga una certificación real de nivel de madurez. Este documento cierra la brecha
-práctica del día a día; una certificación formal es una decisión organizacional
-aparte, con costo y tiempo propios, que debe evaluarse por separado si es el
-objetivo real.
+**Alcance del documento:** traduce las áreas de proceso de los niveles de madurez 2 a 5 en prácticas concretas y verificables con las herramientas que
+los equipos ya usan (git, revisión de código, documentación colocalizada, auditorías de seguridad). **No sustituye** una evaluación formal SCAMPI por
+evaluadores certificados, que es lo único que otorga un nivel de madurez; una certificación formal es una decisión organizacional aparte, con costo y
+tiempo propios.
+
+**Nomenclatura:** las siglas de abajo (REQM, PP/PMC, CM, PPQA…) son las áreas de proceso clásicas. Si Setag decide evaluarse contra el modelo vigente de
+ISACA (CMMI V3.0), las áreas de práctica tienen otros nombres y otra agrupación: antes de usar este documento como evidencia de una evaluación, hay que
+mapearlo a ese modelo; aquí no se hace ese mapeo.
 
 ---
 
@@ -41,7 +34,7 @@ objetivo real.
 **Exige:** los requisitos se documentan, se rastrean cambios, y el trabajo se
 mantiene alineado a ellos.
 **Con las herramientas actuales:** issues/tickets como fuente de requisitos;
-`docs/requirements/` (ya existe en `consulta-smart/docs/requirements`) como
+`docs/requirements/` (o la carpeta equivalente del proyecto) como
 repositorio de especificaciones; cada commit/PR debería referenciar qué requisito
 atiende.
 **Checklist:**
@@ -61,13 +54,12 @@ curso; memoria de proyecto (`project` memories) para decisiones y fechas.
 
 ### 1.3 Gestión de Configuración (CM)
 **Exige:** control de versiones de todos los artefactos (código, documentos, configuración), con historial y capacidad de revertir.
-**Con las herramientas actuales:** git para código; sin embargo, se detectó en esta
-misma sesión que `chatbot_profiles` (datos de configuración de negocio) **no tiene
-control de versiones ni bitácora de cambios** — un hallazgo real de brecha CM, no solo
-teórico (ver incidente del tema "general" corrupto sin forma de revertir, 2026-07-22).
+**Con las herramientas actuales:** git para código. La brecha típica no está en el código sino en la
+**configuración de negocio guardada en base de datos** (perfiles, temas, parámetros): si no tiene versión ni bitácora de cambios, un valor corrupto no se
+puede revertir. Esa configuración necesita su propia bitácora (antes/después y quién cambió).
 **Checklist:**
 - [ ] Todo el código está en git con historial real (no solo el estado final).
-- [ ] La configuración de negocio crítica (no solo código) tiene versión/historial — **brecha conocida en consulta-smart: `chatbot_profiles` sin auditoría de cambios.**
+- [ ] La configuración de negocio crítica (no solo código) tiene versión/historial (p. ej. tabla de auditoría con snapshot antes/después y restauración).
 - [ ] Existe una política de baseline/etiquetado (tags/releases) para versiones que se despliegan a producción.
 
 ### 1.4 Aseguramiento de Calidad de Proceso y Producto (PPQA)
@@ -83,17 +75,16 @@ como catálogo objetivo de qué auditar.
 
 ### 1.5 Gestión de Acuerdos con Proveedores (SAM)
 **Exige:** control formal sobre dependencias externas (APIs de terceros, contratistas, servicios SaaS).
-**Con las herramientas actuales:** inventario de API keys/proveedores por tema (ver
-LLM personalizado por tema en `consulta-smart`); Vault para secretos.
+**Con las herramientas actuales:** inventario de API keys/proveedores por proyecto; un gestor
+de secretos para las credenciales (nunca en el repositorio).
 **Checklist:**
 - [ ] Existe un inventario actualizado de qué servicios externos usa cada proyecto y con qué credenciales.
-- [ ] Hay un plan de respaldo si un proveedor externo falla (ver fallback multi-LLM ya implementado como buen ejemplo real).
+- [ ] Hay un plan de respaldo si un proveedor externo falla (p. ej. un proveedor alterno o un modo degradado documentado).
 
 ### 1.6 Medición y Análisis (MA)
 **Exige:** métricas objetivas del proceso y del producto, usadas realmente para decidir.
-**Con las herramientas actuales:** panel de Observabilidad del enrutador LLM en
-`consulta-smart` (tasa de satisfacción, proveedores activos) es un ejemplo real y
-ya funcionando de esta práctica — replicar el patrón en otros proyectos.
+**Con las herramientas actuales:** un panel de observabilidad por proyecto (p. ej. tasa de errores,
+satisfacción de usuarios, proveedores activos) es un ejemplo de esta práctica; el patrón se replica entre proyectos.
 **Checklist:**
 - [ ] Cada proyecto define al menos 2-3 métricas objetivas de calidad/uso.
 - [ ] Esas métricas se revisan periódicamente, no solo cuando algo falla.
@@ -105,22 +96,19 @@ ya funcionando de esta práctica — replicar el patrón en otros proyectos.
 ### 2.1 Desarrollo/Gestión de Requisitos avanzada (RD), Solución Técnica (TS), Integración (PI), Verificación (VER), Validación (VAL)
 **Exige:** procesos de ingeniería estandarizados y reutilizables entre proyectos, no
 reinventados cada vez.
-**Con las herramientas actuales:** `docs/skills/` (generacion-servicios,
-generacion-dtos, generacion-componentes-*, generacion-pruebas-servicios) son
-exactamente esto — estándares de ingeniería reutilizables entre proyectos. Ya existen
-para el stack Angular/PrimeNG; **brecha real:** no existen aún equivalentes para
-proyectos React/FastAPI como `consulta-smart` (se documentó como conformidad parcial
-en `MANUAL_TECNICO_DESARROLLADOR.md` §10).
+**Con las herramientas actuales:** las guías de `docs/skills/` (generación de servicios, DTOs,
+componentes, pruebas) son exactamente esto: estándares de ingeniería reutilizables entre proyectos. Cada stack que se use necesita su equivalente; un stack
+sin guía propia es una brecha.
 **Checklist:**
-- [ ] Existe una guía de "cómo generar un servicio/componente/DTO nuevo" por stack tecnológico usado en el portafolio.
+- [ ] Existe una guía de "cómo generar un servicio/componente/DTO nuevo" por cada stack tecnológico que use la organización.
 - [ ] Los criterios de aceptación (pruebas, validación) están estandarizados, no a discreción de cada desarrollador.
 
 ### 2.2 Enfoque y Definición de Procesos Organizacionales (OPF, OPD)
 **Exige:** la organización (no cada proyecto por separado) define y mejora sus
 procesos estándar.
-**Con las herramientas actuales:** `docs/` a nivel raíz de `/opt/casmart` (compartido
-entre proyectos) es el lugar correcto para estos estándares organizacionales — este
-mismo documento y `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` son ejemplos reales.
+**Con las herramientas actuales:** un `docs/` compartido entre proyectos (este framework, que se
+distribuye con `scripts/distribute_framework.py` y se comprueba con `--check`) es el lugar correcto para los estándares organizacionales; este mismo
+documento y `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` son ejemplos.
 **Checklist:**
 - [ ] Los estándares organizacionales viven en un solo lugar compartido, no duplicados/divergentes por proyecto.
 - [ ] Hay un mecanismo real (no solo intención) para proponer y aprobar mejoras a esos estándares.
@@ -178,7 +166,7 @@ verificación reproducible (construcción real dentro del contenedor). **Formali
 este patrón como práctica estándar**, no dejarlo implícito.
 **Checklist:**
 - [ ] Los incidentes/bugs significativos se documentan con causa raíz, no solo "se arregló".
-- [ ] Existe un mecanismo para detectar si el mismo tipo de causa raíz se repite en otro proyecto del portafolio.
+- [ ] Existe un mecanismo para detectar si el mismo tipo de causa raíz se repite en otro proyecto de la organización.
 
 ### 4.2 Gestión del Desempeño Organizacional (OPM)
 **Exige:** mejora continua deliberada de los procesos organizacionales, guiada por datos y objetivos de negocio.
@@ -189,7 +177,7 @@ este patrón como práctica estándar**, no dejarlo implícito.
 
 ## 5. Diagnóstico rápido por proyecto (plantilla)
 
-Para cada proyecto (`consulta-smart`, `idp-smart`, `lexivault-ai`, nuevos), llenar:
+Para cada proyecto, llenar (con evidencia verificable; sin evidencia es «Falta», no «Parcial»):
 
 | Área de Proceso | Estado | Evidencia | Prioridad de cierre |
 |---|---|---|---|
@@ -209,20 +197,10 @@ Para cada proyecto (`consulta-smart`, `idp-smart`, `lexivault-ai`, nuevos), llen
 | CAR | | | |
 | OPM | | | |
 
-**Diagnóstico para `consulta-smart`** (actualizado 2026-07-22 noche, tras cerrar dos brechas reales):
-- **CM [Cumple, cerrado 2026-07-22 noche]:** código en git correctamente versionado; la brecha real (`chatbot_profiles` sin historial, causante del incidente del tema "general") se cerró con `chatbot_profile_audit_log` (snapshot antes/después, restauración a un clic) — ver `MANUAL_TECNICO_DESARROLLADOR.md` §14.11 y `docs/BITACORA_ANALISIS_CAUSAL.md`. Pendiente: extender el mismo patrón a otras tablas de configuración de negocio si aparecen (hoy solo `chatbot_profiles` lo necesitaba).
-- **PPQA [Cumple]:** se ejecutó una ronda real de auditoría con hallazgos [Cierto] y remediación verificada contra el sistema en ejecución.
-- **RSKM [Cumple, cerrado 2026-07-22 noche]:** riesgos consolidados en `consulta-smart/docs/REGISTRO_DE_RIESGOS.md` — 8 riesgos abiertos con probabilidad/impacto/plan/disparador de revisión explícitos, más histórico de 7 riesgos cerrados. Antes vivían dispersos en la narrativa de `MANUAL_TECNICO_DESARROLLADOR.md` §8.
-- **RD/TS (Nivel 3) [Cumple, cerrado 2026-07-22 noche]:** creados `docs/skills/generacion-servicios-fastapi/SKILL.md` y `docs/skills/generacion-componentes-react/SKILL.md` — equivalentes reales (no genéricos) a los skills Angular/PrimeNG existentes, cada regla extraída de un bug real de esta misma sesión (BOLA, DTOs públicos filtrando secretos, cifrado de secretos, migraciones de esquema, componentes huérfanos, bug de sticky/overflow).
-- **CAR [Cumple, cerrado 2026-07-22 noche]:** formalizado en `docs/BITACORA_ANALISIS_CAUSAL.md` (`consulta-smart/docs/`) con 2 incidencias reales documentadas (síntoma, causa raíz, corrección, prevención de recurrencia, evidencia de verificación) — el tema "general" corrupto y el bug de `SmartLLMRouter`.
-
 ---
 
 ## Procedencia
 
-Este documento traduce el modelo CMMI (áreas de proceso de Niveles 2-5, nomenclatura
-clásica de 22 PA) a prácticas verificables usando las herramientas reales de este
-portafolio (git, skills de `docs/skills/`, auditorías de `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`,
-manuales técnicos por proyecto). No reemplaza una evaluación SCAMPI formal — es el
-punto de partida práctico para cerrar brechas antes de, si es la decisión
-organizacional, buscar una certificación real.
+Este documento traduce el modelo CMMI (áreas de proceso de los niveles 2 a 5, nomenclatura clásica de 22 áreas) a prácticas verificables usando
+herramientas comunes (git, guías de `docs/skills/`, auditorías de `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`, manuales técnicos por proyecto). No reemplaza
+una evaluación SCAMPI formal: es el punto de partida práctico para cerrar brechas antes de, si es la decisión organizacional, buscar una certificación real.

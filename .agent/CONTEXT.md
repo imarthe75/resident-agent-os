@@ -1,19 +1,18 @@
-# 🌌 Contexto del Agente Residente (CONTEXT.md)
+# Contexto del proyecto (CONTEXT.md)
 
-Este framework está diseñado para gobernar y normar cómo se comportan los agentes de IA dentro de un ecosistema compuesto por el Agente Residente y tres satélites principales.
+*Plantilla: cada proyecto que use este framework la llena con su propio contexto. El framework no asume ningún producto ni organización.*
 
-## 🎯 Propósito del Agente Residente
-El propósito del Agente Residente es servir como un operador inteligente soberano y centralizado que mantiene el control y la bitácora del estado cognitivo de todos los proyectos en el host local.
+## Propósito
+- **Qué es este proyecto:** _pendiente_
+- **Quién lo usa y para qué:** _pendiente_
+- **Qué NO es / fuera de alcance:** _pendiente_
 
-## 🛰️ Satélites Coexistentes
-1. **Consulta-Smart (`/consulta-smart`):** Chatbot impulsado por IA con RAG para consultas y análisis de documentos.
-2. **LexiVault AI (`/lexivault-ai`):** Bóveda documental segura e inteligente con extracción estructural y cifrado dinámico.
-3. **IDP-Smart (`/idp-smart`):** Extractor inteligente de PDFs a formato JSON.
+## Infraestructura que usa
+Los servicios de memoria del propio agente están en `docker-compose.yml`:
+- **Memoria de corto plazo:** Valkey (`agent-cache`), datos en `./data/valkey`.
+- **Memoria de largo plazo:** PostgreSQL + pgvector (`agent-db`), datos en `./data/postgres`, esquema en `sql/agent_memory.sql`.
 
-## 🛠️ Servicios e Integración Comunes
-El ecosistema centraliza sus servicios en la raíz y utiliza componentes corporativos compartidos:
-- **Base de Datos Externa:** Servidor PostgreSQL en `10.4.3.23` que almacena los datos de los tres proyectos satélite.
-- **Gestión de Identidad y Secretos:** Servidor Authentik y HashiCorp Vault en `10.4.3.208`.
-- **Caché y Celery Broker (`casmarts-core-cache`):** Valkey 8 local en puerto `6379`.
-- **Almacenamiento S3 (`casmarts-core-storage`):** SeaweedFS local sirviendo en puertos `9333` (master), `8080` (volume) y `8333` (S3).
-- **Procesamiento de LLM / Embeddings:** Integración directa por API con NVIDIA NIM (se configurará la clave API más adelante).
+Servicios propios del proyecto (base de datos de negocio, identidad, secretos, colas): _declararlos aquí con su dueño; no copiar credenciales._
+
+## Perfil del proyecto
+La parte verificable (ciclo de vida, módulos, interfaz, base reutilizable) vive en `.agent/PROFILE.json`.

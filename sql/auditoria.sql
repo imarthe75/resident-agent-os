@@ -1,20 +1,7 @@
 /*
- Navicat Premium Dump SQL
-
- Source Server         : RPP CASmart
- Source Server Type    : PostgreSQL
- Source Server Version : 180003 (180003)
- Source Host           : 10.4.3.23:9999
- Source Catalog        : agendador_db
- Source Schema         : auditoria
-
- Target Server Type    : PostgreSQL
- Target Server Version : 180003 (180003)
- File Encoding         : 65001
-
- Date: 03/06/2026 08:24:52
+ Esquema de auditoría (schema auditoria): tabla log_auditoria + triggers de fechas/row_version y de delta con hash de integridad.
+ Idempotente donde es posible; revisa el contenido antes de aplicarlo a una base de datos distinta de la de pruebas.
 */
-
 
 -- ----------------------------
 -- Create schema if not exists

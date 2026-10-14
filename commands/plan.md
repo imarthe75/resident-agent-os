@@ -14,7 +14,7 @@ Obliga al agente a suspender toda actividad de código y concentrarse en diseña
 - **Objetivo técnico** — qué se construye y por qué
 - **Mapa de archivos** — qué se crea/modifica/testea
 - **Tareas granulares** — 2-5 min cada una, con test de verificación incluido
-- **Restricciones CaSmarts** — UUID v7, audit triggers, auth, fallback local
+- **Restricciones del proyecto** — las de `changes/TEMPLATE-spec.md` (p. ej. UUID v7, audit triggers, auth, fallback local)
 - **Preguntas abiertas** — decisiones que requieren input del usuario
 
 ## Relación con OpenSpec

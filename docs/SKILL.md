@@ -395,19 +395,3 @@ pudo haber cambiado desde que se catalogó.
   validó permisos, especialmente si el productor y el consumer son servicios distintos).
 
 ---
-
-## 10. Auditoría Automatizada de Starters (scripts/audit_starters.py)
-
-Para facilitar la conformidad con el **Estándar Maestro de Auditoría**, se ha integrado un analizador estático automatizado en [audit_starters.py](file:///opt/casmart/scripts/audit_starters.py).
-
-### Cómo ejecutar la auditoría:
-```bash
-python3 /opt/casmart/scripts/audit_starters.py
-```
-
-### Resultados y Reporte:
-El script genera un reporte detallado en Markdown en:
-[audit_report_latest.md](file:///opt/casmart/docs/starters/reportes_auditoria/audit_report_latest.md)
-
-Este reporte agrupa y detalla los hallazgos por cada starter, facilitando la remediación sistemática de seguridad y estándares.
-

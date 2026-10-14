@@ -1,0 +1,15 @@
+{
+  "_comment": "Which tools get their versions resolved when a NEW project is generated, from which official source, and on which channel. 'latest' = newest stable release; 'lts' = newest release that is Long-Term-Support TODAY (a future LTS date does not count). Change a channel here, not in code. Add a tool by adding an entry. Sources: npm registry, endoflife.date, Eclipse Adoptium API.",
+  "tools": {
+    "angular":      { "source": "npm",       "package": "@angular/core", "channel": "latest" },
+    "angular-cli":  { "source": "npm",       "package": "@angular/cli",  "channel": "latest" },
+    "typescript":   { "source": "npm",       "package": "typescript",    "channel": "latest" },
+    "react":        { "source": "npm",       "package": "react",         "channel": "latest" },
+    "node":         { "source": "endoflife", "product": "nodejs",        "channel": "lts" },
+    "java":         { "source": "adoptium",                              "channel": "lts" },
+    "spring-boot":  { "source": "endoflife", "product": "spring-boot",   "channel": "latest" },
+    "python":       { "source": "endoflife", "product": "python",        "channel": "latest" },
+    "postgresql":   { "source": "endoflife", "product": "postgresql",    "channel": "latest" },
+    "valkey":       { "source": "endoflife", "product": "valkey",        "channel": "latest" }
+  }
+}

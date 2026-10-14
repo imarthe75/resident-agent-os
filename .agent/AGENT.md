@@ -4,9 +4,11 @@ Este documento define la ley y directrices operativas que rigen a toda instancia
 
 ## 📜 Reglas de Oro
 
-1. **Versiones de Infraestructura (Mandato de Actualización):**
-   - Se utilizan siempre las versiones estables más recientes de los servicios base: `valkey/valkey:8`, `pgvector/pgvector:pg18`, `node:22-alpine`.
-   - Al actualizar versiones, propagar los cambios a todos los proyectos satélite mediante el script `scripts/distribute_framework.py`.
+1. **Versiones vigentes (Mandato de Actualización):**
+   - Al **generar un proyecto nuevo** (o añadir una tecnología), las versiones de Angular, Java, Spring Boot, Node, Python, PostgreSQL, Valkey y demás NO se toman de la memoria del modelo, de ejemplos ni de este repositorio: se resuelven en ese momento con `python scripts/latest_versions.py --write versions.lock.json` (fuentes oficiales; canal `latest` o `lts` por herramienta en `.agent/versions-policy.json`) y se fijan **exactas** en los manifiestos (`package.json`, `pom.xml`, `Dockerfile`, `docker-compose.yml`). Nunca la etiqueta `latest`.
+   - Si una versión no se pudo resolver (sin red, fuente caída), se dice y se pregunta; no se inventa ni se reutiliza una antigua.
+   - Un proyecto existente se revisa con `python verifiers/run.py --only versions_current`; quedarse atrás es un `NO_CUMPLE` visible, no un olvido silencioso.
+   - Al cambiar la política o las versiones del propio framework, propagar con `scripts/distribute_framework.py` (y `--check` para ver qué repos se desviaron).
 
 2. **Soberanía Absoluta sobre los Datos:**
    - Queda estrictamente prohibido utilizar bases de datos vectoriales en la nube u otros servicios externos SaaS de memoria que vulneren la confidencialidad del host.

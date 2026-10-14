@@ -1,37 +1,39 @@
+# Infraestructura local del Agente Residente: memoria de corto plazo (Valkey), memoria de largo plazo (PostgreSQL + pgvector) y el panel.
+# Las versiones se resuelven con `python scripts/latest_versions.py` y se fijan aquí (nunca `latest`); `python verifiers/run.py --only versions_current`
+# avisa cuando se quedan atrás. Los datos viven en ./data (relativo al host) y sobreviven a `docker compose down -v`.
+# Variables obligatorias en .env (sin valores por omisión): POSTGRES_PASSWORD.
 services:
-  casmarts-core-cache:
-    image: valkey/valkey:8
-    container_name: casmarts-core-cache
+  agent-cache:
+    image: valkey/valkey:9.1
+    container_name: agent-cache
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - ./data/valkey:/data
     command: valkey-server --save 60 1 --loglevel notice
-    restart: always
-    networks:
-      - aura-network
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 512M
 
-  casmarts-core-storage:
-    image: chrislusf/seaweedfs:latest
-    container_name: casmarts-core-storage
+  agent-db:
+    image: pgvector/pgvector:pg18
+    container_name: agent-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-db_resident_knowledge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
     ports:
-      - "9333:9333"
-      - "8080:8080"
-      - "8333:8333"
+      - "127.0.0.1:5432:5432"
     volumes:
-      - ./data/seaweedfs:/data
-    command: server -dir=/data -s3 -s3.port=8333 -ip=casmarts-core-storage
-    restart: always
-    networks:
-      - aura-network
+      - ./data/postgres:/var/lib/postgresql
+      - ./sql/agent_memory.sql:/docker-entrypoint-initdb.d/10-agent_memory.sql:ro
+    restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
 
   resident-ui:
     build:
@@ -39,7 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: resident-ui-dashboard
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./resident-ui:/app
       - /app/node_modules
@@ -48,30 +50,5 @@ services:
     environment:
       - NODE_ENV=development
     depends_on:
-      - casmarts-core-cache
-    restart: always
-    networks:
-      - aura-network
-
-  casmarts-core-proxy:
-    image: nginx:alpine
-    container_name: casmarts-core-proxy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-    restart: always
-    networks:
-      - aura-network
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-
-networks:
-  aura-network:
-    external: true
-    name: aura-network
+      - agent-cache
+    restart: unless-stopped

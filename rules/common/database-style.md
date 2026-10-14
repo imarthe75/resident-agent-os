@@ -2,7 +2,7 @@
 
 Estándares obligatorios para el modelado, escritura de consultas y migraciones de base de datos en el ecosistema, garantizando consistencia, trazabilidad e idempotencia estructural.
 
-*Nota de Atribución: Estas pautas y convenciones se adaptan de la [Guía de Estilo SQL](file:///home/ia/ecosistema-casmarts/resident-agent-framework/gu%C3%ADa%20de%20estilo%20sql.md) (Licencia MIT).*
+*Nota de Atribución: Estas pautas y convenciones se adaptan de la [Guía de Estilo SQL](../../docs/guia-de-estilo-sql.md) (Licencia MIT).*
 
 ---
 

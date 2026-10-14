@@ -2,7 +2,7 @@
 
 Este documento define las directrices heurísticas tanto para el comportamiento del agente de IA como para el diseño y lógica de las aplicaciones construidas a partir de este framework. El sustento teórico de estas reglas se basa en los **10 Principios Heurísticos de Usabilidad e Interacción de Jakob Nielsen (1994)** y la **Teoría de la Carga Mental de John Sweller**.
 
-Para un desglose detallado de su implementación científica e impacto en la suite del ecosistema, consulta la [Guía Maestra de Heurísticas](file:///home/ia/ecosistema-casmarts/resident-agent-framework/HEURISTICAS_MASTER_GUIDE.md).
+Para un desglose detallado de su implementación científica e impacto en los proyectos que usan el framework, consulta la [Guía Maestra de Heurísticas](../docs/HEURISTICAS_MASTER_GUIDE.md).
 
 ---
 

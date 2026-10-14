@@ -7,7 +7,7 @@ proyecto. Está pensado para copiarse tal cual a cualquier repositorio (como
 auditar seguridad, calidad de código y errores probables en cualquier stack.
 
 Es la versión generalizada de las secciones "ESTÁNDARES DE SEGURIDAD OBLIGATORIOS" y
-"OPTIMIZACIÓN AL 100%" de un proyecto real (sistema escolar multi-tenant, backend
+"OPTIMIZACIÓN AL 100%" de un proyecto real (un sistema multi-tenant, backend
 Java/Python + frontend Angular), destilada para que las lecciones — muchas aprendidas de
 bugs reales en producción, no de teoría — sirvan en cualquier lenguaje o framework. El
 skill compañero, `.agent/skills/universal-code-audit/SKILL.md`, cubre el *método* de
@@ -79,7 +79,7 @@ auditoría (cómo encontrar estos problemas de forma reproducible); este documen
 | API3 | Broken Object Property Level Authorization | ¿Un usuario puede leer/escribir campos del objeto que no debería (mass assignment)? |
 | API4 | Unrestricted Resource Consumption | ¿Hay límites de paginación, tamaño de payload, rate limiting, timeouts? |
 | API5 | Broken Function Level Authorization (BFLA) | ¿La función (no el objeto) requiere el rol correcto — un usuario normal no puede llamar un endpoint de admin solo porque conoce la URL? |
-| API6 | Unrestricted Access to Sensitive Business Flows | ¿Un flujo de negocio sensible (compra, aprobación, promoción de ciclo escolar, transferencia) se puede automatizar/repetir sin control (ej. bot, doble clic, replay)? |
+| API6 | Unrestricted Access to Sensitive Business Flows | ¿Un flujo de negocio sensible (compra, aprobación, cierre de ciclo, transferencia) se puede automatizar/repetir sin control (ej. bot, doble clic, replay)? |
 | API7 | Server Side Request Forgery | Ver 1.2 #10. |
 | API8 | Security Misconfiguration | Ver 1.2 #5. |
 | API9 | Improper Inventory Management | ¿Existen versiones viejas de la API o endpoints de debug/staging accesibles en producción? ¿Hay un inventario real de qué expone el sistema? |
@@ -117,7 +117,7 @@ de cola consumido, comando de CLI con privilegios, cron job) sin importar el len
       header/campo que el cliente envía").
 - [ ] El nivel de acceso/rol se verifica contra la operación solicitada — 403/permission
       denied si es insuficiente, no un 200 que silenciosamente no hace nada.
-- [ ] Si el sistema es multi-tenant (multi-plantel, multi-organización, multi-cuenta):
+- [ ] Si el sistema es multi-tenant (multi-sucursal, multi-organización, multi-cuenta):
       el scoping por tenant se aplica **siempre**, no solo para roles no-admin — un
       "superadmin" con alcance real limitado a su propio tenant necesita el mismo
       chequeo que cualquiera (lección real: confundir "rol más alto" con "sin límite de
@@ -522,8 +522,7 @@ de nombre dice "cero hallazgos" sin que sea cierto).
 ## Procedencia
 
 Este catálogo se destiló de incidentes reales (no hipotéticos) encontrados durante
-auditorías profundas de un sistema de producción multi-tenant con datos sensibles de
-menores de edad — cada patrón de bug listado en §5 ocurrió al menos una vez en ese
+auditorías profundas de un sistema de producción multi-tenant con datos sensibles — cada patrón de bug listado en §5 ocurrió al menos una vez en ese
 sistema real antes de generalizarse aquí. El objetivo de generalizarlo es que la próxima
 vez que aparezca (en cualquier proyecto, en cualquier lenguaje) se reconozca por patrón
 en vez de descubrirse otra vez desde cero.

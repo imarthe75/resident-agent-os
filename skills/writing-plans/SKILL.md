@@ -73,9 +73,9 @@ Guardar en `docs/plans/YYYY-MM-DD-<nombre-feature>.md`:
 
 ---
 
-## Restricciones mandatorias en planes CaSmarts
+## Restricciones mandatorias en planes
 
-Todo plan debe contemplar:
+Todo plan debe contemplar las restricciones del proyecto (las de abajo son un ejemplo: cámbialas por las vuestras y, si tienen verificador, cítalo, ver `verifiers/`):
 1. **PKs UUID v7** en tablas nuevas
 2. **Audit triggers** en tablas con mutaciones
 3. **Auth middleware** en endpoints sensibles

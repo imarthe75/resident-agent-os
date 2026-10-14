@@ -16,18 +16,18 @@ Es el marco estándar de oro de la Interacción Hombre-Máquina (HCI). Al cumpli
 
 ---
 
-## 🛠️ 2. Las 10 Heurísticas de Nielsen Aplicadas al Desarrollo Smart
+## 🛠️ 2. Las 10 Heurísticas de Nielsen Aplicadas al Desarrollo
 
-En la suite de proyectos (como `consulta-smart` e `idp-smart`), la IA y los desarrolladores deben implementar estas heurísticas de forma obligatoria:
+En los proyectos que usan este framework, la IA y los desarrolladores deben implementar estas heurísticas de forma obligatoria:
 
 | # | Heurística Nielsen | Aplicación en el Código / UI | Justificación y Beneficio |
 |---|---|---|---|
-| **1** | **Visibilidad del Estado** | Indicadores de carga, loaders dinámicos y estados de progreso (ej. procesando PDFs con Docling). | Evita la incertidumbre del usuario. |
-| **2** | **Relación con el Mundo Real** | Metáforas de archivadores físicos, expedientes e índices familiares para el analista legal. | Reduce la curva de aprendizaje. |
+| **1** | **Visibilidad del Estado** | Indicadores de carga, loaders dinámicos y estados de progreso (ej. procesando un archivo grande). | Evita la incertidumbre del usuario. |
+| **2** | **Relación con el Mundo Real** | Metáforas y vocabulario del dominio del usuario (expedientes, carpetas) en lugar de términos técnicos. | Reduce la curva de aprendizaje. |
 | **3** | **Control y Libertad** | Botones de cancelar, deshacer cargas y flujos de edición libres. | El usuario siente seguridad al interactuar. |
-| **4** | **Consistencia y Estándares** | Uso del sistema de diseño Cívika (colores de severidad y tipografía Outfit/Inter). | Evita la confusión y unifica la experiencia. |
+| **4** | **Consistencia y Estándares** | Uso del sistema de diseño del proyecto (colores de severidad, tipografía, componentes). | Evita la confusión y unifica la experiencia. |
 | **5** | **Prevención de Errores** | Validación de tipos de archivos permitidos y deshabilitación dinámica de botones inválidos. | Evita fallas antes de enviar peticiones a la DB/API. |
-| **6** | **Reconocimiento vs Recuerdo** | Vista previa de PDF paralela a los metadatos extraídos por la IA en la misma pantalla. | Minimiza la carga de memoria a corto plazo del usuario. |
+| **6** | **Reconocimiento vs Recuerdo** | Vista previa del documento junto a los datos extraídos por la IA en la misma pantalla. | Minimiza la carga de memoria a corto plazo del usuario. |
 | **7** | **Flexibilidad y Eficiencia** | Shortcuts de teclado y opciones de autocompletado para usuarios expertos. | Incrementa la velocidad operativa (menor MTTR). |
 | **8** | **Diseño Minimalista** | Dashboards limpios con widgets enfocados y exclusión de ruido visual. | Maximiza la legibilidad del contenido crítico. |
 | **9** | **Recuperación de Errores** | Mensajes de error amigables e indicaciones explícitas de cómo corregirlos. | El usuario sabe exactamente qué falló y cómo solucionarlo. |

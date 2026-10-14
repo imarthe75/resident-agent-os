@@ -120,13 +120,14 @@ resident-agent-framework/
 
 - Docker & Docker Compose
 - Python 3.12+
-- `redis`, `psycopg2-binary`, `numpy` (para los módulos de memoria)
+- `pip install -r requirements.txt` (redis, psycopg2, numpy, pydantic, pyyaml…)
 
 ### 1. Levantar infraestructura soberana
 
 ```bash
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> .env     # obligatoria; .env está en .gitignore
 docker compose up -d
-# Crea ./data/postgres y ./data/valkey (persistentes, en .gitignore)
+# Crea ./data/postgres y ./data/valkey (persistentes, en .gitignore) y aplica sql/agent_memory.sql en el primer arranque
 ```
 
 ### 2. Inicializar el audit trail
@@ -135,39 +136,7 @@ docker compose up -d
 psql -U admin -d db_resident_knowledge -h localhost < sql/auditoria.sql
 ```
 
-### 3. Levantar Servicios Satélites y Proxy Inverso (Kiwi, Plane y Proxy)
-
-Este framework incluye manifiestos pre-configurados para levantar Kiwi TCMS y Plane usando la base de datos centralizada de desarrollo, pre-configurando OIDC para Authentik, y enrutando todo mediante un Proxy Inverso Global (Caddy) para habilitar SSL en los puertos estándar `80` y `443`:
-
-#### Kiwi TCMS:
-```bash
-cd services/kiwi
-docker compose up -d
-```
-- **Configuración de base de datos:** Conectado directamente a la base de datos remota `kiwi_db` en `10.4.3.23:5432`.
-- **Configuración OIDC:** Se gestiona mediante las variables `SOCIAL_AUTH_OIDC_KEY` y `SOCIAL_AUTH_OIDC_SECRET` en [services/kiwi/docker-compose.yml](file:///opt/prism/services/kiwi/docker-compose.yml).
-
-#### Plane:
-```bash
-cd services/plane
-docker compose --env-file variables.env up -d
-```
-- **Configuración de base de datos:** Conectado directamente a `plane_db` en `10.4.3.23:5432`.
-- **Configuración OIDC:** Configurable a través del portal de administración (`/god-mode/authentication/oidc`) usando las variables de referencia en [services/plane/variables.env](file:///opt/prism/services/plane/variables.env).
-
-#### Proxy Inverso Global (Caddy):
-```bash
-cd services/reverse-proxy
-docker compose up -d
-```
-- **Acceso a los servicios:**
-  - **Kiwi TCMS:** `https://kiwi.casmart.internal` (Puerto 443 estándar)
-  - **Plane:** `https://plane.casmart.internal` (Puerto 443 estándar)
-- **SSL/TLS:** Caddy genera y renueva automáticamente certificados SSL auto-firmados (CA interna de Caddy) para los dominios `.internal` locales.
-
-Consulte las instrucciones detalladas de configuración y URLs de callback de OIDC con Authentik en el [reporte de despliegue](file:///home/kiwi/.gemini/antigravity-ide/brain/d2294703-1ee8-49bc-8c1c-c5e308424758/walkthrough.md).
-
-### 4. Leer el estado del agente (Rito de Inicio)
+### 3. Leer el estado del agente (Rito de Inicio)
 
 ```bash
 cat .agent/STATE.md     # pendientes de la última sesión
@@ -175,7 +144,17 @@ cat .agent/AGENT.md     # leyes operacionales
 cat .agent/HEURISTICS.md
 ```
 
-### 4. Usar la memoria
+### 4. Crear un proyecto nuevo con las versiones vigentes
+
+Las versiones de Angular, Java, Spring Boot, Node, Python, PostgreSQL, Valkey… **no se escriben de memoria**: se resuelven en el momento desde fuentes
+oficiales y se fijan en un lock (ver `commands/new-project.md`).
+
+```bash
+python scripts/latest_versions.py --write versions.lock.json   # política en .agent/versions-policy.json (latest / lts por herramienta)
+python verifiers/run.py --path <proyecto> --only versions_current   # avisa si un proyecto se quedó atrás
+```
+
+### 5. Usar la memoria
 
 ```python
 from memory.semantic_cache import SemanticCache
@@ -287,6 +266,7 @@ Al terminar cada sesión:
 | Reglas Java y Angular | cómo escribir el código para no generar el hallazgo | `rules/java/`, `rules/angular/` |
 | Hooks en formato Claude Code | el de sintaxis bloquea (exit 2) | `.claude/settings.json`, `scripts/hooks/` |
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
+| Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
 
 Pruebas: `python -m pytest tests -q` (la caché necesita un Valkey: `VALKEY_HOST=...`; sin él esas pruebas se saltan y lo dicen).

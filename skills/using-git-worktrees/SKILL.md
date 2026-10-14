@@ -9,7 +9,7 @@
 
 Los git worktrees permiten trabajar en múltiples ramas **en paralelo** sin hacer stash ni cambiar de rama. Cada worktree es un directorio independiente con su propio working tree, pero comparte el objeto `.git`.
 
-Casos de uso en CaSmarts:
+Casos de uso:
 - Desarrollar un feature mientras se revisa otro en paralelo
 - Probar una migración de DB sin afectar el trabajo actual
 - Aislar experimentos (nuevo módulo, refactor) del main trunk

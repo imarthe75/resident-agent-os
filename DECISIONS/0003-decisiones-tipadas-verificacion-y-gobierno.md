@@ -12,13 +12,13 @@
 | 4 | `agent/heuristic_engine.py` | `evaluate()` captura cualquier error de una regla y solo lo registra: la regla se salta en silencio (incluida `ECC_001`, el freno de 3 reintentos). |
 | 5 | `agent/loop.py::ensure_spec` | Busca el id como subcadena y, si falta «APROBADO», solo avisa: «no hay código sin spec» no es un control. |
 | 6 | `hooks/hooks.json` | Formato propio (`condition`, `command`), distinto del esquema de hooks de Claude Code (`matcher` + `hooks[].type`); probablemente no se ejecuta. `post-edit` falla con exit 1 (Claude Code bloquea con 2). |
-| 7 | `scripts/audit_starters.py` | «Hay confirmación» = la palabra *confirm* aparece **en cualquier parte** del archivo: la sobreestimación por presencia que condena su propio `docs/SKILL.md` §0. |
-| 8 | `scripts/distribute_framework.py` | Rutas fijas `/home/ia/...`, copia sin versión y sin modo de comprobación de deriva. Sin versión ni comprobación de deriva, cada proyecto termina bifurcando el framework y se pierde la base común. |
+| 7 | `scripts/audit_starters.py` (ELIMINADO después, ver «Limpieza del repositorio») | «Hay confirmación» = la palabra *confirm* aparece **en cualquier parte** del archivo: la sobreestimación por presencia que condena su propio `docs/SKILL.md` §0. |
+| 8 | `scripts/distribute_framework.py` | Rutas fijas de un servidor concreto, copia sin versión y sin modo de comprobación de deriva. Sin versión ni comprobación de deriva, cada proyecto termina bifurcando el framework y se pierde la base común. |
 | 9 | repo | No existe carpeta `tests/`, aunque `ARCHITECTURE.md` describe una estrategia de pruebas. |
-| 10 | `docs/starters/AuraAudit` | Copia divergente del bucle del agente (544 líneas) con su propio escáner, duplicando lo que hace un escáner de vulnerabilidades dedicado. |
+| 10 | `docs/starters/AuraAudit` (ELIMINADO después, ver «Limpieza del repositorio») | Copia divergente del bucle del agente (544 líneas) con su propio escáner, duplicando lo que hace un escáner de vulnerabilidades dedicado. |
 
 ## Alcance (instrucción del dueño, 2026-10-13)
-Este framework es **genérico**: sirve a los proyectos de Setag y puede usarse también en otras organizaciones (por ejemplo Casmarts), pero **no se generaliza hacia ninguna** en particular. Solo se toman ideas de fuera (jev-demo y afines, una metodología organizacional de referencia, un detector de vulnerabilidades en producción) y se implementan aquí de forma neutral:
+Este framework es **genérico**: sirve a los proyectos de Setag y puede usarse también en otras organizaciones (sin acoplarse a ninguna), pero **no se generaliza hacia ninguna** en particular. Solo se toman ideas de fuera (jev-demo y afines, una metodología organizacional de referencia, un detector de vulnerabilidades en producción) y se implementan aquí de forma neutral:
 - Nada se acopla a un cliente, dominio, ruta o herramienta concretos. Todo lo que apunte a un servicio externo (un escáner de vulnerabilidades, un modelo de decisión) es **configuración opcional** (variables de entorno) y el framework funciona igual sin él.
 - Las restricciones específicas de una organización ya presentes en plantillas existentes (`changes/TEMPLATE-spec.md`, `MAP.md`) no se amplían ni se copian a código nuevo; los verificadores nuevos reciben sus parámetros por configuración.
 
@@ -29,7 +29,6 @@ Este framework es **genérico**: sirve a los proyectos de Setag y puede usarse t
 - Memoria: `store_memory` se niega (`AgentMemoryError`) a guardar sin embedding; nunca fabrica uno.
 - Motor de heurísticas: un error al evaluar una regla **no se traga**: se registra con traza y la regla produce la acción `rule_error:<id>`; las reglas de prioridad ≤ 2 (`ECC_001`, soberanía) fallan **cerradas** (lanzan `HeuristicRuleError`).
 - `ensure_spec`: coincidencia exacta del id y estado `APROBADO` **de esa spec**; si no, `SpecMissingError`.
-- `audit_starters.py`: la confirmación debe estar a ≤ N líneas de la llamada destructiva.
 - `distribute_framework.py`: rutas por argumento/entorno, `VERSION` + manifiesto de hashes y `--check` que lista los repos desviados.
 
 ### D2 · Hooks en el formato de Claude Code
@@ -56,14 +55,14 @@ Este framework es **genérico**: sirve a los proyectos de Setag y puede usarse t
 ### D8 · Preflight con un escáner opcional y reglas de stack
 - `agent/preflight_client.py` + skill `preflight`: antes de tocar archivos consulta, si está configurado (`PREFLIGHT_URL`, `PREFLIGHT_TOKEN`), un servicio que devuelva hallazgos abiertos por archivo (contrato JSON documentado en la skill; Centinela-AI lo implementa, pero cualquier otro sirve). Sin configuración o sin respuesta lo dice; no inventa hallazgos.
 - `rules/java/rules.md` y `rules/angular/rules.md`, derivadas de reglas públicas y habituales de revisión de Spring/Angular: cómo escribir el código para no generar el hallazgo.
-- `AuraAudit` y `audit_starters.py` duplican a un escáner dedicado: se marcan **obsoletos a favor de un escáner externo configurable**; no se borran sin decisión.
+- `AuraAudit` y `audit_starters.py` duplicaban a un escáner dedicado: primero se marcaron obsoletos y después el dueño pidió retirar `docs/starters/` por completo (ver «Limpieza del repositorio»).
 
 ## Fuera de alcance
 - `resident-ui/src` (no revisado a fondo), el modelo local de decisión en producción y la copia de `AuraAudit` (solo se marca obsoleta).
 - PostgreSQL + pgvector no se puede levantar en este entorno (la imagen no está disponible); el camino de base de datos de `LongTermMemory` se valida solo en lo que no necesita el servidor, y se declara.
 
 ## Estado de implementación (2026-10-13)
-Suite: `python -m pytest tests -q` → **78 pruebas, todas pasan** (la caché se probó contra un Valkey 8 real; sin Valkey esas pruebas se saltan y lo dicen).
+Suite: `python -m pytest tests -q` → **90 pruebas, todas pasan** (78 al subir el primer lote; −3 por retirar `audit_starters.py`; +15 de versiones vigentes) (la caché se probó contra un Valkey 8 real; sin Valkey esas pruebas se saltan y lo dicen).
 
 | Punto | Estado | Evidencia / límite |
 |---|---|---|
@@ -71,7 +70,6 @@ Suite: `python -m pytest tests -q` → **78 pruebas, todas pasan** (la caché se
 | D1 memoria sin embeddings inventados | HECHO (validación) | `tests/test_memory_validation.py`. El camino de PostgreSQL + pgvector **NO se ejecutó**: no hay imagen pgvector disponible aquí. |
 | D1 motor de heurísticas | HECHO | validación al cargar, guardas fallan cerradas, `rule_error:<id>` visible; `tests/test_heuristic_engine.py`. |
 | D1 contrato de spec | HECHO | `agent/specs.py`; `tests/test_specs_gate.py`. |
-| D1 `audit_starters.py` (confirmación cerca de la llamada) y archivos no auditables reportados | HECHO | `tests/test_audit_starters.py`. Marcado OBSOLETO a favor de un escáner dedicado. |
 | D1 `distribute_framework.py` (rutas por argumento, VERSION, manifiesto, `--check`, `--dry-run`) | HECHO | `tests/test_distribute_framework.py` sobre directorios reales. No se ejecutó contra los repositorios reales de Setag. |
 | D2 hooks en formato Claude Code | PARCIAL | JSON válido y `post-edit.js` probado con Node 26 (exit 0 / 2 / 0 para archivo inexistente). **No se verificó que Claude Code ejecute estos hooks**; el hook de Python (`py_compile`) no se probó (la imagen de Node no trae Python). |
 | D3 decisiones tipadas | HECHO con límite | `tests/test_decisions.py`: validación estricta, umbrales y las dos clases de *backend* contra un servidor HTTP **local que reproduce el formato** (no contra un modelo real). Ningún backend real se instaló ni probó. |
@@ -80,11 +78,29 @@ Suite: `python -m pytest tests -q` → **78 pruebas, todas pasan** (la caché se
 | D6 nivel de evidencia | HECHO / PARCIAL | La columna y su restricción se ejecutaron en PostgreSQL 18 real (legado → HIPOTESIS, valor inválido rechazado, idempotente). Las consultas con pgvector no se ejecutaron. |
 | D7 perfil del proyecto y costo por sesión | HECHO | `tests/test_profile_and_usage.py`. El costo en USD lo calcula quien llama; el framework no guarda precios. |
 | D8 cliente de preflight, skill, reglas Java/Angular | HECHO con límite | Cliente probado contra un servidor local que reproduce el contrato; el contrato también lo implementa Centinela-AI (`/api/preflight`). Las reglas de `rules/java` y `rules/angular` son texto, sin prueba automática. |
+| D9 versiones vigentes (`scripts/latest_versions.py`, `versions_current`, `/new-project`) | HECHO con límite | `tests/test_latest_versions.py` (15): parsers con la forma de las respuestas reales, el nivel LTS «vigente hoy», fallos explícitos sin versión de reserva, capa HTTP contra servidor local. Ejecución **en vivo** el 2026-10-13 contra npm, endoflife.date y Adoptium: Angular 22.2.2, CLI 22.2.2, TypeScript 7.0.2, React 19.3.0, Node 24.21.0 (LTS), Java 25 (LTS), Spring Boot 4.1.1, Python 3.15.0, PostgreSQL 18.6, Valkey 9.1.2. Una prueba encontró un fallo propio: las etiquetas `pg18` de pgvector no se reconocían. |
 | Biblioteca de prompts | HECHO | `scripts/check_prompts.py` + pruebas. El único prompt incluido declara `eval_set: none`. |
-| `resident-ui/src`, AuraAudit (más allá de marcarla obsoleta) | NO REVISADO | |
+| `resident-ui/src` | NO REVISADO | |
 
 ## Pendientes y deuda declarada
 - Verificar en una sesión real de Claude Code que los hooks de `.claude/settings.json` se disparan.
 - Levantar PostgreSQL + pgvector y ejecutar `sql/agent_memory.sql` completo y las consultas de `LongTermMemory`.
 - Decidir qué hacer con los NO_CUMPLE reales del propio repositorio (servicios de `services/plane`, triggers de auditoría).
 - `docker-compose.yml` usa `chrislusf/seaweedfs:latest` (imagen sin versión fija): fuera de este cambio.
+
+## Limpieza del repositorio (2026-10-13, por indicación del dueño)
+Este framework es genérico (proyectos de Setag; reutilizable por otras organizaciones) y no debe cargar con material de otros productos ni de una organización concreta. Se retiró del árbol actual (el historial de git conserva todo):
+- los punteros a otros productos y los documentos `CA-*` de otra organización;
+- `docs/starters/` completo (punteros a starters, reportes de auditoría, `AuraAudit`, `.rar`) y `scripts/audit_starters.py` con su prueba;
+- `services/` (despliegues de herramientas satélite), `nginx/` (configuración y certificados autofirmados de dominios internos de otra organización), los scripts y notas de integración con un proveedor de identidad concreto, `setup.sh`, `db_setup.sql` (contenía una **contraseña literal**: sigue en el historial de git; rotarla si alguna vez fue real), `.claudecode.json` (rutas fijas de un servidor), el informe de un producto ajeno y el manual técnico de ese producto;
+- las skills de `docs/skills/` ligadas a la marca/arquitectura de otra organización (`theming-architecture`, `auth-architecture`, `generacion-estilos`, `generacion-componentes-react`, `generacion-servicios-fastapi`).
+Se reescribieron para este entorno: `docs/ESTANDAR_CMMI_UNIVERSAL.md` (ya sin el diagnóstico de un producto ajeno ni el mandato de otra organización), los ejemplos de `docs/HEURISTICAS_MASTER_GUIDE.md`, la plantilla `.agent/CONTEXT.md|MAP.md|STATE.md`, `docker-compose.yml` (Valkey + PostgreSQL/pgvector + panel, sin servicios de otros), rutas absolutas de enlaces → relativas, y el encabezado de `sql/auditoria.sql`.
+**No se inventaron convenciones de Setag**: donde un estándar dependía de decisiones propias (paleta, tema, identidad), se dejó «lo que defina el proyecto».
+Pendiente de decisión del dueño: las skills restantes de `docs/skills/` (stack Angular/PrimeNG/Spring) siguen siendo las de una arquitectura concreta; confirmar si son las de Setag.
+
+## D9 · Versiones vigentes al generar un proyecto (añadido 2026-10-13, a petición del dueño)
+- `scripts/latest_versions.py` resuelve, en el momento, Angular, Angular CLI, TypeScript, React, Node, Java, Spring Boot, Python, PostgreSQL y Valkey desde fuentes oficiales (npm, endoflife.date, Eclipse Adoptium), según `.agent/versions-policy.json` (canal `latest` o `lts` por herramienta). Un fallo devuelve `NO RESUELTA`, nunca una versión de reserva. `--write` guarda el lock; `--check` lo compara con hoy.
+- Canal por omisión: `latest` para todo salvo **Java y Node en `lts`** (el último LTS *vigente hoy*, no uno futuro). Es una decisión de política: cambiar a `latest` es una línea en el JSON.
+- `commands/new-project.md` impone el orden: resolver versiones → spec → manifiestos con las versiones exactas del lock (nunca `latest`) → verificar. La regla 1 de `.agent/AGENT.md` ya no lista versiones fijas.
+- Verificador `versions_current`: compara `package.json` (Angular, React, TypeScript), `pom.xml` (Java, Spring Boot), `Dockerfile` y compose (node, python, temurin, postgres, pgvector, valkey) con lo vigente hoy. Sin red → `NO_EVALUADO`.
+- Resultado real de ejecutarlo contra este mismo repositorio: **`NO_CUMPLE`** en `resident-ui/package.json` (TypeScript 5 frente a 7.0.2) y `resident-ui/Dockerfile` (`node:22-alpine` frente a 24.21.0 LTS). El `docker-compose.yml` sí se actualizó (Valkey 9.1, imagen verificada en el registro). `resident-ui` **no se actualizó**: exige probar que el panel de Next.js compile con TypeScript 7 y Node 24, y eso no se ejecutó.

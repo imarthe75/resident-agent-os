@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -148,5 +149,111 @@ def endpoints_auth(root: Path, auth_regex: str = None) -> Result:
     return Result("endpoints_auth", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
 
 
+# ----------------------------------------------------------------------------- versions_current
+_FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolved_versions(resolved=None):
+    """{tool: {version, major, ...}} from the official sources (or the dict a test injects). Imports the resolver lazily: it does network I/O."""
+    if resolved is not None:
+        return resolved
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("latest_versions", _FRAMEWORK_ROOT / "scripts" / "latest_versions.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    policy = json.loads((_FRAMEWORK_ROOT / ".agent" / "versions-policy.json").read_text(encoding="utf-8"))
+    return mod.resolve_all(policy)
+
+
+def _mm(v):
+    m = re.match(r"^v?(\d+)(?:\.(\d+))?", str(v))
+    return (int(m.group(1)), int(m.group(2) or 0)) if m else None
+
+
+def versions_current(root: Path, resolved=None) -> Result:
+    """A project's manifests use the CURRENT versions (the ones scripts/latest_versions.py resolves today). Examined: package.json (Angular,
+    React, TypeScript majors), pom.xml (java release, Spring Boot parent), Dockerfile FROM (node, python, eclipse-temurin) and compose images
+    (postgres, pgvector, valkey). A tool whose current version could not be resolved (offline) is reported, never assumed current.
+    Behind by one MAJOR (or, for Spring Boot/Python, one minor line) is NO_CUMPLE; exact patch lag is not."""
+    cur = _resolved_versions(resolved)
+    bad, unresolved, checked = [], set(), 0
+
+    def cmp_major(label, where, found, tool):
+        nonlocal checked
+        info = cur.get(tool) or {}
+        if not info.get("version"):
+            unresolved.add(tool)
+            return
+        fm, cm = _mm(found), _mm(info["version"])
+        if not fm:
+            return
+        checked += 1
+        if fm[0] < cm[0]:
+            bad.append(f"{where}: {label} {found} (vigente: {info['version']}, canal {info.get('channel')})")
+
+    for f in _files(root, ("package.json",)):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        deps = {**(data.get("dependencies") or {}), **(data.get("devDependencies") or {})}
+        for pkg, tool in (("@angular/core", "angular"), ("react", "react"), ("typescript", "typescript")):
+            if pkg in deps:
+                cmp_major(pkg, str(f.relative_to(root)), re.sub(r"^[\^~>=<\s]+", "", str(deps[pkg])), tool)
+
+    for f in _files(root, ("pom.xml",)):
+        text = f.read_text(encoding="utf-8", errors="replace")
+        rel = str(f.relative_to(root))
+        m = re.search(r"<(?:java\.version|maven\.compiler\.release|release)>\s*(\d+)\s*</", text)
+        if m:
+            cmp_major("Java", rel, m.group(1), "java")
+        m = re.search(r"<parent>.*?spring-boot-starter-parent.*?<version>\s*([\d.]+)", text, re.DOTALL)
+        if m and cur.get("spring-boot", {}).get("version"):
+            checked += 1
+            if _mm(m.group(1)) < _mm(cur["spring-boot"]["version"]):
+                bad.append(f"{rel}: Spring Boot {m.group(1)} (vigente: {cur['spring-boot']['version']})")
+        elif m:
+            unresolved.add("spring-boot")
+
+    for f in _files(root, ("Dockerfile", ".dockerfile")) + [p for p in _files(root, (".yml", ".yaml")) if "compose" in p.name.lower()]:
+        text = f.read_text(encoding="utf-8", errors="replace")
+        rel = str(f.relative_to(root))
+        for img, tag in re.findall(r"(?:FROM|image:)\s+['\"]?([\w./-]+):v?(\w[\w.\-]*)", text):
+            base = img.split("/")[-1]
+            if base == "node":
+                cmp_major("node (imagen)", rel, tag, "node")
+            elif base == "python":
+                info = cur.get("python") or {}
+                if not _mm(tag):
+                    continue
+                if not info.get("version"):
+                    unresolved.add("python")
+                else:
+                    checked += 1
+                    if _mm(tag) < _mm(info["version"]):
+                        bad.append(f"{rel}: python:{tag} (vigente: {info['version']})")
+            elif base == "eclipse-temurin":
+                cmp_major("Java (imagen)", rel, tag, "java")
+            elif base == "postgres":
+                cmp_major("postgres (imagen)", rel, tag, "postgresql")
+            elif base == "pgvector":
+                m = re.match(r"pg(\d+)", tag)
+                if m:
+                    cmp_major("pgvector (imagen)", rel, m.group(1), "postgresql")
+            elif base == "valkey":
+                cmp_major("valkey (imagen)", rel, tag, "valkey")
+
+    detail = list(bad)
+    if unresolved:
+        detail.append(f"no se pudo resolver la versión vigente de: {', '.join(sorted(unresolved))} (¿sin red?): NO se asumió que estuviera al día")
+    if bad:
+        return Result("versions_current", NO_CUMPLE, "static", detail, checked)
+    if checked == 0:
+        return Result("versions_current", NO_EVALUADO, "static", detail or ["no se encontró ningún manifiesto con una versión comparable"], 0)
+    if unresolved:
+        return Result("versions_current", NO_EVALUADO, "static", detail, checked)
+    return Result("versions_current", CUMPLE, "static", [], checked)
+
+
 REGISTRY: Dict[str, Callable[..., Result]] = {"pk_uuid": pk_uuid, "compose_volumes": compose_volumes, "audit_triggers": audit_triggers,
-                                              "endpoints_auth": endpoints_auth}
+                                              "endpoints_auth": endpoints_auth, "versions_current": versions_current}

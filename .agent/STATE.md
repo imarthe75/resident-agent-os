@@ -7,31 +7,24 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 1. Lee tu leyes en `.agent/AGENT.md`.
 2. Lee tu propósito en `.agent/CONTEXT.md`.
 3. Revisa la lista de pendientes de la última sesión en la sección **"Próximos Pasos"** de este archivo.
-4. Revisa que los servicios comunes (`casmarts-core-cache`, `casmarts-core-storage`) estén saludables.
+4. Revisa que los servicios locales (`agent-cache`, `agent-db`) estén saludables (`docker compose ps`).
 
 ---
 
 ## 📅 Bitácora de Sesión Actual
 
 ### 🔑 Estado del Agente:
-- **Última Conexión:** 2026-06-30
-- **Estado Cognitivo:** Operacional - Integración Satélites Completa (Sin Docling Local) ✅
-- **Proyectos Gobernados:** `resident-agent-os`, `consulta-smart`, `lexivault-ai`, `idp-smart`
+- **Última Conexión:** _pendiente_
+- **Estado Cognitivo:** _pendiente_
 
 ### 🛠️ Tareas Completadas hoy:
-- [x] Configuración centralizada de servicios en la raíz (`docker-compose.yml` para cache, storage y dashboard). Se excluyó Docling local para usar NVIDIA NIM en su lugar.
-- [x] Vinculación de `consulta-smart` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
-- [x] Vinculación de `lexivault-ai` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
-- [x] Vinculación de `idp-smart` a la base de datos externa (`10.4.3.23`) y Authentik/Vault (`10.4.3.208`).
-- [x] Conceptualización del contexto cognitivo (`CONTEXT.md`, `MAP.md` y `STATE.md`) para gobernanza unificada.
+- _ninguna registrada_
 
 ### 🚨 Lecciones Aprendidas:
-- *El uso de extra_hosts en los contenedores docker permite la resolución DNS de servidores centrales sin intervenir la configuración del host.*
-- *La exclusión de servicios pesados locales (como docling local) optimiza el uso de CPU/RAM del host y facilita el uso de APIs externas de alto rendimiento como NVIDIA NIM.*
+- _ninguna registrada_ (cada lección lleva su nivel de evidencia: CIERTO / PROBABLE / HIPOTESIS)
 
 ### 🚀 Próximos Pasos:
-- [ ] Inicializar y ejecutar todos los servicios con la nueva configuración.
-- [ ] Validar conectividad de cada servicio satélite a la base de datos y al administrador de secretos Vault.
+- _ninguno registrado_
 
 ### 📉 Cierre de sesión: desviación, causa, acción
 *Se llena en el Rito de Cierre, por una persona. El agente propone, no inventa la causa.*
