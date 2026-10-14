@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/post-edit.js" }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/pre-compact.js" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/session-end.js" }
+        ]
+      }
+    ]
+  }
+}

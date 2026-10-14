@@ -268,3 +268,26 @@ Al terminar cada sesión:
 2. Actualizar `.agent/STATE.md` con tareas completadas y próximos pasos
 3. Ejecutar `/opsx-archive --with-lesson` para persistir aprendizajes
 4. Verificar que `docker compose ps` muestra todos los servicios running
+
+---
+
+## Novedades 2.1 (ADR-0003)
+
+| Pieza | Para qué | Dónde |
+|---|---|---|
+| Caché exacta + semántica opt-in | claves sha256 estables, índice acotado con expiración; lo semántico ya no se usa por omisión | `memory/semantic_cache.py` |
+| Memoria sin vectores inventados + nivel de evidencia | se niega a guardar sin embedding real; `CIERTO/PROBABLE/HIPOTESIS` | `memory/long_term_memory.py`, `sql/agent_memory.sql`, `memory/lesson_check.py` |
+| Motor de heurísticas que no traga errores | valida operadores al cargar; las reglas guarda fallan cerradas | `agent/heuristic_engine.py` |
+| Contrato de spec real | id exacto + estado propio `APROBADO` | `agent/specs.py` |
+| Decisiones tipadas | preguntas cerradas + probabilidad; el código decide con umbrales | `agent/decisions.py`, `.agent/decisions.json` |
+| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO` | `verifiers/` |
+| Validación humana y compuertas | la IA no firma; cierra alguien distinto | `agent/human_validation.py`, `agent/gates.py`, `.agent/gates/` |
+| Perfil del proyecto | qué reglas aplican (p. ej. accesibilidad solo con interfaz) | `.agent/PROFILE.json`, `agent/profile.py` |
+| Preflight con escáner opcional | hallazgos abiertos de los archivos que vas a tocar | `agent/preflight_client.py`, `skills/preflight/` |
+| Reglas Java y Angular | cómo escribir el código para no generar el hallazgo | `rules/java/`, `rules/angular/` |
+| Hooks en formato Claude Code | el de sintaxis bloquea (exit 2) | `.claude/settings.json`, `scripts/hooks/` |
+| Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
+| Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
+
+Pruebas: `python -m pytest tests -q` (la caché necesita un Valkey: `VALKEY_HOST=...`; sin él esas pruebas se saltan y lo dicen).
+Qué NO está verificado: ver «Estado de implementación» en `DECISIONS/0003-decisiones-tipadas-verificacion-y-gobierno.md`.

@@ -1,0 +1,9 @@
+# EXAMPLE gate (adapt it: rename to etapa-3.yml). Criteria are data; the agent evaluates them with agent.gates.evaluate_gate().
+stage: 3
+name: Construcción y QA
+entry:
+  - { type: file_exists, path: .agent/SPECS.md, label: "Spec del cambio existe" }
+exit:
+  - { type: command_exit0, cmd: "python -m pytest tests -q", timeout: 600, label: "Pruebas en verde" }
+  - { type: verifier, name: pk_uuid, label: "Llaves primarias uuid (verificador)" }
+  - { type: human_validation, subject: "código generado por IA del cambio actual", label: "Código de IA validado por una persona" }

@@ -41,6 +41,18 @@ Lee `changes/<cambio>/spec.md` y valida cada requisito en tres dimensiones:
 ⚠️  ADVERTENCIA: response schema difiere del patrón en otros módulos
 ```
 
+## Verificación determinista primero
+
+Antes de que un agente interprete nada, ejecuta los verificadores de las restricciones mandatorias del spec:
+
+```
+python verifiers/run.py --path . [--only pk_uuid,compose_volumes,audit_triggers,endpoints_auth]
+```
+
+Cada uno responde `CUMPLE`, `NO_CUMPLE` o `NO_EVALUADO` (con su método: `static` o `heuristic`). Un `NO_CUMPLE` es bloqueante; un `NO_EVALUADO` se
+informa tal cual y **no** cuenta como cumplido. Las compuertas de etapa (`.agent/gates/`, `agent/gates.py`) usan estos mismos verificadores y exigen que
+cierre alguien distinto de quien ejecutó la etapa.
+
 ## Formato de reporte
 
 ```

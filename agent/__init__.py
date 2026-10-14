@@ -8,6 +8,7 @@ from agent.exceptions import (
     SchemaValidationError,
     ServiceUnavailableError,
     SpecMissingError,
+    SpecNotApprovedError,
     StateParseError,
 )
 from agent.heuristic_engine import HeuristicEngine
@@ -20,6 +21,7 @@ __all__ = [
     "ServiceUnavailableError",
     "ECCLimitError",
     "SpecMissingError",
+    "SpecNotApprovedError",
     "SchemaValidationError",
     "StateParseError",
     "HeuristicRuleError",

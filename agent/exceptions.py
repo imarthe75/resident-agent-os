@@ -28,6 +28,12 @@ class SpecMissingError(ResidentAgentError):
     pass
 
 
+class SpecNotApprovedError(SpecMissingError):
+    """The spec exists but its own status is not APROBADO (borrador, rechazado...): it is not a contract yet."""
+
+    pass
+
+
 class SchemaValidationError(ResidentAgentError):
     """Raised when Pydantic input or output validation fails for a Skill."""
 

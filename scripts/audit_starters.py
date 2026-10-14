@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import logging
 import os
 import re
 from pathlib import Path
 from datetime import datetime
 
 # Directorios de análisis
-WORKSPACE_ROOT = Path("/opt/casmart")
+WORKSPACE_ROOT = Path(os.getenv("AUDIT_WORKSPACE_ROOT", "/opt/casmart"))
 PROYECTOS_DIR = WORKSPACE_ROOT / "docs" / "starters" / "proyectos"
 REPORTES_DIR = WORKSPACE_ROOT / "docs" / "starters" / "reportes_auditoria"
 
@@ -40,6 +41,19 @@ PATTERNS = {
     }
 }
 
+CONFIRM_KEYWORDS = ("confirm", "modal", "dialog", "alerta", "alert", "sweetalert", "swal", "prompt")
+CONFIRM_WINDOW = 8   # lines before/after the destructive call in which a confirmation must appear
+
+
+def has_confirmation_near(lines: list, idx: int, window: int = CONFIRM_WINDOW) -> bool:
+    """True if a confirmation keyword appears within `window` lines of lines[idx]. The previous check accepted the word ANYWHERE in the file,
+    which is the grep-presence overestimation this project's own docs/SKILL.md section 0 warns about: one confirm dialog on one button
+    excused every other delete in the file."""
+    lo, hi = max(0, idx - window), min(len(lines), idx + window + 1)
+    chunk = "\n".join(lines[lo:hi]).lower()
+    return any(k in chunk for k in CONFIRM_KEYWORDS)
+
+
 def audit_file(file_path: Path, project_name: str) -> list:
     findings = []
     try:
@@ -50,8 +64,6 @@ def audit_file(file_path: Path, project_name: str) -> list:
         if len(lines) > 5000:
             return findings
 
-        # Buscar confirmaciones en el mismo archivo para operaciones destructivas
-        has_confirmation_keywords = any(kw in content.lower() for kw in ["confirm", "modal", "dialog", "alerta", "alert", "sweetalert", "swal", "pop", "prompt"])
 
         for line_num, line_content in enumerate(lines, 1):
             line_content_stripped = line_content.strip()
@@ -64,7 +76,7 @@ def audit_file(file_path: Path, project_name: str) -> list:
                 match = meta["regex"].search(line_content)
                 if match:
                     # Regla específica: si es destructiva pero tiene confirmación en el archivo, reducir severidad o descartar
-                    if pattern_name == "destructive_op_no_confirm" and has_confirmation_keywords:
+                    if pattern_name == "destructive_op_no_confirm" and has_confirmation_near(lines, line_num - 1):
                         continue
                     
                     findings.append({
@@ -76,10 +88,14 @@ def audit_file(file_path: Path, project_name: str) -> list:
                         "match": match.group(0)[:50]
                     })
     except Exception as e:
-        # Errores de lectura ignorados
-        pass
+        # A file that cannot be audited must be visible: skipping it silently would read as "clean".
+        logging.getLogger(__name__).error("Could not audit %s: %s", file_path, e, exc_info=True)
+        findings.append({"file": str(file_path), "line": 0, "code": "", "category": "Auditoría incompleta",
+                         "description": f"No se pudo auditar este archivo ({type(e).__name__}); NO cuenta como limpio.", "match": ""})
     return findings
 
+# DEPRECATED (ADR-0003 D8): this regex scanner duplicates what a dedicated vulnerability scanner already does (and with fewer rules).
+# Kept for offline use; prefer the scanner configured in PREFLIGHT_URL / your CI. Do not extend it.
 def audit_project(project_path: Path) -> dict:
     project_name = project_path.name
     print(f"🔎 Auditando starter: {project_name}...")

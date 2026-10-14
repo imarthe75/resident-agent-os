@@ -1,0 +1,25 @@
+{
+  "_comment": "Closed questions the agent may ask a decision backend, and the thresholds YOUR code applies to the answers (decide() in agent/decisions.py). Tune the criteria texts when the backend misclassifies; tune thresholds for more/less caution. Env overrides: DECISION_THRESHOLD_APPLY / _FLAG / _HUMAN.",
+  "thresholds": { "apply": 0.7, "flag": 0.5, "needs_human": 0.5 },
+  "questions": {
+    "task_complexity": {
+      "type": "choice",
+      "instructions": "How hard is this task to do correctly? Judge the reasoning it needs, not its length.",
+      "criteria": {
+        "trivial": "Typos, formatting, renames, routine version bumps, edits with no logic",
+        "medium": "Bounded refactor, one new endpoint, simple logic, tests",
+        "high": "Authentication/authorisation, payments, migrations, concurrency, security, changes touching many modules"
+      }
+    },
+    "touches_sensitive_data": {
+      "type": "noul",
+      "instructions": "Does the task read, write or move personal, financial or credential data?",
+      "criteria": { "true": "Touches personal data, money, secrets or credentials", "false": "Does not" }
+    },
+    "needs_human": {
+      "type": "noul",
+      "instructions": "Is the task too ambiguous, contradictory or risky to proceed without asking a person?",
+      "criteria": { "true": "Key information is missing, it asks for two different things, or an irreversible action is implied", "false": "There is enough detail to proceed" }
+    }
+  }
+}

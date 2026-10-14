@@ -19,13 +19,15 @@
 | RNF-01 | Tiempo de respuesta | < 200ms en P95 |
 | RNF-02 | [seguridad, escalabilidad, etc.] | [métrica] |
 
-## Restricciones mandatorias (CaSmarts)
+## Restricciones mandatorias
 
-- [ ] PKs: UUID v7 (`uuidv7()` en PG 18+)
-- [ ] Audit triggers en tablas nuevas con mutaciones
-- [ ] Autenticación OIDC en endpoints sensibles (via `auth.casmart.internal`)
+*Las de abajo son las de un proyecto de ejemplo; cámbialas por las de tu organización. Si una tiene verificador, se cita entre paréntesis y `/opsx-verify` la comprueba con `verifiers/run.py`.*
+
+- [ ] PKs: UUID v7 (`uuidv7()` en PG 18+) (verificador: `pk_uuid`)
+- [ ] Audit triggers en tablas nuevas con mutaciones (verificador heurístico: `audit_triggers`)
+- [ ] Autenticación en endpoints que modifican datos (verificador heurístico, solo FastAPI: `endpoints_auth`)
 - [ ] Fallback local si servicio externo no disponible
-- [ ] Volúmenes mapeados a `./data/` si hay contenedores nuevos
+- [ ] Volúmenes de servicios con estado mapeados a `./data/` (verificador: `compose_volumes`)
 
 ## Casos de borde
 

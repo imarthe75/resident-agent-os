@@ -32,6 +32,7 @@ class LoopState:
     errors: list[dict] = field(default_factory=list)
     completed_skills: list[str] = field(default_factory=list)
     context_token_estimate: int = 0
+    usage: dict[str, dict] = field(default_factory=dict)      # skill -> {calls, tokens_in, tokens_out, usd}
     started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -46,6 +47,22 @@ class LoopState:
     def get_retry(self, skill_name: str) -> int:
         """Get current retry count for a skill."""
         return self.retry_counts.get(skill_name, 0)
+
+    def record_usage(self, skill_name: str, tokens_in: int = 0, tokens_out: int = 0, usd: float = 0.0) -> None:
+        """Account for the model usage of one skill call. The caller supplies the USD it computed from its own price table: this module
+        keeps no prices (they change, and a stale hard-coded table would report a made-up cost)."""
+        if min(tokens_in, tokens_out) < 0 or usd < 0:
+            raise ValueError("usage values cannot be negative")
+        u = self.usage.setdefault(skill_name, {"calls": 0, "tokens_in": 0, "tokens_out": 0, "usd": 0.0})
+        u["calls"] += 1
+        u["tokens_in"] += int(tokens_in)
+        u["tokens_out"] += int(tokens_out)
+        u["usd"] = round(u["usd"] + float(usd), 6)
+        self._touch()
+
+    def usage_totals(self) -> dict:
+        return {"calls": sum(u["calls"] for u in self.usage.values()), "tokens_in": sum(u["tokens_in"] for u in self.usage.values()),
+                "tokens_out": sum(u["tokens_out"] for u in self.usage.values()), "usd": round(sum(u["usd"] for u in self.usage.values()), 6)}
 
     def advance_phase(self, phase: str) -> None:
         """Advance to the next phase in the loop."""
@@ -78,6 +95,8 @@ class LoopState:
             "errors": self.errors,
             "completed_skills": self.completed_skills,
             "context_token_estimate": self.context_token_estimate,
+            "usage": self.usage,
+            "usage_totals": self.usage_totals(),
             "started_at": self.started_at,
             "updated_at": self.updated_at,
         }
@@ -93,6 +112,7 @@ class LoopState:
         obj.errors = data.get("errors", [])
         obj.completed_skills = data.get("completed_skills", [])
         obj.context_token_estimate = data.get("context_token_estimate", 0)
+        obj.usage = data.get("usage", {})
         obj.started_at = data.get(
             "started_at", datetime.now(timezone.utc).isoformat()
         )

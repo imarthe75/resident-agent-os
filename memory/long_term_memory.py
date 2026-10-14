@@ -24,6 +24,29 @@ def _build_dsn() -> str:
     )
 
 
+EMBEDDING_DIM = 1536
+EVIDENCE_LEVELS = ("CIERTO", "PROBABLE", "HIPOTESIS")      # strongest first
+
+
+def validate_evidence_level(level: str) -> str:
+    from agent.exceptions import AgentMemoryError
+    lv = (level or "").upper()
+    if lv not in EVIDENCE_LEVELS:
+        raise AgentMemoryError(f"evidence_level must be one of {EVIDENCE_LEVELS}, got {level!r}")
+    return lv
+
+
+def validate_embedding(embedding) -> None:
+    """A memory without a real vector would be searched as if it meant something. Refuse it instead of inventing one."""
+    from agent.exceptions import AgentMemoryError
+    if embedding is None:
+        raise AgentMemoryError("embedding required: refusing to store a memory without a real vector")
+    if len(embedding) != EMBEDDING_DIM:
+        raise AgentMemoryError(f"embedding has {len(embedding)} dimensions, expected {EMBEDDING_DIM}")
+    if not any(embedding):
+        raise AgentMemoryError("all-zero embedding refused: it carries no meaning and would pollute similarity search")
+
+
 class LongTermMemory:
     """
     Motor de memoria a largo plazo basado en PostgreSQL con soporte pgvector local.
@@ -89,6 +112,7 @@ class LongTermMemory:
         Guarda una lección aprendida en la tabla memory.lessons.
         Compatibilidad backwards con código existente.
         """
+        validate_embedding(embedding)
         try:
             with self._get_conn() as conn:
                 with conn.cursor() as cur:
@@ -131,10 +155,13 @@ class LongTermMemory:
         memory_type: str = "lesson",
         importance_score: float = 0.5,
         metadata: Optional[dict] = None,
+        evidence_level: str = "HIPOTESIS",
     ) -> None:
         """
         Guarda contenido en la tabla memory.agent_memory con metadatos.
         """
+        validate_embedding(embedding)
+        evidence_level = validate_evidence_level(evidence_level)
         if metadata is None:
             metadata = {}
         try:
@@ -143,8 +170,8 @@ class LongTermMemory:
                     cur.execute(
                         """
                         INSERT INTO memory.agent_memory
-                            (session_id, content, embedding, memory_type, importance_score, metadata)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                            (session_id, content, embedding, memory_type, importance_score, metadata, evidence_level)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             session_id,
@@ -153,6 +180,7 @@ class LongTermMemory:
                             memory_type,
                             importance_score,
                             json.dumps(metadata),
+                            evidence_level,
                         ),
                     )
             logger.info(f"Memory stored: {memory_type}")
@@ -165,40 +193,31 @@ class LongTermMemory:
         embedding: list,
         limit: int = 3,
         memory_type_filter: Optional[str] = None,
+        min_evidence: Optional[str] = None,
     ) -> list:
         """
-        Busca en memory.agent_memory usando HNSW cosine distance.
-        Opcionalmente filtra por memory_type.
+        Busca en memory.agent_memory usando HNSW cosine distance. Filtros opcionales: memory_type y `min_evidence`
+        (p. ej. "PROBABLE" excluye las HIPOTESIS: una hipótesis no debe recuperarse como si fuera un hecho).
+        Cada fila: (content, memory_type, importance_score, similarity, evidence_level).
         """
+        where, params = [], []
+        if memory_type_filter:
+            where.append("memory_type = %s")
+            params.append(memory_type_filter)
+        if min_evidence:
+            allowed = EVIDENCE_LEVELS[: EVIDENCE_LEVELS.index(validate_evidence_level(min_evidence)) + 1]
+            where.append("evidence_level = ANY(%s)")
+            params.append(list(allowed))
+        sql = ("SELECT content, memory_type, importance_score, 1 - (embedding <=> %s::vector) AS similarity, evidence_level "
+               "FROM memory.agent_memory" + (" WHERE " + " AND ".join(where) if where else "") +
+               " ORDER BY embedding <=> %s::vector LIMIT %s")
         try:
             with self._get_conn() as conn:
                 with conn.cursor() as cur:
-                    if memory_type_filter:
-                        cur.execute(
-                            """
-                            SELECT content, memory_type, importance_score,
-                                   1 - (embedding <=> %s::vector) AS similarity
-                            FROM memory.agent_memory
-                            WHERE memory_type = %s
-                            ORDER BY embedding <=> %s::vector
-                            LIMIT %s
-                            """,
-                            (embedding, memory_type_filter, embedding, limit),
-                        )
-                    else:
-                        cur.execute(
-                            """
-                            SELECT content, memory_type, importance_score,
-                                   1 - (embedding <=> %s::vector) AS similarity
-                            FROM memory.agent_memory
-                            ORDER BY embedding <=> %s::vector
-                            LIMIT %s
-                            """,
-                            (embedding, embedding, limit),
-                        )
+                    cur.execute(sql, (embedding, *params, embedding, limit))
                     return cur.fetchall()
         except psycopg2.Error as e:
-            logger.error(f"Failed to search memory: {e}")
+            logger.error("Failed to search memory: %s", e, exc_info=True)
             return []
 
     def close(self) -> None:

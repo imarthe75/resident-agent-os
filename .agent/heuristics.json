@@ -1,5 +1,5 @@
 {
-  "version": "2.0",
+  "version": "2.1",
   "description": "Comprehensive heuristic rules for Resident Agent OS. Combines ECC (3-retry limit), Software Design Heuristics, Nielsen's 10 Usability Heuristics, and Sweller's Cognitive Load Theory.",
   "categories": {
     "ecc_control": "ECC Harness control loop (Execution, Cognitive, Control)",
@@ -7,7 +7,8 @@
     "cognitive_load": "Minimize unnecessary context/cognitive overhead",
     "usability_nielsen": "10 Principles of Usability Interaction (Nielsen 1994)",
     "spec_driven": "Contract-first development (OpenSpec mandate)",
-    "memory_mgmt": "Memory persistence and optimization"
+    "memory_mgmt": "Memory persistence and optimization",
+    "decisions": "Typed decisions (agent/decisions.py): probabilities from a decision backend, thresholds owned by code"
   },
   "rules": [
     {
@@ -15,7 +16,10 @@
       "category": "ecc_control",
       "priority": 1,
       "condition": {
-        "gte": ["context.retry_count", 3]
+        "gte": [
+          "context.retry_count",
+          3
+        ]
       },
       "action": "halt_and_reflect",
       "description": "ECC Loop Limit: Stop after 3 failed attempts. Query memory.lessons for patterns before redesigning."
@@ -26,8 +30,18 @@
       "priority": 2,
       "condition": {
         "and": [
-          {"eq": ["context.has_external_api", true]},
-          {"eq": ["context.has_local_alternative", true]}
+          {
+            "eq": [
+              "context.has_external_api",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.has_local_alternative",
+              true
+            ]
+          }
         ]
       },
       "action": "use_local",
@@ -39,8 +53,18 @@
       "priority": 3,
       "condition": {
         "and": [
-          {"eq": ["context.service_unavailable", true]},
-          {"eq": ["context.has_fallback_cache", true]}
+          {
+            "eq": [
+              "context.service_unavailable",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.has_fallback_cache",
+              true
+            ]
+          }
         ]
       },
       "action": "use_fallback_cache",
@@ -52,8 +76,18 @@
       "priority": 4,
       "condition": {
         "and": [
-          {"eq": ["context.has_query", true]},
-          {"eq": ["context.valkey_available", true]}
+          {
+            "eq": [
+              "context.has_query",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.valkey_available",
+              true
+            ]
+          }
         ]
       },
       "action": "check_semantic_cache",
@@ -65,8 +99,18 @@
       "priority": 5,
       "condition": {
         "and": [
-          {"eq": ["context.task_completed", true]},
-          {"eq": ["context.postgres_available", true]}
+          {
+            "eq": [
+              "context.task_completed",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.postgres_available",
+              true
+            ]
+          }
         ]
       },
       "action": "store_lesson_to_pgvector",
@@ -77,7 +121,10 @@
       "category": "spec_driven",
       "priority": 6,
       "condition": {
-        "eq": ["context.spec_missing", true]
+        "eq": [
+          "context.spec_missing",
+          true
+        ]
       },
       "action": "require_spec_before_code",
       "description": "Contract-First: Reject code changes unless a valid spec contract exists in SPECS.md."
@@ -87,7 +134,10 @@
       "category": "spec_driven",
       "priority": 7,
       "condition": {
-        "eq": ["context.new_dependency_added", true]
+        "eq": [
+          "context.new_dependency_added",
+          true
+        ]
       },
       "action": "create_adr",
       "description": "Architecture Decision: Auto-create ADR when introducing new dependencies or altering infrastructure."
@@ -97,7 +147,10 @@
       "category": "cognitive_load",
       "priority": 8,
       "condition": {
-        "gte": ["context.context_token_estimate", 40000]
+        "gte": [
+          "context.context_token_estimate",
+          40000
+        ]
       },
       "action": "summarize_and_compress",
       "description": "Cognitive Load: Proactively summarize file contents instead of reading massive files (Sweller theory)."
@@ -108,8 +161,18 @@
       "priority": 9,
       "condition": {
         "and": [
-          {"eq": ["context.is_repeated_query", true]},
-          {"eq": ["context.within_5min_window", true]}
+          {
+            "eq": [
+              "context.is_repeated_query",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.within_5min_window",
+              true
+            ]
+          }
         ]
       },
       "action": "return_cached_reasoning",
@@ -120,7 +183,10 @@
       "category": "usability_nielsen",
       "priority": 10,
       "condition": {
-        "eq": ["context.ui_component_type", "status_indicator"]
+        "eq": [
+          "context.ui_component_type",
+          "status_indicator"
+        ]
       },
       "action": "ensure_visibility_of_state",
       "description": "Nielsen H1: Ensure real-time visibility of system state with loaders, progress indicators."
@@ -130,7 +196,10 @@
       "category": "usability_nielsen",
       "priority": 11,
       "condition": {
-        "eq": ["context.ui_context", "user_interaction"]
+        "eq": [
+          "context.ui_context",
+          "user_interaction"
+        ]
       },
       "action": "match_system_and_real_world",
       "description": "Nielsen H2: Use familiar metaphors (file cabinets, dossiers) matching user's mental model."
@@ -140,7 +209,10 @@
       "category": "usability_nielsen",
       "priority": 12,
       "condition": {
-        "eq": ["context.is_dangerous_operation", true]
+        "eq": [
+          "context.is_dangerous_operation",
+          true
+        ]
       },
       "action": "provide_cancel_and_undo",
       "description": "Nielsen H3: Provide cancel buttons and undo flows for user control and freedom."
@@ -150,7 +222,10 @@
       "category": "usability_nielsen",
       "priority": 13,
       "condition": {
-        "eq": ["context.design_system", "required"]
+        "eq": [
+          "context.design_system",
+          "required"
+        ]
       },
       "action": "enforce_consistent_design",
       "description": "Nielsen H4: Enforce consistency and standards (use Civika design system, Outfit/Inter fonts)."
@@ -161,8 +236,18 @@
       "priority": 14,
       "condition": {
         "and": [
-          {"eq": ["context.is_user_input", true]},
-          {"eq": ["context.can_validate_early", true]}
+          {
+            "eq": [
+              "context.is_user_input",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.can_validate_early",
+              true
+            ]
+          }
         ]
       },
       "action": "prevent_errors_early",
@@ -174,8 +259,18 @@
       "priority": 15,
       "condition": {
         "and": [
-          {"eq": ["context.has_ai_extraction", true]},
-          {"eq": ["context.has_visual_content", true]}
+          {
+            "eq": [
+              "context.has_ai_extraction",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.has_visual_content",
+              true
+            ]
+          }
         ]
       },
       "action": "show_preview_with_metadata",
@@ -186,7 +281,10 @@
       "category": "usability_nielsen",
       "priority": 16,
       "condition": {
-        "eq": ["context.user_type", "expert"]
+        "eq": [
+          "context.user_type",
+          "expert"
+        ]
       },
       "action": "enable_keyboard_shortcuts",
       "description": "Nielsen H7: Provide keyboard shortcuts and autocomplete for expert user efficiency."
@@ -196,7 +294,10 @@
       "category": "usability_nielsen",
       "priority": 17,
       "condition": {
-        "eq": ["context.dashboard_mode", true]
+        "eq": [
+          "context.dashboard_mode",
+          true
+        ]
       },
       "action": "minimize_visual_noise",
       "description": "Nielsen H8: Keep dashboards clean with focused widgets, exclude unnecessary visual clutter."
@@ -206,7 +307,10 @@
       "category": "usability_nielsen",
       "priority": 18,
       "condition": {
-        "eq": ["context.error_occurred", true]
+        "eq": [
+          "context.error_occurred",
+          true
+        ]
       },
       "action": "provide_recovery_guidance",
       "description": "Nielsen H9: Show friendly error messages with explicit correction steps (not just 'Error 500')."
@@ -216,7 +320,10 @@
       "category": "usability_nielsen",
       "priority": 19,
       "condition": {
-        "eq": ["context.in_workflow", true]
+        "eq": [
+          "context.in_workflow",
+          true
+        ]
       },
       "action": "provide_contextual_help",
       "description": "Nielsen H10: Integrate help and documentation into the workflow (tooltips, guided tours)."
@@ -227,8 +334,18 @@
       "priority": 20,
       "condition": {
         "and": [
-          {"eq": ["context.needs_decision", true]},
-          {"eq": ["context.has_heuristic_rule", true]}
+          {
+            "eq": [
+              "context.needs_decision",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.has_heuristic_rule",
+              true
+            ]
+          }
         ]
       },
       "action": "apply_fast_heuristic",
@@ -240,8 +357,18 @@
       "priority": 21,
       "condition": {
         "and": [
-          {"eq": ["context.error_occurred", true]},
-          {"eq": ["context.retry_count", 1]}
+          {
+            "eq": [
+              "context.error_occurred",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.retry_count",
+              1
+            ]
+          }
         ]
       },
       "action": "extract_and_log_error",
@@ -253,12 +380,35 @@
       "priority": 22,
       "condition": {
         "and": [
-          {"eq": ["context.code_smell_detected", true]},
-          {"eq": ["context.has_refactor_opportunity", true]}
+          {
+            "eq": [
+              "context.code_smell_detected",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "context.has_refactor_opportunity",
+              true
+            ]
+          }
         ]
       },
       "action": "mark_for_ponytail_review",
       "description": "Code Quality: Mark over-engineering patterns for Ponytail audit (unused wrappers, premature abstractions)."
+    },
+    {
+      "id": "DECISION_001",
+      "category": "decisions",
+      "priority": 3,
+      "condition": {
+        "gte": [
+          "context.decisions.needs_human",
+          0.5
+        ]
+      },
+      "action": "escalate_to_human",
+      "description": "Typed decision: when the decision backend says a person is probably needed (P >= threshold), stop and ask instead of acting."
     }
   ],
   "metadata": {

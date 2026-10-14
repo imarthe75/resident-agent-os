@@ -32,3 +32,10 @@ Este documento es el diario de vida y bitácora del agente. Debe ser leído en e
 ### 🚀 Próximos Pasos:
 - [ ] Inicializar y ejecutar todos los servicios con la nueva configuración.
 - [ ] Validar conectividad de cada servicio satélite a la base de datos y al administrador de secretos Vault.
+
+### 📉 Cierre de sesión: desviación, causa, acción
+*Se llena en el Rito de Cierre, por una persona. El agente propone, no inventa la causa.*
+- **Desviación** (qué se esperaba y qué pasó realmente): _pendiente_
+- **Causa** (por qué; si no se sabe, escribir «no determinada»): _pendiente_
+- **Acción** (qué se hará distinto, quién y cuándo): _pendiente_
+- **Costo de modelo de la sesión:** lo registra el resumen automático (`usage_totals`) con el costo que reportaron los skills.

@@ -41,6 +41,7 @@ function generateSummary(state) {
 - **Completed Skills:** ${state.completed_skills.join(", ") || "none"}
 - **Errors Recorded:** ${state.errors.length}
 - **Retry Counts:** ${JSON.stringify(state.retry_counts)}
+- **Model usage:** ${state.usage_totals ? `${state.usage_totals.calls} calls, ${state.usage_totals.tokens_in} in / ${state.usage_totals.tokens_out} out tokens, ${state.usage_totals.usd} USD (as reported by the skills)` : "not recorded"}
 - **Final Phase:** ${state.current_phase}
 `.trim();
 }

@@ -58,6 +58,21 @@ COMMENT ON COLUMN memory.agent_memory.uaccreacion IS
 COMMENT ON COLUMN memory.agent_memory.row_version IS
     'Row version for optimistic locking';
 
+-- Evidence level of a lesson (ADR-0003 D6): CIERTO (reproduced with real evidence), PROBABLE (inferred from consistent evidence, not run),
+-- HIPOTESIS (plausible, unverified). Rows that existed before this column were never graded, so they are HIPOTESIS, not PROBABLE.
+ALTER TABLE memory.agent_memory
+    ADD COLUMN IF NOT EXISTS evidence_level varchar(12) NOT NULL DEFAULT 'HIPOTESIS';
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_agent_memory__evidence_level') THEN
+        ALTER TABLE memory.agent_memory
+            ADD CONSTRAINT ck_agent_memory__evidence_level CHECK (evidence_level IN ('CIERTO', 'PROBABLE', 'HIPOTESIS'));
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+COMMENT ON COLUMN memory.agent_memory.evidence_level IS
+    'CIERTO | PROBABLE | HIPOTESIS. A HIPOTESIS must never be recalled as a fact.';
+
 -- HNSW index (cosine distance) — PREFERRED over ivfflat per project mandate
 CREATE INDEX IF NOT EXISTS ix_agent_memory__embedding_hnsw
     ON memory.agent_memory

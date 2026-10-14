@@ -2,7 +2,8 @@
 
 /**
  * Post-edit hook: validate syntax of edited Python/JavaScript files.
- * Exits 0 on success, 1 on syntax error.
+ * Exits 0 on success and 2 on a syntax error: Claude Code treats exit code 2 from a PostToolUse hook as a blocking error and feeds stderr
+ * back to the model (exit 1 is only a non-blocking warning, so the old exit 1 never stopped anything).
  */
 
 const { execFileSync } = require("child_process");
@@ -79,7 +80,7 @@ function main() {
   }
 
   const success = checkSyntax(filePath);
-  process.exit(success ? 0 : 1);
+  process.exit(success ? 0 : 2);
 }
 
 main();

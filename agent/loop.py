@@ -11,8 +11,12 @@ from agent.exceptions import (
     ECCLimitError,
     SchemaValidationError,
     SpecMissingError,
+    SpecNotApprovedError,
 )
+from agent.specs import APPROVED, parse_specs
+from agent import decisions as decisions_mod
 from agent.heuristic_engine import HeuristicEngine
+from agent.profile import applicable_rule_files, load_profile
 from agent.skill_base import Skill
 from agent.state_parser import read_state, write_state
 from memory.agent_state import LoopState
@@ -45,6 +49,7 @@ class ResidentAgentLoop:
         self._engine: Optional[HeuristicEngine] = None
         self.state: LoopState = LoopState()
         self._context: dict[str, Any] = {}
+        self._decision_layer = None
 
     def boot(self) -> None:
         """
@@ -108,26 +113,39 @@ class ResidentAgentLoop:
                     logger.warning(f"Failed to read {md_file}: {e}")
 
         self._context["_machine_state"] = read_state(self.state_path)
+        # Project profile (declared, never inferred). A missing profile means "unknown": every rule applies.
+        profile = load_profile(self.agent_dir / "PROFILE.json")
+        self._context["profile"] = profile
+        rules_dir = self.agent_dir.parent / "rules"
+        if rules_dir.is_dir():
+            self._context["applicable_rules"] = [str(p.relative_to(rules_dir.parent)) for p in applicable_rule_files(rules_dir, profile)]
         logger.info(f"✅ Context loaded ({len(self._context)} sections)")
         return self._context
 
     def retrieve_memory(
-        self, query: str = "", embedding: Optional[list] = None
+        self, query: str = "", embedding: Optional[list] = None, allow_semantic: bool = False
     ) -> Optional[str]:
         """
-        Phase 3: Retrieve memory from semantic cache or long-term storage.
-        - Tries SemanticCache first (Valkey) if embedding provided
-        - Falls back to PostgreSQL pgvector search
-        - Returns None gracefully if no memory available
+        Phase 3: memory lookup.
+        - Exact cache hit on the normalised query text (safe for decisions) when a query is given.
+        - Semantic cache (most similar earlier answer) ONLY when the caller opts in with allow_semantic=True: a near-duplicate question can
+          have a different right answer.
+        - Long-term lessons (pgvector) when an embedding is given. Returns None gracefully if nothing is available.
         """
         self.state.advance_phase("retrieve_memory")
 
+        if self._cache and query:
+            exact = self._cache.get_exact(query)
+            if exact:
+                logger.info("✅ Memory retrieved from exact cache")
+                return exact
+
         if embedding is None:
-            logger.debug("No embedding provided, skipping memory retrieval")
+            logger.debug("No embedding provided, skipping semantic/long-term retrieval")
             return None
 
-        if self._cache:
-            cached = self._cache.get(embedding)
+        if self._cache and allow_semantic:
+            cached = self._cache.get(embedding, allow_semantic=True)
             if cached:
                 logger.info("✅ Memory retrieved from semantic cache")
                 return cached
@@ -140,6 +158,31 @@ class ResidentAgentLoop:
 
         logger.debug("No relevant memory found")
         return None
+
+    def ask_decisions(self, state: Any, names: Optional[list] = None) -> dict:
+        """
+        Optional phase 3b: ask the configured decision backend the closed questions of .agent/decisions.json about `state` and expose the
+        probabilities to the heuristics as context["decisions"] (rules use gte/lte on them). With no backend configured, or if it fails, the
+        framework behaves exactly as before: context["decisions"] = {"available": False, "reason": ...} and the failure is LOGGED, not hidden.
+        Returns the validated answers ({} when unavailable). The action is never chosen by the model: see agent.decisions.decide().
+        """
+        self.state.advance_phase("ask_decisions")
+        cat = self.agent_dir / "decisions.json"
+        try:
+            backend = decisions_mod.backend_from_env()
+            if backend is None or not cat.exists():
+                self._context["decisions"] = {"available": False, "reason": "no backend configured" if backend is None else "no decisions.json"}
+                return {}
+            questions, thresholds = decisions_mod.load_catalogue(cat)
+            layer = decisions_mod.DecisionLayer(questions, thresholds, backend)
+            answers = layer.ask(state, names)
+        except (decisions_mod.DecisionError, OSError, ValueError, KeyError) as e:
+            logger.error("Typed decisions unavailable: %s", e, exc_info=True)
+            self._context["decisions"] = {"available": False, "reason": str(e)}
+            return {}
+        self._context["decisions"] = {"available": True, "calibrated": backend.calibrated, **layer.facts(answers)}
+        self._decision_layer = layer
+        return answers
 
     def apply_heuristics(self, context: dict[str, Any]) -> list[str]:
         """
@@ -158,23 +201,20 @@ class ResidentAgentLoop:
 
     def ensure_spec(self, spec_id: str) -> None:
         """
-        Phase 5: Verify spec exists in SPECS.md.
-        Raises SpecMissingError if spec not found.
+        Phase 5: the spec contract gate. Raises SpecMissingError if no spec has EXACTLY this id in SPECS.md, and SpecNotApprovedError if
+        that spec's own status is not APROBADO (agent/specs.py explains why the old substring check was not a control).
         """
         self.state.advance_phase("ensure_spec")
-        logger.info(f"🔍 Ensuring spec {spec_id} exists")
+        logger.info("🔍 Ensuring spec %s exists and is approved", spec_id)
 
-        specs_content = self._context.get("SPECS", "")
-        if spec_id not in specs_content:
-            raise SpecMissingError(
-                f"Spec {spec_id} not found in SPECS.md. "
-                "Define it before implementing."
-            )
+        specs = parse_specs(self._context.get("SPECS", ""))
+        spec = specs.get(spec_id)
+        if spec is None:
+            raise SpecMissingError(f"Spec {spec_id} not found in SPECS.md. Define it before implementing.")
+        if spec["status"] != APPROVED:
+            raise SpecNotApprovedError(f"Spec {spec_id} has status {spec['status']!r}, not {APPROVED!r}: it is not a contract yet.")
 
-        if "APROBADO" not in specs_content:
-            logger.warning(f"Spec {spec_id} not marked as APROBADO")
-
-        logger.info(f"✅ Spec {spec_id} verified")
+        logger.info("✅ Spec %s verified", spec_id)
 
     def plan_tasks(
         self, skills: list[Skill], inputs: list[dict]
@@ -213,6 +253,9 @@ class ResidentAgentLoop:
 
         try:
             result = skill.run(input_data)
+            usage = result.get("_usage") if isinstance(result, dict) else None     # optional: a skill that called a model reports it here
+            if usage:
+                self.state.record_usage(skill.name, usage.get("tokens_in", 0), usage.get("tokens_out", 0), usage.get("usd", 0.0))
             self.state.completed_skills.append(skill.name)
             logger.info(f"✅ Skill {skill.name} succeeded")
             return result
@@ -256,9 +299,11 @@ class ResidentAgentLoop:
         embedding: Optional[list] = None,
         memory_type: str = "lesson",
         importance_score: float = 0.5,
+        evidence_level: str = "HIPOTESIS",
     ) -> None:
         """
-        Phase 9: Store lesson/knowledge to long-term memory (pgvector).
+        Phase 9: Store lesson/knowledge to long-term memory (pgvector). `evidence_level`: CIERTO (reproduced), PROBABLE (inferred, not run) or
+        HIPOTESIS (default: nobody has verified it).
         Gracefully skips if LTM unavailable.
         """
         self.state.advance_phase("store_memory")
@@ -268,10 +313,10 @@ class ResidentAgentLoop:
             logger.warning("PostgreSQL unavailable, memory not persisted")
             return
 
+        if embedding is None:
+            # Never invent a vector: a made-up one would be searched as if it meant something (the old code stored 1536 zeros).
+            raise AgentMemoryError("store_memory needs a real embedding; refusing to fabricate one")
         try:
-            if embedding is None:
-                embedding = [0.0] * 1536
-
             self._ltm.store_memory(
                 content=lesson,
                 embedding=embedding,
@@ -279,6 +324,7 @@ class ResidentAgentLoop:
                 memory_type=memory_type,
                 importance_score=importance_score,
                 metadata={"phase": self.state.current_phase},
+                evidence_level=evidence_level,
             )
             logger.info(f"✅ Memory persisted")
         except Exception as e:

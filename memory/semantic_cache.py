@@ -1,8 +1,20 @@
-"""Semantic cache using Valkey/Redis for query deduplication."""
+"""Response cache on Valkey/Redis.
 
+Two lookups, and they are NOT interchangeable:
+  * get_exact(query_text)  -> same normalised question => same stored answer. Safe for decisions.
+  * get(embedding)         -> the answer of the most SIMILAR earlier question (cosine >= threshold). A near-duplicate question can have a
+                              different right answer, so this is opt-in: callers that did not ask for it explicitly (allow_semantic) get None.
+
+Keys are sha256 of the normalised text. (They used to be Python's hash(), which is randomised per process: after a restart every entry was
+orphaned and re-created.) The index is bounded (MAX_ENTRIES, oldest evicted) and every entry expires (TTL), so a semantic lookup scans a
+bounded set instead of every key ever written.
+"""
+import hashlib
 import json
 import logging
 import os
+import re
+import time
 from typing import Optional
 
 import numpy as np
@@ -11,116 +23,122 @@ import redis.exceptions
 
 logger = logging.getLogger(__name__)
 
+KEY_PREFIX = "cache:query:"
+INDEX_KEY = "cache:index"          # sorted set: member = cache key, score = unix time written
+MAX_ENTRIES = int(os.getenv("SEMANTIC_CACHE_MAX_ENTRIES", "2000"))
+TTL_SECONDS = int(os.getenv("SEMANTIC_CACHE_TTL_SECONDS", str(7 * 24 * 3600)))
+
+
+def normalize_query(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip()).lower()
+
+
+def cache_key(query_text: str) -> str:
+    return KEY_PREFIX + hashlib.sha256(normalize_query(query_text).encode("utf-8")).hexdigest()
+
 
 class SemanticCache:
-    """
-    Caché semántica local utilizando Valkey/Redis para almacenar respuestas de LLMs.
-    Compara las consultas nuevas contra las previas utilizando similitud de coseno sobre embeddings.
-    """
-
-    def __init__(
-        self,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        threshold: float = 0.90,
-    ) -> None:
-        if host is None:
-            host = os.getenv("VALKEY_HOST", "localhost")
-        if port is None:
-            port = int(os.getenv("VALKEY_PORT", "6379"))
-
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, threshold: float = 0.90) -> None:
+        host = host or os.getenv("VALKEY_HOST", "localhost")
+        port = port if port is not None else int(os.getenv("VALKEY_PORT", "6379"))
         try:
-            self.client = redis.Redis(
-                host=host,
-                port=port,
-                decode_responses=True,
-                socket_connect_timeout=2,
-                retry_on_timeout=True,
-            )
+            self.client = redis.Redis(host=host, port=port, decode_responses=True, socket_connect_timeout=2, retry_on_timeout=True)
             self.client.ping()
         except redis.exceptions.ConnectionError as e:
-            logger.error(f"Failed to connect to Valkey: {e}")
+            logger.error("Failed to connect to Valkey: %s", e)
             raise
         except Exception as e:
-            logger.error(f"Unexpected error connecting to Valkey: {e}")
+            logger.error("Unexpected error connecting to Valkey: %s", e, exc_info=True)
             raise
-
         self.threshold = threshold
 
-    def _cosine_similarity(self, a: list, b: list) -> float:
-        """Compute cosine similarity between two vectors."""
-        a_norm = np.linalg.norm(a)
-        b_norm = np.linalg.norm(b)
-        denom = a_norm * b_norm
-        if denom == 0.0:
-            return 0.0
-        return float(np.dot(a, b) / denom)
+    @staticmethod
+    def _cosine_similarity(a: list, b: list) -> float:
+        denom = float(np.linalg.norm(a)) * float(np.linalg.norm(b))
+        return 0.0 if denom == 0.0 else float(np.dot(a, b) / denom)
 
-    def set(self, query_text: str, query_embedding: list, response_text: str) -> None:
-        """
-        Almacena una consulta, su embedding y la respuesta generada.
-        """
+    def set(self, query_text: str, query_embedding: Optional[list], response_text: str) -> None:
+        """Store an answer. The embedding is optional (an exact-only entry is valid); a zero vector is refused, never stored as if it meant something."""
+        if query_embedding is not None and not any(query_embedding):
+            logger.warning("SemanticCache.set: all-zero embedding ignored (entry stored for exact lookup only)")
+            query_embedding = None
+        key = cache_key(query_text)
         try:
-            cache_key = f"cache:query:{hash(query_text)}"
-            payload = {
-                "query": query_text,
-                "embedding": json.dumps(query_embedding),
-                "response": response_text,
-            }
-            self.client.hset(cache_key, mapping=payload)
-            self.client.sadd("cache:keys", cache_key)
-            logger.debug(f"Cached query: {query_text[:50]}...")
+            payload = {"query": normalize_query(query_text), "response": response_text}
+            if query_embedding is not None:
+                payload["embedding"] = json.dumps(list(query_embedding))
+            pipe = self.client.pipeline()
+            pipe.hset(key, mapping=payload)
+            pipe.expire(key, TTL_SECONDS)
+            pipe.zadd(INDEX_KEY, {key: time.time()})
+            pipe.execute()
+            self._evict_overflow()
         except redis.exceptions.ConnectionError as e:
-            logger.warning(f"Failed to set cache entry: {e}")
+            logger.warning("Failed to set cache entry: %s", e)
         except Exception as e:
-            logger.error(f"Unexpected error setting cache: {e}")
+            logger.error("Unexpected error setting cache: %s", e, exc_info=True)
 
-    def get(self, query_embedding: list) -> Optional[str]:
-        """
-        Busca si existe alguna consulta previa en la caché con similitud semántica
-        mayor o igual al threshold establecido.
-        """
+    def _evict_overflow(self) -> None:
+        """Keep only the newest MAX_ENTRIES: the evicted entries are DELETED, not just forgotten by the index (otherwise storage grows until TTL)."""
+        overflow = int(self.client.zcard(INDEX_KEY)) - MAX_ENTRIES
+        if overflow > 0:
+            old = self.client.zrange(INDEX_KEY, 0, overflow - 1)
+            if old:
+                self.client.delete(*old)
+                self.client.zrem(INDEX_KEY, *old)
+
+    def get_exact(self, query_text: str) -> Optional[str]:
         try:
-            keys = self.client.smembers("cache:keys")
-            best_similarity = -1.0
-            best_response = None
+            val = self.client.hget(cache_key(query_text), "response")
+            if val is not None:
+                logger.info("Semantic cache EXACT hit")
+            return val
+        except redis.exceptions.ConnectionError as e:
+            logger.warning("Failed to get cache entry: %s", e)
+            return None
+        except Exception as e:
+            logger.error("Unexpected error getting cache: %s", e, exc_info=True)
+            return None
 
-            for key in keys:
-                cache_data = self.client.hgetall(key)
-                if not cache_data:
+    def get(self, query_embedding: list, allow_semantic: bool = True) -> Optional[str]:
+        """Most similar earlier answer with cosine >= threshold. Pass allow_semantic=False to make this a no-op (the loop does by default)."""
+        if not allow_semantic or query_embedding is None or not any(query_embedding):
+            return None
+        try:
+            best_sim, best = -1.0, None
+            for key in self.client.zrevrange(INDEX_KEY, 0, MAX_ENTRIES - 1):
+                data = self.client.hgetall(key)
+                if not data:                                              # expired: drop the dangling index member
+                    self.client.zrem(INDEX_KEY, key)
                     continue
-
+                if "embedding" not in data:
+                    continue
                 try:
-                    cached_embedding = json.loads(cache_data["embedding"])
-                    similarity = self._cosine_similarity(query_embedding, cached_embedding)
-
-                    if similarity > best_similarity:
-                        best_similarity = similarity
-                        best_response = cache_data["response"]
+                    sim = self._cosine_similarity(query_embedding, json.loads(data["embedding"]))
                 except (json.JSONDecodeError, ValueError) as e:
-                    logger.warning(f"Failed to parse cached embedding: {e}")
+                    logger.warning("Unparseable cached embedding for %s: %s", key, e)
                     continue
-
-            if best_similarity >= self.threshold:
-                logger.info(
-                    f"Semantic cache HIT with similarity {best_similarity:.4f}"
-                )
-                return best_response
-
-            logger.debug(f"Semantic cache MISS, best similarity {best_similarity:.4f}")
+                if sim > best_sim:
+                    best_sim, best = sim, data["response"]
+            if best_sim >= self.threshold:
+                logger.info("Semantic cache SEMANTIC hit (similarity %.4f)", best_sim)
+                return best
+            logger.debug("Semantic cache MISS (best similarity %.4f)", best_sim)
             return None
         except redis.exceptions.ConnectionError as e:
-            logger.warning(f"Failed to get cache entry: {e}")
+            logger.warning("Failed to get cache entry: %s", e)
             return None
         except Exception as e:
-            logger.error(f"Unexpected error getting cache: {e}")
+            logger.error("Unexpected error getting cache: %s", e, exc_info=True)
             return None
+
+    def size(self) -> int:
+        return int(self.client.zcard(INDEX_KEY))
 
     def ping(self) -> bool:
-        """Health check: verify connection to Valkey."""
         try:
             self.client.ping()
             return True
         except Exception as e:
-            logger.warning(f"Valkey ping failed: {e}")
+            logger.warning("Valkey ping failed: %s", e)
             return False

@@ -1,0 +1,7 @@
+{
+  "_comment": "Declared by a person for THIS project (the framework never infers it). Rules with `applies_when:` use it; with no profile every rule applies.",
+  "lifecycle": "iterative",
+  "modules": [],
+  "has_ui": true,
+  "starts_from_base": false
+}
