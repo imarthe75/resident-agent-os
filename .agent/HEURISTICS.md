@@ -10,7 +10,7 @@ Para un desglose detallado de su implementación científica e impacto en los pr
 
 Todo desarrollo generado a partir de este framework debe incorporar de forma obligatoria o como sugerencia de alta prioridad **lógica heurística** en el código de la aplicación:
 
-- **10 Heurísticas de Usabilidad de Nielsen:** El frontend y la UX del sistema deben priorizar la visibilidad del estado del sistema, consistencia de diseño (estilo Cívika), prevención de errores, y reconocimiento antes que recuerdo (mostrar previsualización de documentos al lado de metadatos extraídos).
+- **10 Heurísticas de Usabilidad de Nielsen:** El frontend y la UX del sistema deben priorizar la visibilidad del estado del sistema, consistencia de diseño (el sistema de diseño del proyecto), prevención de errores, y reconocimiento antes que recuerdo (mostrar previsualización de documentos al lado de metadatos extraídos).
 - **Algoritmos Heurísticos en Lógica de Negocio:** En lugar de depender exclusivamente de condicionales estáticas o modelos pesados de IA, implementa heurísticas rápidas (reglas de puntuación, filtrado conceptual, proximidad semántica) para optimizar la toma de decisiones interna del software.
 - **Estrategias de Fallback (Graceful Degradation):** Si una base de datos o API externa falla, el sistema debe aplicar heurísticas de contingencia locales (ej. usar datos previamente cacheados en Valkey o aproximaciones semánticas locales) para asegurar la continuidad del servicio.
 

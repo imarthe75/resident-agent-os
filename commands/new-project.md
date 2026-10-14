@@ -15,7 +15,7 @@ Genera un proyecto nuevo **con las versiones vigentes de cada tecnología**, res
 2. **Spec primero.** Crea el spec del proyecto en `.agent/SPECS.md` (no hay código sin spec aprobado).
 3. **Generar los manifiestos con EXACTAMENTE las versiones del lock** (`package.json`, `pom.xml`/`build.gradle`, `Dockerfile`, `docker-compose.yml`).
    - Imágenes con etiqueta fija (`node:24-alpine`, `pgvector/pgvector:pg18`); nunca `latest`.
-   - Java: el canal definido en la política (por omisión LTS); Spring Boot debe soportar esa versión de Java (`supportedJavaVersions` del ciclo).
+   - Java: el canal `compatible` de la política (la más nueva que Spring Boot soporta y que no esté fuera de soporte); la herramienta imprime la razón si una Java más nueva se descarta.
 4. **Verificar:** `python verifiers/run.py --path <proyecto> --only versions_current,pk_uuid,compose_volumes` y mostrar la salida real.
 5. **Dejar constancia:** copia `versions.lock.json` al repositorio del proyecto y anota en su `.agent/STATE.md` la fecha de resolución.
 

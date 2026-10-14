@@ -38,11 +38,12 @@ def cache_key(query_text: str) -> str:
 
 
 class SemanticCache:
-    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, threshold: float = 0.90) -> None:
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None, threshold: float = 0.90, db: Optional[int] = None) -> None:
         host = host or os.getenv("VALKEY_HOST", "localhost")
         port = port if port is not None else int(os.getenv("VALKEY_PORT", "6379"))
         try:
-            self.client = redis.Redis(host=host, port=port, decode_responses=True, socket_connect_timeout=2, retry_on_timeout=True)
+            self.client = redis.Redis(host=host, port=port, db=db if db is not None else int(os.getenv("VALKEY_DB", "0")),
+                                      decode_responses=True, socket_connect_timeout=2)
             self.client.ping()
         except redis.exceptions.ConnectionError as e:
             logger.error("Failed to connect to Valkey: %s", e)

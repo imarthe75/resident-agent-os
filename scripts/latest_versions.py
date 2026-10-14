@@ -13,6 +13,7 @@ A failed lookup yields version=null with the error; there is NO fallback to a bu
 """
 import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -28,8 +29,8 @@ class ResolveError(Exception):
     pass
 
 
-def http_json(url: str, timeout: int = TIMEOUT):
-    req = urllib.request.Request(url, headers={"User-Agent": "resident-agent-os-latest-versions/1", "Accept": "application/json"})
+def http_json(url: str, timeout: int = TIMEOUT, accept: str = "application/json"):
+    req = urllib.request.Request(url, headers={"User-Agent": "resident-agent-os-latest-versions/1", "Accept": accept})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8"))
@@ -92,16 +93,115 @@ def parse_adoptium(doc: dict, channel: str) -> str:
     return str(v)
 
 
+_VER = re.compile(r"^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?")
+_COMP = re.compile(r"^(>=|<=|>|<|=)?\s*(\d[\w.\-]*)$")
+
+
+def _vt(v: str):
+    m = _VER.match(str(v).strip())
+    return (int(m.group(1)), int(m.group(2) or 0), int(m.group(3) or 0)) if m else None
+
+
+def satisfies(version: str, rng: str) -> bool:
+    """Small npm-range check: comparator sets joined by `||`, comparators separated by spaces (>=a <b). Syntax it does not understand (^, ~, x-ranges)
+    raises ResolveError instead of being guessed. Pre-release versions never satisfy."""
+    if "-" in str(version):
+        return False
+    v = _vt(version)
+    if v is None:
+        raise ResolveError(f"unreadable version {version!r}")
+    for alt in str(rng).split("||"):
+        ok = True
+        for comp in alt.split():
+            m = _COMP.match(comp)
+            if not m:
+                raise ResolveError(f"unsupported range syntax {comp!r} in {rng!r}")
+            op, t = (m.group(1) or "="), _vt(m.group(2))
+            ok = ok and {">=": v >= t, "<=": v <= t, ">": v > t, "<": v < t, "=": v == t}[op]
+        if ok:
+            return True
+    return False
+
+
+def parse_npm_compatible(versions: dict, peer_range: str, latest: str) -> tuple:
+    """Highest stable published version inside `peer_range`. Returns (version, extra): extra says why the overall latest is not the pick."""
+    cands = [v for v in versions if satisfies(v, peer_range)]
+    if not cands:
+        raise ResolveError(f"no published version satisfies {peer_range!r}")
+    best = max(cands, key=_vt)
+    extra = {"latest_published": latest, "peer_range": peer_range}
+    if latest and _vt(latest) and _vt(latest) > _vt(best):
+        extra["note"] = (f"{latest} es la última publicada pero no se usa: la herramienta de la que depende el stack solo admite {peer_range}. "
+                         f"Se usa {best}; cambia automáticamente cuando esa herramienta amplíe su soporte.")
+    return best, extra
+
+
+def _alive(cycle: dict, today: date) -> bool:
+    eol = cycle.get("eol")
+    return eol is False or eol is None or (isinstance(eol, str) and eol >= today.isoformat())
+
+
+def parse_java_compatible(spring_cycles: list, temurin_cycles: list, adoptium: dict, today: Optional[date] = None) -> tuple:
+    """Newest Java that FUNCTIONS with the newest supported Spring Boot line: not past its own end of life, and not above the highest Java that
+    Spring Boot declares (`supportedJavaVersions`, e.g. "17 - 26"). Returns (major, extra) where extra explains why a newer GA Java is not chosen.
+    A Java release can be final (GA) and still be the wrong answer for a Spring project: that is exactly the case this exists for."""
+    import re as _re
+    today = today or date.today()
+    sb = next((c for c in spring_cycles if isinstance(c, dict) and _alive(c, today)), None)
+    if not sb or not sb.get("supportedJavaVersions"):
+        raise ResolveError("no supported Spring Boot line with supportedJavaVersions")
+    nums = [int(n) for n in _re.findall(r"\d+", str(sb["supportedJavaVersions"]))]
+    if not nums:
+        raise ResolveError(f"cannot read supportedJavaVersions {sb['supportedJavaVersions']!r}")
+    ceiling = max(nums)
+    usable = [c for c in temurin_cycles if isinstance(c, dict) and str(c.get("cycle", "")).isdigit() and int(c["cycle"]) <= ceiling and _alive(c, today)]
+    if not usable:
+        raise ResolveError("no non-EOL Temurin release at or below the Spring Boot ceiling")
+    chosen = max(int(c["cycle"]) for c in usable)
+    latest_ga = adoptium.get("most_recent_feature_release") if isinstance(adoptium, dict) else None
+    extra = {"spring_boot_line": sb.get("cycle"), "spring_boot_java_ceiling": ceiling, "latest_ga_java": latest_ga}
+    if isinstance(latest_ga, int) and latest_ga > chosen:
+        why = []
+        if latest_ga > ceiling:
+            why.append(f"Spring Boot {sb.get('cycle')} declara soporte solo hasta Java {ceiling}")
+        for c in temurin_cycles:
+            if isinstance(c, dict) and str(c.get("cycle")) == str(latest_ga) and not _alive(c, today):
+                why.append(f"Java {latest_ga} ya salió de soporte")
+        extra["note"] = f"Java {latest_ga} es versión final pero no se usa: " + "; ".join(why or [f"Java {chosen} es la última que el ecosistema soporta hoy"]) + \
+                        f". Se usa Java {chosen}; el cambio es automático cuando Spring Boot declare soporte."
+    return str(chosen), extra
+
+
 # ----------------------------------------------------------------------------- resolution
 def resolve_tool(name: str, spec: dict, fetch: Callable = http_json, today: Optional[date] = None) -> dict:
     src, channel = spec.get("source"), spec.get("channel", "latest")
     try:
-        if src == "npm":
+        if src == "npm" and channel == "compatible":
+            host, pkg = spec.get("with"), spec["package"]
+            if not host:
+                raise ResolveError("channel 'compatible' needs a \"with\" npm package whose peer range limits this one")
+            url = f"https://registry.npmjs.org/{pkg}"
+            peer = (fetch(f"https://registry.npmjs.org/{host}/latest").get("peerDependencies") or {}).get(pkg)
+            if not peer:
+                raise ResolveError(f"{host} declares no peer range for {pkg}")
+            doc = fetch(url, accept="application/vnd.npm.install-v1+json") if fetch is http_json else fetch(url)
+            latest = (doc.get("dist-tags") or {}).get("latest")
+            version, extra = parse_npm_compatible(doc.get("versions") or {}, peer, latest)
+            return {"version": version, "major": _major(version), "channel": channel, "source": src, "source_url": url, "limited_by": host, **extra}
+        elif src == "npm":
             url = f"https://registry.npmjs.org/{spec['package']}/latest"
             version = parse_npm(fetch(url))
         elif src == "endoflife":
             url = f"https://endoflife.date/api/{spec['product']}.json"
             version = parse_endoflife(fetch(url), channel, today)
+        elif src == "adoptium" and channel == "compatible":
+            url = "https://api.adoptium.net/v3/info/available_releases"
+            adoptium = fetch(url)
+            if spec.get("with") != "spring-boot":
+                raise ResolveError("channel 'compatible' needs \"with\": \"spring-boot\"")
+            version, extra = parse_java_compatible(fetch("https://endoflife.date/api/spring-boot.json"),
+                                                   fetch("https://endoflife.date/api/eclipse-temurin.json"), adoptium, today)
+            return {"version": version, "major": _major(version), "channel": channel, "source": src, "source_url": url, **extra}
         elif src == "adoptium":
             url = "https://api.adoptium.net/v3/info/available_releases"
             version = parse_adoptium(fetch(url), channel)
@@ -166,9 +266,11 @@ def main(argv=None) -> int:
     if a.json:
         print(json.dumps(lock, indent=2, ensure_ascii=False))
     else:
-        print(f"{'herramienta':<14}{'versión':<14}{'canal':<8}fuente")
+        print(f"{'herramienta':<14}{'versión':<14}{'canal':<11}fuente")
         for t, r in res.items():
-            print(f"{t:<14}{(r['version'] or 'NO RESUELTA'):<14}{r['channel']:<8}{r['source']}" + (f"   ({r['error'][:90]})" if r.get("error") else ""))
+            print(f"{t:<14}{(r['version'] or 'NO RESUELTA'):<14}{r['channel']:<11}{r['source']}" + (f"   ({r['error'][:90]})" if r.get("error") else ""))
+            if r.get("note"):
+                print(f"{'':<14}↳ {r['note']}")
     if a.write:
         Path(a.write).write_text(json.dumps(lock, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print(f"\nLock guardado en {a.write}: el proyecto nuevo debe usar EXACTAMENTE estas versiones.", file=sys.stderr)

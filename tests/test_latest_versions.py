@@ -57,6 +57,84 @@ class TestParsers(unittest.TestCase):
                 lv.parse_npm({"version": v})
 
 
+TEMURIN = [{"cycle": "27", "lts": False, "eol": "2027-03-23"}, {"cycle": "26", "lts": False, "eol": "2026-09-22"},
+           {"cycle": "25", "lts": True, "eol": "2031-09-30"}, {"cycle": "24", "lts": False, "eol": "2025-09-22"}]
+SPRING_41 = [{"cycle": "4.1", "supportedJavaVersions": "17 - 26", "eol": "2027-07-31", "latest": "4.1.1"},
+             {"cycle": "4.0", "supportedJavaVersions": "17 - 25", "eol": "2026-12-31", "latest": "4.0.8"}]
+
+
+class TestJavaCompatible(unittest.TestCase):
+    def test_final_java_that_spring_does_not_support_is_not_chosen_and_says_why(self):
+        v, extra = lv.parse_java_compatible(SPRING_41, TEMURIN, ADOPTIUM, TODAY)
+        self.assertEqual(v, "25")                                  # 27 is GA but above Spring's ceiling 26; 26 is past end of life
+        self.assertEqual((extra["spring_boot_java_ceiling"], extra["latest_ga_java"]), (26, 27))
+        self.assertIn("Java 27 es versión final pero no se usa", extra["note"])
+        self.assertIn("hasta Java 26", extra["note"])
+
+    def test_it_switches_by_itself_when_spring_adds_support(self):
+        spring = [{"cycle": "4.2", "supportedJavaVersions": "17 - 27", "eol": "2028-01-01", "latest": "4.2.0"}]
+        v, extra = lv.parse_java_compatible(spring, TEMURIN, ADOPTIUM, TODAY)
+        self.assertEqual(v, "27")
+        self.assertNotIn("note", extra)
+
+    def test_a_non_lts_java_is_fine_while_it_is_still_supported(self):
+        v, _ = lv.parse_java_compatible(SPRING_41, TEMURIN, ADOPTIUM, date(2026, 9, 1))      # 26 not yet EOL on that day
+        self.assertEqual(v, "26")
+
+    def test_unreadable_inputs_raise(self):
+        for sb, tm in (([], TEMURIN), ([{"cycle": "4.1", "eol": "2027-07-31"}], TEMURIN), (SPRING_41, [])):
+            with self.assertRaises(lv.ResolveError):
+                lv.parse_java_compatible(sb, tm, ADOPTIUM, TODAY)
+
+    def test_resolve_tool_wires_the_compatible_channel(self):
+        def fetch(url, timeout=0):
+            return ADOPTIUM if "adoptium" in url else TEMURIN if "temurin" in url else SPRING_41
+        r = lv.resolve_tool("java", {"source": "adoptium", "channel": "compatible", "with": "spring-boot"}, fetch, TODAY)
+        self.assertEqual((r["version"], r["major"], r["latest_ga_java"]), ("25", 25, 27))
+        bad = lv.resolve_tool("java", {"source": "adoptium", "channel": "compatible"}, fetch, TODAY)
+        self.assertIsNone(bad["version"])
+
+
+class TestNpmCompatible(unittest.TestCase):
+    VERSIONS = {v: {} for v in ("5.9.3", "6.0.2", "6.0.3", "7.0.0-rc.1", "7.0.2", "6.1.0-beta")}
+
+    def test_range_checks(self):
+        r = ">=4.8.4 <6.1.0"
+        for v, ok in (("5.9.3", True), ("6.0.3", True), ("6.1.0", False), ("7.0.2", False), ("4.8.3", False), ("6.0.0-rc.1", False)):
+            self.assertEqual(lv.satisfies(v, r), ok, v)
+        self.assertTrue(lv.satisfies("22.22.3", "^22.22.3 || >=26.0.0".replace("^", ">=")))
+        self.assertTrue(lv.satisfies("26.1.0", ">=22.0.0 <23.0.0 || >=26.0.0"))
+        with self.assertRaises(lv.ResolveError):
+            lv.satisfies("1.2.3", "^1.0.0")                       # unsupported syntax is an error, not a guess
+
+    def test_picks_the_highest_stable_inside_the_range_and_explains(self):
+        v, extra = lv.parse_npm_compatible(self.VERSIONS, ">=4.8.4 <6.1.0", "7.0.2")
+        self.assertEqual(v, "6.0.3")                              # not the pre-release 6.1.0-beta, not 7.x
+        self.assertIn("7.0.2 es la última publicada pero no se usa", extra["note"])
+
+    def test_no_note_when_the_latest_is_inside_the_range(self):
+        v, extra = lv.parse_npm_compatible(self.VERSIONS, ">=4.8.4", "7.0.2")
+        self.assertEqual(v, "7.0.2")
+        self.assertNotIn("note", extra)
+
+    def test_nothing_in_range_raises(self):
+        with self.assertRaises(lv.ResolveError):
+            lv.parse_npm_compatible(self.VERSIONS, ">=9.0.0", "7.0.2")
+
+    def test_resolve_tool_wiring_and_missing_pieces(self):
+        def fetch(url, timeout=0):
+            if url.endswith("/typescript-eslint/latest"):
+                return {"version": "8.71.2", "peerDependencies": {"typescript": ">=4.8.4 <6.1.0"}}
+            if url.endswith("/typescript"):
+                return {"dist-tags": {"latest": "7.0.2"}, "versions": self.VERSIONS}
+            raise lv.ResolveError("unexpected " + url)
+        spec = {"source": "npm", "package": "typescript", "channel": "compatible", "with": "typescript-eslint"}
+        r = lv.resolve_tool("typescript", spec, fetch, TODAY)
+        self.assertEqual((r["version"], r["major"], r["limited_by"], r["latest_published"]), ("6.0.3", 6, "typescript-eslint", "7.0.2"))
+        self.assertIsNone(lv.resolve_tool("typescript", {**spec, "with": None}, fetch, TODAY)["version"])
+        self.assertIsNone(lv.resolve_tool("typescript", {**spec, "package": "react"}, fetch, TODAY)["version"])   # host declares no peer range for it
+
+
 class TestResolve(unittest.TestCase):
     POLICY = {"tools": {"angular": {"source": "npm", "package": "@angular/core", "channel": "latest"},
                         "node": {"source": "endoflife", "product": "nodejs", "channel": "lts"},
@@ -102,7 +180,7 @@ class TestResolve(unittest.TestCase):
         pol = json.loads((ROOT / ".agent" / "versions-policy.json").read_text(encoding="utf-8"))
         for name, spec in pol["tools"].items():
             self.assertIn(spec["source"], ("npm", "endoflife", "adoptium"), name)
-            self.assertIn(spec["channel"], ("latest", "lts"), name)
+            self.assertIn(spec["channel"], ("latest", "lts", "compatible"), name)
 
     def test_http_layer_against_a_local_server(self):
         class H(BaseHTTPRequestHandler):

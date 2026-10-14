@@ -5,7 +5,7 @@ import LiveTrace from "@/components/LiveTrace";
 import { useAgentStore } from "@/store/agentStore";
 
 export default function Dashboard() {
-  const { currentTask, status, phase } = useAgentStore();
+  const { currentTask, phase } = useAgentStore();
 
   return (
     <div className="space-y-6 h-full flex flex-col">
