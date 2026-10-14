@@ -53,7 +53,7 @@ Este framework es **genérico**: sirve a los proyectos de Setag y puede usarse t
 - `LoopState` registra tokens y USD por skill y el cierre de sesión los resume; `STATE.md` suma los campos *desviación, causa, acción*.
 
 ### D8 · Preflight con un escáner opcional y reglas de stack
-- `agent/preflight_client.py` + skill `preflight`: antes de tocar archivos consulta, si está configurado (`PREFLIGHT_URL`, `PREFLIGHT_TOKEN`), un servicio que devuelva hallazgos abiertos por archivo (contrato JSON documentado en la skill; Centinela-AI lo implementa, pero cualquier otro sirve). Sin configuración o sin respuesta lo dice; no inventa hallazgos.
+- `agent/preflight_client.py` + skill `preflight`: antes de tocar archivos consulta, si está configurado (`PREFLIGHT_URL`, `PREFLIGHT_TOKEN`), un servicio que devuelva hallazgos abiertos por archivo (contrato JSON documentado en la skill; cualquier escáner que lo implemente sirve). Sin configuración o sin respuesta lo dice; no inventa hallazgos.
 - `rules/java/rules.md` y `rules/angular/rules.md`, derivadas de reglas públicas y habituales de revisión de Spring/Angular: cómo escribir el código para no generar el hallazgo.
 - `AuraAudit` y `audit_starters.py` duplicaban a un escáner dedicado: primero se marcaron obsoletos y después el dueño pidió retirar `docs/starters/` por completo (ver «Limpieza del repositorio»).
 
