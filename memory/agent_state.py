@@ -120,22 +120,3 @@ class LoopState:
             "updated_at", datetime.now(timezone.utc).isoformat()
         )
         return obj
-
-
-class ResidentAgentGraph:
-    """
-    Legacy stub for backwards compatibility.
-    LangGraph dependency removed in favour of LoopState state machine.
-    """
-
-    def __init__(self) -> None:
-        warnings.warn(
-            "ResidentAgentGraph is deprecated. Use LoopState and ResidentAgentLoop instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    def run_step(self, state: AgentCognitiveState) -> AgentCognitiveState:
-        raise NotImplementedError(
-            "Use ResidentAgentLoop.boot() and subsequent phase methods instead."
-        )

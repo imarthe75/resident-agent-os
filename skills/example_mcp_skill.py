@@ -1,3 +1,4 @@
+import logging
 # Plantilla base para registrar Habilidades y Herramientas a través de MCP (Model Context Protocol)
 
 class ExampleMCPSkill:
@@ -22,5 +23,6 @@ class ExampleMCPSkill:
                 "path": path,
                 "contents": contents[:15] # Limitar salida para higiene de contexto
             }
-        except Exception as e:
+        except OSError as e:
+            logging.getLogger(__name__).error("listing %s failed", path, exc_info=True)
             return {"status": "error", "message": str(e)}

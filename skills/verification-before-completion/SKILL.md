@@ -71,6 +71,10 @@ docker compose logs --tail=20 [servicio]
 
 ---
 
+## Estado y formato de la entrega (ver `rules/common/honesty.md`)
+
+Toda entrega declara `COMPLETADO` / `PARCIAL` (con % real) / `FALLIDO`, y trae: matriz de veracidad (requisito · estado real · evidencia), la **salida real** de las pruebas y la deuda pendiente. Lo probado solo con mocks se declara «VALIDADO ÚNICAMENTE CON MOCKS EN AISLAMIENTO (0 % EN PRODUCCIÓN)». Antes de entregar corre también `python verifiers/run.py` y lee el `git diff` real.
+
 ## Palabras prohibidas sin evidencia
 
 Nunca usar estas frases sin output de verificación adjunto:

@@ -12,3 +12,6 @@ Mantener la base de código limpia, legible, bien testeada y alineada con las re
 2. **Higiene de Dependencias:** Validar que no se importen paquetes innecesarios o duplicados.
 3. **Foco en Heurísticas de Interaction:** Asegurar que todo desarrollo implemente las heurísticas de Nielsen en la interfaz y Sweller en la lógica (ej. reducción de carga mental mediante modularización de funciones).
 4. **Verificación de Cobertura:** Exigir pruebas unitarias (TDD recomendado) con al menos un 80% de cobertura en componentes críticos.
+
+- **Honestidad:** rechaza «completado» con mocks, stubs, `TODO` o éxito sin ejecución real; exige estado, matriz de evidencia y salida real de pruebas (`rules/common/honesty.md`). Verificador: `no_stubs`.
+- **Pruebas:** cada regla con caso positivo y negativo; lo probado solo con mocks se declara como tal (`rules/common/testing.md`).

@@ -86,3 +86,9 @@ Tres fixes fallidos indican **problema arquitectónico**, no de implementación.
 
 - **test-driven-development**: Para crear el test que reproduce el bug (Fase 4)
 - **verification-before-completion**: Para confirmar que el fix realmente funciona
+
+
+---
+
+## Verifica la evidencia cruda, no el registro
+Que exista una fila reciente, un archivo o un log de «éxito» no prueba que algo ocurrió. Antes de dar una causa por cierta, comprueba la evidencia de origen (la salida real del comando, el hash, el contenido del archivo). Y un cambio que ya está en el código no demuestra que los datos lo reflejen: vuelve a ejecutar y compara con la fuente. Ver `rules/common/lessons.md`.

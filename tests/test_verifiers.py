@@ -78,6 +78,26 @@ class TestAuditTriggers(unittest.TestCase):
         self.assertEqual(r.method, "heuristic")
 
 
+class TestAuditTriggersStandardCall(unittest.TestCase):
+    def test_habilitar_auditoria_call_counts_as_declared(self):
+        sql = "CREATE TABLE app.a (id uuid PRIMARY KEY);\nCREATE TABLE app.b (id uuid PRIMARY KEY);\nSELECT auditoria.habilitar_auditoria('app.a');\n"
+        t, root = tree({"x.sql": sql})
+        self.addCleanup(t.cleanup)
+        r = c.audit_triggers(root)
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        self.assertEqual(len(r.detail), 1)
+        self.assertIn("'b'", r.detail[0])
+
+
+class TestAuditInstallerTablesIgnored(unittest.TestCase):
+    def test_tables_of_the_audit_schema_are_not_required_to_be_audited(self):
+        sql = "CREATE TABLE auditoria.log_auditoria (id uuid PRIMARY KEY);\nCREATE TABLE auditoria_control.ancla (id uuid PRIMARY KEY);\nCREATE TABLE app.a (id uuid PRIMARY KEY);\nSELECT auditoria.habilitar_auditoria('app.a');\n"
+        t, root = tree({"x.sql": sql})
+        self.addCleanup(t.cleanup)
+        r = c.audit_triggers(root)
+        self.assertEqual((r.status, r.checked), (c.CUMPLE, 1))
+
+
 class TestEndpointsAuth(unittest.TestCase):
     def test_fastapi_mutating_routes(self):
         code = ('@app.post("/a")\nasync def a(user=Depends(get_current_user)):\n    pass\n\n'

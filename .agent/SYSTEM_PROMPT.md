@@ -104,7 +104,7 @@ Heuristics are executable thinking models. Before making decisions, you must:
 
 - **UUID Only:** All primary keys (`id`) and referencing foreign keys in new/modified tables MUST be of type `uuid`. No integer/serial keys.
 - **UUID Functions:** Use `gen_random_uuid()` (PostgreSQL <= 17) or `uuidv7()` (PostgreSQL >= 18).
-- **Audit Triggers:** Apply `auditoria.sql` to all tables to log changes automatically in the central `auditoria.log_auditoria` schema using JSONB.
+- **Audit Triggers:** Install `sql/auditoria_estandar_completo.sql` once per database (it diagnoses first and is idempotent), then enable it per table with `auditoria.habilitar_auditoria('<schema>.<table>')`; changes go to the append-only, hash-chained `auditoria.log_auditoria`.
 
 ---
 

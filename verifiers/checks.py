@@ -107,16 +107,22 @@ def compose_volumes(root: Path, data_root: str = None) -> Result:
 
 
 def audit_triggers(root: Path) -> Result:
-    """HEURISTIC: every table created in .sql files has some trigger whose name mentions 'audit'/'auditoria' on it. It does not prove the
+    """HEURISTIC: every table created in .sql files has some trigger whose name mentions 'audit'/'auditoria' on it, or is enabled with auditoria.habilitar_auditoria('schema.table') / asignar_triggers(...). It does not prove the
     trigger function logs the right thing; it proves a trigger was declared."""
     tables, trig = {}, set()
     for f in _files(root, (".sql",)):
         sql = _strip_sql_comments(f.read_text(encoding="utf-8", errors="replace"))
         for m in _CREATE_TABLE.finditer(sql):
-            tables[m.group("name").replace('"', "").split(".")[-1].lower()] = f"{f.relative_to(root)}"
+            qualified = m.group("name").replace('"', "").lower()
+            if qualified.startswith(("auditoria.", "auditoria_control.")):
+                continue   # the audit installer's own tables (log, partitions, anchor) are not audited by themselves
+            tables[qualified.split(".")[-1]] = f"{f.relative_to(root)}"
         for m in re.finditer(r'CREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+"?(\w+)"?.*?\bON\s+(?:"?\w+"?\.)?"?(\w+)"?', sql, re.IGNORECASE | re.DOTALL):
             if re.search(r"audit", m.group(1), re.IGNORECASE):
                 trig.add(m.group(2).lower())
+        # The standard installer enables auditing per table with a function call instead of a CREATE TRIGGER statement.
+        for m in re.finditer(r"auditoria\.(?:habilitar_auditoria|asignar_triggers)\s*\(\s*'(?:\"?\w+\"?\.)?\"?(\w+)\"?'", sql, re.IGNORECASE):
+            trig.add(m.group(1).lower())
     own = {t: f for t, f in tables.items() if t not in ("log_auditoria",)}
     if not own:
         return Result("audit_triggers", NO_EVALUADO, "heuristic", ["no hay tablas en archivos .sql"], 0)
@@ -255,5 +261,128 @@ def versions_current(root: Path, resolved=None) -> Result:
     return Result("versions_current", CUMPLE, "static", [], checked)
 
 
+# ----------------------------------------------------------------------------- honesty / safety verifiers (ADR-0003 D10)
+import ast
+
+_TEST_FILE = re.compile(r"(^|/)(test_[^/]*\.py|[^/]*_test\.py|conftest\.py|[^/]*\.(test|spec)\.(ts|tsx|js|jsx))$")
+
+
+def _is_test(rel: str) -> bool:
+    return bool(_TEST_FILE.search(rel.replace(os.sep, "/"))) or "/tests/" in "/" + rel.replace(os.sep, "/")
+
+
+def _py_modules(root: Path):
+    for f in _files(root, (".py",)):
+        rel = str(f.relative_to(root))
+        try:
+            yield f, rel, ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+
+
+def no_stubs(root: Path) -> Result:
+    """HEURISTIC: a function that only declares itself (body = pass / ... / raise NotImplementedError / a docstring) or a TODO/FIXME marker in non-test
+    source is unfinished work presented as code. Abstract methods, protocols and overloads are skipped."""
+    bad, checked = [], 0
+    for f, rel, tree_ in _py_modules(root):
+        if _is_test(rel):
+            continue
+        for node in ast.walk(tree_):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            decos = " ".join(ast.unparse(d) for d in node.decorator_list)
+            if re.search(r"abstractmethod|overload|Protocol", decos):
+                continue
+            checked += 1
+            body = [b for b in node.body if not (isinstance(b, ast.Expr) and isinstance(getattr(b, "value", None), ast.Constant) and isinstance(b.value.value, str))]
+            only_stub = (not body) or all(isinstance(b, ast.Pass) or (isinstance(b, ast.Expr) and isinstance(b.value, ast.Constant) and b.value.value is Ellipsis)
+                                          or (isinstance(b, ast.Raise) and "NotImplementedError" in ast.unparse(b)) for b in body)
+            if only_stub and node.name != "__init__":
+                bad.append(f"{rel}:{node.lineno}: {node.name}() no tiene lógica (pass / ... / NotImplementedError)")
+    marker = re.compile(r"(#|//|/\*)\s*(TODO|FIXME|XXX)\b")
+    for f in _files(root, (".py", ".java", ".ts", ".tsx", ".js", ".jsx", ".sql", ".sh")):
+        rel = str(f.relative_to(root))
+        if _is_test(rel):
+            continue
+        for n, line in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if marker.search(line):
+                bad.append(f"{rel}:{n}: marcador TODO/FIXME en código entregado")
+    if checked == 0 and not bad:
+        return Result("no_stubs", NO_EVALUADO, "heuristic", ["no se encontraron funciones Python ni marcadores que revisar"], 0)
+    return Result("no_stubs", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
+
+
+_DESTRUCTIVE = re.compile(r"\b(flushdb|flushall)\b|\bDROP\s+(TABLE|DATABASE|SCHEMA)\b|\bTRUNCATE\b", re.IGNORECASE)
+_TEST_GUARD = re.compile(r"[A-Z_]*TEST[A-Z_]*(HOST|DB|URL|DATABASE)|(HOST|DB|URL|DATABASE)[A-Z_]*TEST|ROLLBACK|rollback\(|tmp_path|tempfile|sqlite:///:memory:|testcontainers", re.IGNORECASE)
+
+
+def tests_isolated(root: Path) -> Result:
+    """HEURISTIC: a test file that runs a destructive operation (flushdb/flushall/DROP/TRUNCATE) must show an isolation guard: a test-only connection variable
+    (e.g. APP_TEST_DB_HOST), a rollback, a temp dir or an in-memory database. A test must never inherit its target from the application's environment."""
+    bad, checked = [], 0
+    for f in _files(root, (".py", ".ts", ".tsx", ".js", ".jsx", ".java")):
+        rel = str(f.relative_to(root))
+        if not _is_test(rel):
+            continue
+        text = f.read_text(encoding="utf-8", errors="replace")
+        checked += 1
+        hits = [(n, l) for n, l in enumerate(text.splitlines(), 1) if _DESTRUCTIVE.search(l) and not l.lstrip().startswith(("#", "//", "--"))]
+        if hits and not _TEST_GUARD.search(text):
+            n, l = hits[0]
+            bad.append(f"{rel}:{n}: operación destructiva sin guarda de aislamiento ({l.strip()[:60]})")
+        if re.search(r"os\.(getenv|environ(\.get)?)\(?\[?\s*['\"](?!\w*TEST)\w*(REDIS|VALKEY|DB|DATABASE|POSTGRES)\w*(HOST|URL|URI)\w*['\"]", text) and hits:
+            bad.append(f"{rel}: hereda el destino de la variable de producción en una prueba destructiva")
+    if checked == 0:
+        return Result("tests_isolated", NO_EVALUADO, "heuristic", ["no se encontraron archivos de prueba"], 0)
+    return Result("tests_isolated", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
+
+
+def no_silent_except(root: Path) -> Result:
+    """STATIC (Python AST): an `except` that catches everything (bare, Exception, BaseException) must re-raise, log the traceback (logger.*, logging.*,
+    traceback.print_exc, exc_info=True) or return an explicit error. Swallowing it (pass / continue / returning a success value) hides failures."""
+    bad, checked = [], 0
+    for f, rel, tree_ in _py_modules(root):
+        if _is_test(rel):
+            continue
+        for node in ast.walk(tree_):
+            if not isinstance(node, ast.ExceptHandler):
+                continue
+            kind = ast.unparse(node.type) if node.type is not None else ""
+            if kind not in ("", "Exception", "BaseException"):
+                continue
+            checked += 1
+            src = " ".join(ast.unparse(b) for b in node.body)
+            handled = any(isinstance(n, ast.Raise) for b in node.body for n in ast.walk(b)) or re.search(
+                r"(logger|logging|log)\.(error|exception|warning|critical)|print_exc|exc_info|traceback\.", src)
+            if not handled:
+                bad.append(f"{rel}:{node.lineno}: except {kind or '(vacío)'} traga el error sin traza ni relanzar")
+    if checked == 0:
+        return Result("no_silent_except", NO_EVALUADO, "static", ["no hay bloques except amplios que revisar"], 0)
+    return Result("no_silent_except", NO_CUMPLE if bad else CUMPLE, "static", bad, checked)
+
+
+def webhooks_fail_closed(root: Path) -> Result:
+    """HEURISTIC, FastAPI only: a route whose path contains 'webhook' must authenticate the caller and fail closed: compare a configured secret in constant
+    time (hmac.compare_digest) AND answer 401/403/503 when the secret is missing or wrong. Other frameworks are NOT evaluated."""
+    bad, checked = [], 0
+    for f in _files(root, (".py",)):
+        text = f.read_text(encoding="utf-8", errors="replace")
+        for m in _ROUTE_PY.finditer(text):
+            if "webhook" not in m.group(2).lower():
+                continue
+            checked += 1
+            end = text.find("\n@", m.end())
+            block = text[m.start(): end if end != -1 else len(text)]
+            if not re.search(r"compare_digest", block):
+                bad.append(f"{f.relative_to(root)}: {m.group(2)} no compara el secreto en tiempo constante (hmac.compare_digest)")
+            if not re.search(r"\b(401|403|503)\b|HTTP_40[13]|HTTP_503", block):
+                bad.append(f"{f.relative_to(root)}: {m.group(2)} no responde 401/403/503 cuando falta o no coincide el secreto")
+    if checked == 0:
+        return Result("webhooks_fail_closed", NO_EVALUADO, "heuristic", ["no se encontraron rutas webhook de FastAPI (otros frameworks no se evalúan)"], 0)
+    return Result("webhooks_fail_closed", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
+
+
 REGISTRY: Dict[str, Callable[..., Result]] = {"pk_uuid": pk_uuid, "compose_volumes": compose_volumes, "audit_triggers": audit_triggers,
-                                              "endpoints_auth": endpoints_auth, "versions_current": versions_current}
+                                              "endpoints_auth": endpoints_auth, "versions_current": versions_current,
+                                              "no_stubs": no_stubs, "tests_isolated": tests_isolated, "no_silent_except": no_silent_except,
+                                              "webhooks_fail_closed": webhooks_fail_closed}

@@ -295,35 +295,10 @@ END $$;
 -- ===========================
 -- 6. Triggers de auditoria
 -- ===========================
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_trigger
-        WHERE tgname = 'audit_biu'
-          AND tgrelid = 'public.nombre_tabla'::regclass
-    ) THEN
-        CREATE TRIGGER audit_biu
-        BEFORE INSERT OR UPDATE ON public.nombre_tabla
-        FOR EACH ROW EXECUTE FUNCTION auditoria.auditoria_biu();
-    END IF;
-END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_trigger
-        WHERE tgname = 'audit_aiud'
-          AND tgrelid = 'public.nombre_tabla'::regclass
-    ) THEN
-        CREATE TRIGGER audit_aiud
-        AFTER INSERT OR UPDATE OR DELETE ON public.nombre_tabla
-        FOR EACH ROW EXECUTE FUNCTION auditoria.auditoria_aiud();
-
-        ALTER TABLE public.nombre_tabla DISABLE TRIGGER audit_aiud;
-    END IF;
-END $$;
+-- El instalador unico (sql/auditoria_estandar_completo.sql) debe estar aplicado en la base.
+-- habilitar_auditoria es idempotente y deja audit_biu activo y audit_aiud/audit_truncate habilitados para la tabla.
+-- Lo ejecuta el dueno de la tabla; verifica la cobertura con SELECT * FROM auditoria.reporte_cobertura();
+SELECT auditoria.habilitar_auditoria('public.nombre_tabla');
 
 -- ===========================
 -- 7. Comentarios tecnicos
@@ -332,7 +307,7 @@ END $$;
 -- 2. Tabla vacia primero, columnas por ALTER TABLE.
 -- 3. id siempre uuid con DEFAULT gen_random_uuid() (o uuidv7() en PG18+).
 -- 4. Las llaves foraneas que apunten a id son tambien de tipo uuid.
--- 5. audit_biu siempre activo.
+-- 5. audit_biu siempre activo (el instalador lo habilita; la auditoria completa se habilita con habilitar_auditoria).
 -- 6. audit_aiud creado y deshabilitado por defecto.
 
 -- Fin del script

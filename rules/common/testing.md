@@ -1,18 +1,22 @@
-# 🧪 Testing & Verification Loop Guidelines
+# Pruebas y bucle de verificación
 
-Reglas y metodologías de prueba para asegurar que cada desarrollo funcione de forma determinista antes de su despliegue.
+Las pruebas existen para demostrar que algo funciona, no para ponerse en verde.
 
-*Nota de Atribución: Estas directivas de pruebas unitarias y TDD están alineadas con las prácticas de **affaan-m/ECC** (Licencia MIT).*
+## 1. Desarrollo guiado por pruebas
+1. **Rojo**: escribe la prueba que falla. 2. **Verde**: el código mínimo que la pasa. 3. **Refactor** con todo en verde.
+Cada regla, validación o función con lógica de decisión lleva **un caso que debe fallar y otro que debe pasar**: una regla sin caso negativo termina marcando lo que no debe.
 
-## 📌 Desarrollo Orientado a Pruebas (TDD)
+## 2. Qué cuenta como evidencia
+- La prueba que ejercita el comportamiento real (base de datos de prueba, servicio levantado, archivo real) es la evidencia principal.
+- Los mocks sirven para aislar lógica y para dependencias de pago o de terceros que no se pueden llamar. **Un resultado probado solo con mocks se declara así** (ver `honesty.md` §3); nunca cuenta como «funciona en producción».
+- Se prefiere una dependencia real desechable (contenedor, base temporal, servidor HTTP local) a un mock de red.
+- La cobertura de líneas es una señal, no un criterio de «listo»: 80 % de cobertura con mocks puede no probar nada.
 
-1. **Ciclo Rojo-Verde-Refactor:**
-   - Escribe una prueba unitaria que falle (Rojo).
-   - Escribe el código mínimo necesario para hacer pasar la prueba (Verde).
-   - Limpia y optimiza el código manteniendo las pruebas en verde (Refactor).
-2. **Cobertura Mínima:**
-   - Todo nuevo servicio, utilidad o componente crítico de negocio debe contar con al menos un **80% de cobertura de código**.
-3. **Mocks de Integración Externa:**
-   - Las pruebas unitarias no deben realizar llamadas de red reales a APIs externas. Mockea servicios como OpenAI, Anthropic o endpoints externos de terceros.
-4. **Verificación Automatizada:**
-   - Utiliza scripts locales de test automatizados antes de realizar cualquier commit o push de Git.
+## 3. Aislamiento (ver `test-isolation.md`)
+Una prueba nunca toca datos reales ni hereda su destino del entorno de la aplicación.
+
+## 4. Antes de cada commit
+Corre las pruebas y los verificadores (`python verifiers/run.py`). Pega la salida real en la entrega.
+
+## 5. Pruebas omitidas
+Una prueba `skip` lleva un motivo escrito y un responsable; sin motivo es una prueba borrada en silencio.

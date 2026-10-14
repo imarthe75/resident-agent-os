@@ -38,9 +38,11 @@ Toda tabla de aplicación (`app.*`) debe incluir los siguientes campos de audito
 4.  `fecha_creacion` / `fecha_modificacion` → Marca de tiempo con zona horaria (`timestamptz`).
 5.  `usuario_creacion` / `usuario_modificacion` → Nombre del actor/proceso que ejecutó la acción.
 
-### Triggers de Auditoría:
-*   **`auditoria.auditoria_biu()`** (BEFORE INSERT/UPDATE): Trigger obligatorio para rellenar de forma automática fechas, usuario, UUID de referencia y autoincrementar la versión de fila.
-*   **`auditoria.auditoria_aiud()`** (AFTER INSERT/UPDATE/DELETE): Registra el DML completo en un JSONB dentro de `auditoria.log_auditoria` con hashes criptográficos.
+### Auditoría (instalador único `sql/auditoria_estandar_completo.sql`, ver `sql/AUDITORIA_LEEME.md`):
+*   Se instala **una vez por base** con `psql -v ON_ERROR_STOP=1 -f sql/auditoria_estandar_completo.sql`; diagnostica antes de cambiar nada (nueva / vigente / reparar / anterior / ajena) y es idempotente. Requiere PostgreSQL 18+ y superusuario. Úsalo primero con `-v solo_diagnostico=si` en bases que ya tengan auditoría.
+*   **`audit_biu`** (BEFORE INSERT/UPDATE, habilitado por defecto): rellena fechas, usuario, `ref` y `row_version`.
+*   **`audit_aiud`** y **`audit_truncate`**: registran el DML en `auditoria.log_auditoria` (solo inserción, particionada por mes, hash SHA-256 encadenado; rechaza UPDATE/DELETE/TRUNCATE incluso al dueño). Se habilitan por tabla: `SELECT auditoria.habilitar_auditoria('<esquema>.<tabla>');`.
+*   Verificación: `SELECT * FROM auditoria.reporte_cobertura();` (qué tablas no están cubiertas) y `SELECT * FROM auditoria.fn_verificar_cadena();` (sin filas = cadena íntegra). El ancla `auditoria_control.fn_verificar_y_anclar()` se programa a diario.
 
 ---
 

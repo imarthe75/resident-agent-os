@@ -13,7 +13,7 @@
 - [ ] Escribir migración `db/migrations/NNN_descripcion.sql`
   - PK UUID v7, campos necesarios, índices
 - [ ] Aplicar migración: `alembic upgrade head && alembic current`
-- [ ] Agregar audit triggers: ejecutar `sql/auditoria.sql` para la nueva tabla
+- [ ] Agregar audit triggers: `SELECT auditoria.habilitar_auditoria('<esquema>.<tabla>');` (el instalador `sql/auditoria_estandar_completo.sql` ya debe estar aplicado en la base)
 
 ### Fase 2: Backend
 

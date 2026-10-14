@@ -80,3 +80,9 @@ npm test -- --testNamePattern="nuevo comportamiento"
 - **systematic-debugging**: Úsalo cuando un test falla de forma inesperada
 - **verification-before-completion**: Ejecuta la suite completa antes de declarar "listo"
 - **ponytail-review**: Asegura que los helpers de test no dupliquen la stdlib
+
+
+---
+
+## Pares positivo/negativo (regla de oro de los detectores y validaciones)
+Toda regla, validación o función que decide («¿esto es válido/peligroso?») se prueba con **al menos un caso que debe disparar y otro que no debe disparar**. Una regla sin caso negativo termina marcando lo que no debe; sin caso positivo, nunca se sabe si funciona. Si una prueba solo usa mocks de red, decláralo (`rules/common/honesty.md` §3).
