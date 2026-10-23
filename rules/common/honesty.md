@@ -36,3 +36,8 @@ Antes de entregar: lee el `git diff` real (¿quedó código temporal?), corre la
 
 ## 8. Agentes y automatizaciones
 Una automatización o un agente que depende de un modelo, un servicio o una herramienta externa **nunca devuelve éxito sin haberlos usado**. Si el modelo no responde, no hay credenciales o la herramienta falló, el resultado es `unavailable` o `failed` con el motivo; jamás «ejecutado correctamente». Una acción de respuesta que no se ejecutó se registra como `not_executed` o `manual_action_required`.
+
+## 9. Entregables: el resultado final, no el historial de intentos
+Un informe, reporte, resumen o documento que se entrega presenta **el resultado final y su estado actual**. No narra lo que se intentó y no funcionó, los reintentos, las rutas descartadas ni los errores intermedios ya corregidos: eso alarga el texto y esconde la conclusión.
+Esto **no autoriza a ocultar límites** (secciones 2–5): lo que no se logró o no se pudo verificar se declara como estado actual («no verificado», «PARCIAL», «pendiente: requiere X»), con su causa en una frase.
+Aplica también al mensaje final de cada tarea: qué hay, qué falta y qué se necesita. La historia de un intento fallido solo se conserva donde sirve como lección técnica (una decisión de arquitectura o un mensaje de commit), nunca en el entregable.

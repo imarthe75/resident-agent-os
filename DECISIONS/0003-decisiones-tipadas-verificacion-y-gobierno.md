@@ -85,8 +85,8 @@ Suite: `python -m pytest tests -q` → **100 pruebas, todas pasan** (la caché s
 ## Pendientes y deuda declarada
 - Verificar en una sesión real de Claude Code que los hooks de `.claude/settings.json` se disparan.
 - Levantar PostgreSQL + pgvector y ejecutar `sql/agent_memory.sql` completo y las consultas de `LongTermMemory`.
-- Decidir qué hacer con los NO_CUMPLE reales del propio repositorio (servicios de `services/plane`, triggers de auditoría).
-- `docker-compose.yml` usa `chrislusf/seaweedfs:latest` (imagen sin versión fija): fuera de este cambio.
+- ~~Los NO_CUMPLE del propio repositorio~~ — cerrado 2026-10-23: los de `services/plane` desaparecieron con la limpieza (la carpeta ya no existe; `compose_volumes` da CUMPLE) y `agent_memory`/`lessons` quedan como excepción declarada de auditoría (D11).
+- ~~`chrislusf/seaweedfs:latest` en `docker-compose.yml`~~ — cerrado: el compose actual ya no incluye ese servicio.
 
 ## Limpieza del repositorio (2026-10-13, por indicación del dueño)
 Este framework es genérico (proyectos de Setag; reutilizable por otras organizaciones) y no debe cargar con material de otros productos ni de una organización concreta. Se retiró del árbol actual (el historial de git conserva todo):
@@ -125,3 +125,17 @@ Origen: las reglas de entrega y de pruebas que más errores evitaron en otro pro
 **Skills:** nuevas `clean-code-contract` (qué no escribir y cómo entregar) y `triage-findings` (clasificar hallazgos con evidencia); ampliadas `verification-before-completion` (estados y formato), `test-driven-development` (pares positivo/negativo) y `systematic-debugging` (evidencia cruda); los agentes `security-reviewer` y `code-reviewer` citan las reglas y ejecutan los verificadores.
 **Auditoría de base de datos:** `sql/auditoria.sql` se reemplazó por el instalador único `sql/auditoria_estandar_completo.sql` (diagnostica antes de cambiar nada; bitácora de solo inserción, particionada, con hash encadenado; reparación y actualización conservando registros) con su `sql/AUDITORIA_LEEME.md`. El verificador `audit_triggers` reconoce `auditoria.habilitar_auditoria('<esquema>.<tabla>')`; `postgres-audit`, `database-liquibase-postgresql`, `database-style.md` y la plantilla de tareas se actualizaron. El script no se ejecutó contra ninguna base desde esta sesión; su verificación es la documentada en su LEEME (PostgreSQL 18.4).
 **Límites:** los verificadores heurísticos pueden omitir casos (se declaran `heuristic`); `webhooks_fail_closed` no evalúa otros frameworks; el punto «lo probado solo con mocks se declara» es una regla, no un verificador (no se puede decidir mecánicamente). Las 6 pruebas de caché siguen omitidas sin `ROS_TEST_VALKEY_HOST`.
+
+## D11 · Verificadores para Spring, excepciones declaradas y verificación de correcciones (añadido 2026-10-23, v2.3.0)
+Ideas tomadas de operar un detector de vulnerabilidades sobre proyectos Java/Spring reales; implementadas aquí de forma neutral.
+- **`endpoints_auth` y `webhooks_fail_closed` ahora evalúan Spring** además de FastAPI. Para cada método de un `@RestController`/`@Controller` (con el prefijo de `@RequestMapping` de la clase): protegido si el método o la clase llevan `@PreAuthorize`/`@PostAuthorize`/`@Secured`/`@RolesAllowed`; si no, decide la **primera** regla de URL de Spring Security que coincide (respetando las reglas limitadas a un `HttpMethod`) y luego `.anyRequest()`. `permitAll` sin anotación = falla; solo `authenticated()` = **nota** (autenticar no es autorizar); un controlador que solo existe con perfiles `local`/`dev`/`test` (`@Profile`) = nota, y un perfil desconocido no se presume seguro. Un `@PreAuthorize` comentado no cuenta. Webhooks Spring: `MessageDigest.isEqual` y respuesta 401/403/503. Siguen sin evaluarse otros frameworks; una autenticación hecha en un filtro de servlet o en un gateway no se ve.
+- **Excepción declarada en `audit_triggers`:** `-- audit-exempt: <motivo>` antes de un `CREATE TABLE`. No cuenta como falla, se lista con su motivo, y sin motivo sí falla. Aplicada a `memory.agent_memory` y `memory.lessons` por decisión del dueño.
+- **Regla de entregables** (`rules/common/honesty.md` §9): el entregable presenta el resultado final, no el historial de intentos, sin ocultar límites.
+- **Verificar una corrección contra el escaneo anterior** (`skills/triage-findings` paso 7): solventado / persiste / no re-verificado / nuevo / reaparecido; «no re-verificado» nunca cuenta como solventado.
+
+| Requisito | Estado | Evidencia |
+|---|---|---|
+| Spring en `endpoints_auth` | HECHO (heurístico) | `tests/test_verifiers.py` (4 casos nuevos: anotación tras un `@Operation` largo, `@PreAuthorize` comentado, `HttpMethod.OPTIONS "/**"` que no abre un POST, orden de reglas, perfil de desarrollo vs. perfil desconocido). Ejecutado sobre cuatro backends Spring reales: marcó solo rutas `permitAll` sin anotación que se confirmaron a mano en el código (un endpoint de inicio de sesión de prueba y uno de subida de archivos); un controlador `@Profile({"local","dev"})` quedó como nota. |
+| Spring en `webhooks_fail_closed` | HECHO (heurístico) | `tests/test_verifiers_honesty.py` (2 casos). Ninguno de los backends reales tiene webhooks: no se ejercitó con código real. |
+| Excepción de `audit_triggers` | HECHO | 3 pruebas nuevas; sobre este repositorio `audit_triggers` pasa de NO_CUMPLE a CUMPLE listando las dos excepciones. |
+| Regla de entregables y paso 7 de triage | HECHO (texto) | Son reglas escritas; no tienen prueba automática. |

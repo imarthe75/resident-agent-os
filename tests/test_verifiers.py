@@ -79,6 +79,27 @@ class TestAuditTriggers(unittest.TestCase):
 
 
 class TestAuditTriggersStandardCall(unittest.TestCase):
+    def test_declared_exemption_with_reason_passes_and_stays_visible(self):
+        t, root = tree({"db/a.sql": "-- audit-exempt: memoria de trabajo del agente, regenerable\nCREATE TABLE IF NOT EXISTS m.notas (id uuid PRIMARY KEY);\n"
+                                    "CREATE TABLE m.otra (id uuid PRIMARY KEY);\n"})
+        self.addCleanup(t.cleanup)
+        r = c.audit_triggers(root)
+        self.assertEqual(r.status, c.NO_CUMPLE)                              # the exemption covers only the table right after it
+        self.assertTrue(any("'otra' no tiene trigger" in d for d in r.detail))
+        self.assertTrue(any("'notas' exenta" in d and "regenerable" in d for d in r.detail))
+
+    def test_exemption_without_reason_fails(self):
+        t, root = tree({"db/a.sql": "-- audit-exempt:\nCREATE TABLE m.notas (id uuid PRIMARY KEY);\n"})
+        self.addCleanup(t.cleanup)
+        r = c.audit_triggers(root)
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        self.assertTrue(any("no declara el motivo" in d for d in r.detail))
+
+    def test_only_exempted_tables_pass(self):
+        t, root = tree({"db/a.sql": "-- audit-exempt: datos regenerables\n-- (decisión del dueño)\nCREATE TABLE m.notas (id uuid PRIMARY KEY);\n"})
+        self.addCleanup(t.cleanup)
+        self.assertEqual(c.audit_triggers(root).status, c.CUMPLE)
+
     def test_habilitar_auditoria_call_counts_as_declared(self):
         sql = "CREATE TABLE app.a (id uuid PRIMARY KEY);\nCREATE TABLE app.b (id uuid PRIMARY KEY);\nSELECT auditoria.habilitar_auditoria('app.a');\n"
         t, root = tree({"x.sql": sql})
@@ -110,9 +131,104 @@ class TestEndpointsAuth(unittest.TestCase):
         self.assertIn("DELETE /b", r.detail[0])
 
     def test_other_frameworks_are_not_guessed(self):
-        t, root = tree({"Ctrl.java": '@PostMapping("/x") public void x() {}'})
+        # a mapping outside a @RestController/@Controller class, and an Express route, are not evaluated (not guessed)
+        t, root = tree({"Ctrl.java": '@PostMapping("/x") public void x() {}', "app.js": "app.post('/x', (req, res) => res.send(1))"})
         self.addCleanup(t.cleanup)
         self.assertEqual(c.endpoints_auth(root).status, c.NO_EVALUADO)
+
+
+SPRING_CTRL = """package demo;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+
+@RestController
+@RequestMapping("/api/usuarios")
+public class UsuarioController {
+
+    @Operation(summary = "Crea un usuario", description = "texto largo; con {llaves} y (paréntesis)",
+               responses = { @ApiResponse(responseCode = "201") })
+    @PostMapping
+    @PreAuthorize("hasAuthority('USUARIOS_ALTA')")
+    public Usuario crear(@RequestBody Usuario u) { return u; }
+
+    // @PreAuthorize("hasAuthority('USUARIOS_BORRAR')")
+    @DeleteMapping("/{id}")
+    public void borrar(@PathVariable String id) { String url = "http://x/y"; }
+
+    @GetMapping("/{id}")
+    public Usuario ver(@PathVariable String id) { return null; }
+
+    @RequestMapping(value = "/importar", method = RequestMethod.PUT)
+    public void importar() { }
+}
+"""
+
+SPRING_SECURITY = """@Configuration
+public class SecurityConfig {
+    @Bean
+    SecurityFilterChain chain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(a -> a
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/usuarios/importar/admin").hasRole("ADMIN")
+            .requestMatchers("/api/publico/**", "/api/usuarios/importar").permitAll()
+            .anyRequest().authenticated());
+        return http.build();
+    }
+}
+"""
+
+
+class TestEndpointsAuthSpring(unittest.TestCase):
+    def run_tree(self, files):
+        t, root = tree(files)
+        self.addCleanup(t.cleanup)
+        return c.endpoints_auth(root)
+
+    def test_without_filter_chain_unannotated_mutations_fail(self):
+        r = self.run_tree({"src/UsuarioController.java": SPRING_CTRL})
+        self.assertEqual((r.status, r.checked), (c.NO_CUMPLE, 3))          # POST, DELETE, PUT (GET is not mutating)
+        joined = "\n".join(r.detail)
+        self.assertIn("DELETE /api/usuarios/{id}", joined)                  # commented-out @PreAuthorize does not protect it
+        self.assertIn("PUT /api/usuarios/importar", joined)
+        self.assertNotIn("POST /api/usuarios ", joined + " ")              # long @Operation block + @PreAuthorize after the mapping
+
+    def test_filter_chain_authenticates_but_permit_all_opens_a_route(self):
+        r = self.run_tree({"src/UsuarioController.java": SPRING_CTRL, "src/SecurityConfig.java": SPRING_SECURITY})
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        failures = [d for d in r.detail if "permitAll" in d or "sin anotación" in d]
+        self.assertEqual(len(failures), 1)
+        self.assertIn("PUT /api/usuarios/importar", failures[0])
+        notes = [d for d in r.detail if "solo exige sesión" in d]
+        self.assertEqual(len(notes), 1)                                     # DELETE: authenticated, but no declared permission
+        self.assertIn("DELETE /api/usuarios/{id}", notes[0])
+
+    def test_method_scoped_rule_and_first_match_order(self):
+        # OPTIONS /** must not open POST routes; a role rule declared before a broader permitAll wins for its path
+        ctrl = ('@RestController\n@RequestMapping("/api")\npublic class A {\n'
+                '    @PostMapping("/usuarios/importar/admin") public void a() { }\n'
+                '    @PostMapping("/otros") public void b() { }\n}\n')
+        sec = SPRING_SECURITY.replace('"/api/usuarios/importar").permitAll()', '"/api/usuarios/importar/**").permitAll()')
+        r = self.run_tree({"src/A.java": ctrl, "src/SecurityConfig.java": sec})
+        self.assertEqual((r.status, r.checked), (c.CUMPLE, 2))
+        self.assertEqual(len(r.detail), 1)
+        self.assertIn("POST /api/otros", r.detail[0])                        # authenticated only -> note, not a failure
+
+    def test_dev_only_profile_is_a_note_but_unknown_profile_still_fails(self):
+        sec = SPRING_SECURITY.replace('"/api/publico/**"', '"/dev/**", "/api/public/**"')
+        dev = '@RestController\n@RequestMapping("/dev")\n@Profile({"local", "dev"})\npublic class D {\n    @PostMapping("/api-key") public void k() { }\n}\n'
+        fb = '@RestController\n@Profile("fallback")\npublic class L {\n    @PostMapping("/api/public/mock-login") public void l() { }\n}\n'
+        r = self.run_tree({"src/D.java": dev, "src/L.java": fb, "src/SecurityConfig.java": sec})
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        failures = [d for d in r.detail if "permitAll" in d]
+        self.assertEqual(len(failures), 1)
+        self.assertIn("mock-login", failures[0])
+        self.assertTrue(any("/dev/api-key" in d and "perfil local/dev" in d for d in r.detail))
+
+    def test_class_level_annotation_and_authenticated_chain_pass(self):
+        ctrl = SPRING_CTRL.replace("@RestController", '@RestController\n@PreAuthorize("isAuthenticated()")')
+        sec = SPRING_SECURITY.replace(', "/api/usuarios/importar"', "")
+        r = self.run_tree({"src/UsuarioController.java": ctrl, "src/SecurityConfig.java": sec})
+        self.assertEqual((r.status, r.checked, r.detail), (c.CUMPLE, 3, []))
 
 
 class TestRunner(unittest.TestCase):
