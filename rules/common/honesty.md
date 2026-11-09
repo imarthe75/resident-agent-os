@@ -11,6 +11,12 @@ Una tarea no se declara completada si el código contiene:
 
 El verificador `no_stubs` revisa lo mecánico; el resto es responsabilidad de quien entrega.
 
+## 1.1 Durante el desarrollo, no solo al entregar
+Desde el primer commit se escribe la funcionalidad real. En el código de la aplicación (cualquier rama) no van datos simulados, respuestas
+fijas, pantallas maqueta con botones que no hacen nada ni código comentado «para después». Los mocks solo viven en pruebas (declarados) o en
+un simulador explícito de ambiente local que el build de producción no incluye. Si falta una dependencia, se programa contra su contrato
+real y la tarea queda `PARCIAL — bloqueada por X`. Detalle en la skill `reglas-globales` §2.1.
+
 ## 2. Estados permitidos
 `COMPLETADO` (todo probado en el entorno real) · `PARCIAL` (con el porcentaje real) · `FALLIDO`.
 El porcentaje se calcula **solo sobre requisitos con prueba ejecutada y aprobada**, nunca por cantidad de archivos. Ante la duda, `PARCIAL`.
@@ -37,7 +43,5 @@ Antes de entregar: lee el `git diff` real (¿quedó código temporal?), corre la
 ## 8. Agentes y automatizaciones
 Una automatización o un agente que depende de un modelo, un servicio o una herramienta externa **nunca devuelve éxito sin haberlos usado**. Si el modelo no responde, no hay credenciales o la herramienta falló, el resultado es `unavailable` o `failed` con el motivo; jamás «ejecutado correctamente». Una acción de respuesta que no se ejecutó se registra como `not_executed` o `manual_action_required`.
 
-## 9. Entregables: el resultado final, no el historial de intentos
-Un informe, reporte, resumen o documento que se entrega presenta **el resultado final y su estado actual**. No narra lo que se intentó y no funcionó, los reintentos, las rutas descartadas ni los errores intermedios ya corregidos: eso alarga el texto y esconde la conclusión.
-Esto **no autoriza a ocultar límites** (secciones 2–5): lo que no se logró o no se pudo verificar se declara como estado actual («no verificado», «PARCIAL», «pendiente: requiere X»), con su causa en una frase.
-Aplica también al mensaje final de cada tarea: qué hay, qué falta y qué se necesita. La historia de un intento fallido solo se conserva donde sirve como lección técnica (una decisión de arquitectura o un mensaje de commit), nunca en el entregable.
+## 9. Entregables: el análisis final, no el historial de intentos
+Un reporte o resumen entregado presenta el **resultado final y su estado actual**; no cuenta lo que se intentó y no funcionó ni los errores intermedios ya corregidos. Esto no oculta límites: lo no logrado o no verificado se declara como estado actual («no verificado», «PARCIAL», «pendiente: requiere X») con su causa en una frase, sin el recorrido. El historial de un intento fallido solo se guarda donde sirve de lección (un ADR o el mensaje de commit), nunca en el entregable.

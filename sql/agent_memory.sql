@@ -17,7 +17,6 @@ COMMENT ON EXTENSION pgcrypto IS 'Cryptographic functions';
 CREATE SCHEMA IF NOT EXISTS memory;
 COMMENT ON SCHEMA memory IS 'Semantic long-term memory for the Resident Agent OS.';
 
--- audit-exempt: memoria de trabajo del propio agente, no datos de negocio ni de usuarios; cada fila ya registra quién y cuándo la creó (uaccreacion, fccreacion) y su versión (row_version). Decisión del dueño, 2026-10-23.
 -- Primary table: memory.agent_memory
 CREATE TABLE IF NOT EXISTS memory.agent_memory (
     id               uuid         NOT NULL DEFAULT uuidv7()    PRIMARY KEY,
@@ -103,7 +102,6 @@ CREATE INDEX IF NOT EXISTS ix_agent_memory__fccreacion_desc
 COMMENT ON INDEX ix_agent_memory__fccreacion_desc IS
     'Index for temporal queries (most recent memories first)';
 
--- audit-exempt: tabla heredada de la memoria del agente (el código nuevo usa memory.agent_memory), no datos de negocio ni de usuarios; solo registra created_at. Decisión del dueño, 2026-10-23.
 -- Backwards compatibility: keep memory.lessons with its original schema
 CREATE TABLE IF NOT EXISTS memory.lessons (
     id         uuid         NOT NULL DEFAULT uuidv7() PRIMARY KEY,

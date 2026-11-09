@@ -25,7 +25,7 @@
 
 - [ ] PKs: UUID v7 (`uuidv7()` en PG 18+) (verificador: `pk_uuid`)
 - [ ] Audit triggers en tablas nuevas con mutaciones (verificador heurístico: `audit_triggers`)
-- [ ] Autenticación en endpoints que modifican datos (verificador heurístico, FastAPI y Spring: `endpoints_auth`)
+- [ ] Autenticación en endpoints que modifican datos (verificador heurístico, solo FastAPI: `endpoints_auth`)
 - [ ] Fallback local si servicio externo no disponible
 - [ ] Volúmenes de servicios con estado mapeados a `./data/` (verificador: `compose_volumes`)
 

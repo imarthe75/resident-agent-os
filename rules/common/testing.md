@@ -20,3 +20,6 @@ Corre las pruebas y los verificadores (`python verifiers/run.py`). Pega la salid
 
 ## 5. Pruebas omitidas
 Una prueba `skip` lleva un motivo escrito y un responsable; sin motivo es una prueba borrada en silencio.
+
+## 6. Pruebas funcionales y de aceptación
+Plan, registro de hallazgos, revalidación y aceptación del usuario: `delivery-process.md`.

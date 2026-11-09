@@ -30,9 +30,11 @@ El modelo de base de datos se organiza estrictamente en esquemas para separar re
 
 ## 🕵️ 3. Auditoría Obligatoria (Campos y Triggers)
 
+Reglas completas de PostgreSQL en [`rules/postgres/rules.md`](../postgres/rules.md).
+
 Toda tabla de aplicación (`app.*`) debe incluir los siguientes campos de auditoría para asegurar la trazabilidad y la concurrencia optimista:
 
-1.  `id` → Clave primaria (PK). IDENTITY (autoincremental) o UUIDv7 (en PostgreSQL 18+).
+1.  `id` → Clave primaria `uuid DEFAULT uuidv7()` (PostgreSQL 18+). No se usan `serial`/`IDENTITY`.
 2.  `ref` → Clave estable a lo largo del tiempo (UUIDv7/gen_random_uuid) para persistencia SCD Tipo 2.
 3.  `row_version` → Control de concurrencia optimista (inicia en 1, incrementa en cada `UPDATE`).
 4.  `fecha_creacion` / `fecha_modificacion` → Marca de tiempo con zona horaria (`timestamptz`).
@@ -72,3 +74,8 @@ Toda creación o modificación de objetos de base de datos (tablas, columnas, es
 COMMENT ON TABLE app.personas IS 'Tabla maestra de datos generales de personas físicas.';
 COMMENT ON COLUMN app.personas.ref IS 'UUIDv7 estable para sincronización e integraciones externas.';
 ```
+
+## Obligatorio en toda migración
+- PK `uuid DEFAULT uuidv7()` (PostgreSQL 18+), `timestamptz`, `jsonb`, `numeric(p,s)` para montos.
+- Columnas canónicas de auditoría y triggers según la skill `postgres-audit` (`auditoria.asignar_triggers('<esquema>.<tabla>')`).
+- `COMMENT ON` en tabla, columnas y restricciones (`documentation.md` §3); scripts idempotentes (skill `database-liquibase-postgresql`).

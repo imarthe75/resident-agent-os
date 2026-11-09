@@ -71,13 +71,7 @@ Use this header at the top of every script:
  */
 ```
 
-Authorized names for the header requester line:
-
-- Gustavo Santiago Ruiz
-- Jose Angel Lemus
-- Rafael Aviles
-- Yamil Martinez Mengual
-- Daniel Antonio Miranda Cruz
+Authorized names for the header requester line: the list each project keeps in its own (private) configuration, never in this framework.
 
 ## Mandatory Section Order
 
@@ -335,3 +329,11 @@ SELECT auditoria.habilitar_auditoria('public.nombre_tabla');
 - Never drop or truncate production tables unless explicitly requested and approved.
 - Never remove audit triggers in standard migration tasks.
 - When in doubt, prefer additive, backward-compatible migrations.
+
+## Documentación obligatoria (en el mismo cambio)
+- `COMMENT ON TABLE` y `COMMENT ON COLUMN` para cada objeto nuevo o modificado, en la misma migración; Javadoc en la entidad que lo mapea.
+- Plantillas y ejemplos: skill `documentacion-codigo-y-api`.
+
+## Reglas del escáner que esta skill evita
+`SQL-TABLE-WITHOUT-PRIMARY-KEY`, `SQL-PK-NOT-UUID`, `SQL-TIMESTAMP-WITHOUT-TIMEZONE`, `SQL-JSON-NOT-JSONB`, `SQL-FLOAT-FOR-MONEY`, `SQL-TABLE-WITHOUT-AUDIT-COLUMNS`, `SPRING-JPA-DDL-AUTO-SCHEMA-CHANGE`, `NUMERIC-CODE-STORED-AS-NUMBER`.
+Corrección de cada una y el resto del catálogo: skill `prevencion-hallazgos-seguridad-calidad`.

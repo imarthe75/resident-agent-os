@@ -16,3 +16,13 @@ Cada regla dice qué evitar, por qué importa y la forma correcta. Son criterios
 10. **Errores.** No devuelvas `e.printStackTrace()` ni trazas al cliente; registra con el logger y responde con un mensaje de error controlado.
 11. **Secretos.** Ningún secreto literal en `application*.properties|yml`; usa variables de entorno o un gestor de secretos.
 12. **Subida de archivos.** Valida tamaño, tipo real (no solo la extensión) y nombre antes de guardar.
+13. **OpenAPI en cada endpoint.** `@Tag` en el controlador y `@Operation` + `@ApiResponses` (con ejemplos de 2xx y de error) en cada
+    método; el proyecto publica su contrato con springdoc. Un endpoint sin documentar no se fusiona (`documentation.md` §2).
+14. **Javadoc** en clases y métodos públicos de servicios y controladores: qué hace, parámetros, retorno, excepciones y regla de negocio.
+15. **`@PreAuthorize` en todos los endpoints** (no solo los que mutan) cuando el proyecto usa seguridad por método; lo público se declara
+    explícitamente y con motivo. El servicio valida además la propiedad del recurso cuando el id viene del cliente.
+16. **Esquema solo por migraciones.** `spring.jpa.hibernate.ddl-auto=none` (o `validate`); `spring.jpa.open-in-view=false`.
+17. **Autenticación delegada.** OAuth2 Resource Server contra el proveedor OIDC (issuer/JWKS por variable); sin filtros JWT propios ni
+    secretos de firma en la aplicación.
+18. **Errores sin fuga.** El manejador global responde 401/403/404/409/500 con mensaje controlado; nunca `e.getMessage()` ni trazas al
+    cliente (`server.error.include-*=never`). Sin `@Autowired` en campos; `@Transactional` solo en servicios.

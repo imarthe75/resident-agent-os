@@ -53,4 +53,3 @@ No se probó en versiones anteriores a PostgreSQL 18, sin los roles `migrator`/`
 
 ## 6. Verificador automático
 `python verifiers/run.py --only audit_triggers` comprueba que cada tabla de los `.sql` tenga un trigger de auditoría o una llamada `auditoria.habilitar_auditoria('<esquema>.<tabla>')` (heurístico).
-Una tabla que a propósito no se audita se declara con el comentario `-- audit-exempt: <motivo>` justo antes de su `CREATE TABLE`: no cuenta como falla, pero el verificador la lista con su motivo, y una excepción sin motivo sí falla.

@@ -250,6 +250,14 @@ Al terminar cada sesión:
 
 ---
 
+## Novedades 2.3
+
+- **Guía por rol** (`docs/GUIA_POR_ROL.md`): instalación y uso del framework para desarrolladores, líderes de proyecto/PM, testers/QA y seguridad.
+- **Skill `prevencion-hallazgos-seguridad-calidad`**: prácticas obligatorias, lista de chequeo de entrega y catálogo de reglas de un escáner de
+  seguridad (identificadores estables) con cómo escribir el código para no provocarlas y la skill de detalle. No requiere tener el escáner.
+- Las skills que generan código o configuración indican qué reglas evitan; las que generan endpoints, servicios o migraciones exigen
+  documentación en el mismo cambio (OpenAPI con `@Operation`/`@ApiResponses`, Javadoc/TSDoc, `COMMENT ON`).
+
 ## Novedades 2.1 (ADR-0003)
 
 | Pieza | Para qué | Dónde |
@@ -263,7 +271,7 @@ Al terminar cada sesión:
 | Validación humana y compuertas | la IA no firma; cierra alguien distinto | `agent/human_validation.py`, `agent/gates.py`, `.agent/gates/` |
 | Perfil del proyecto | qué reglas aplican (p. ej. accesibilidad solo con interfaz) | `.agent/PROFILE.json`, `agent/profile.py` |
 | Preflight con escáner opcional | hallazgos abiertos de los archivos que vas a tocar | `agent/preflight_client.py`, `skills/preflight/` |
-| Reglas Java y Angular | cómo escribir el código para no generar el hallazgo | `rules/java/`, `rules/angular/` |
+| Reglas Java, Angular y PostgreSQL | cómo escribir el código para no generar el hallazgo | `rules/java/`, `rules/angular/`, `rules/postgres/` |
 | Hooks en formato Claude Code | el de sintaxis bloquea (exit 2) | `.claude/settings.json`, `scripts/hooks/` |
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
 | Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |

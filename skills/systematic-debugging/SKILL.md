@@ -1,3 +1,8 @@
+---
+name: systematic-debugging
+description: Depuración sistemática: reproducir, aislar, una hipótesis a la vez, comprobar con evidencia de origen y detenerse tras 3 intentos fallidos para replantear.
+---
+
 # Skill: Systematic Debugging
 
 **Origen:** Adaptado de [obra/superpowers](https://github.com/obra/superpowers) — MIT License  

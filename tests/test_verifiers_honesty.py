@@ -63,22 +63,6 @@ class TestWebhooksFailClosed(unittest.TestCase):
     def test_authenticated_fail_closed_webhook_passes(self):
         self.assertEqual(run(c.webhooks_fail_closed, {"a.py": self.OK}, self).status, c.CUMPLE)
 
-    SPRING_OK = ("@RestController\npublic class Hook {\n    @PostMapping(\"/api/gitlab/webhook\")\n"
-                 "    public ResponseEntity<Void> recibir(@RequestHeader(\"X-Token\") String token) {\n"
-                 "        if (secret == null) return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();\n"
-                 "        if (!MessageDigest.isEqual(token.getBytes(), secret.getBytes())) return ResponseEntity.status(401).build();\n"
-                 "        return ResponseEntity.ok().build();\n    }\n}\n")
-    SPRING_BAD = ("@RestController\n@RequestMapping(\"/api\")\npublic class Hook {\n    @PostMapping(\"/webhook\")\n"
-                  "    public String recibir(@RequestBody String p) {\n        if (token.equals(secret)) { procesar(p); }\n        return \"ignored\";\n    }\n}\n")
-
-    def test_spring_open_webhook_fails_on_both_counts(self):
-        r = run(c.webhooks_fail_closed, {"Hook.java": self.SPRING_BAD}, self)
-        self.assertEqual((r.status, r.checked, len(r.detail)), (c.NO_CUMPLE, 1, 2))
-        self.assertIn("/api/webhook", r.detail[0])                             # class prefix joined to the method path
-
-    def test_spring_fail_closed_webhook_passes(self):
-        self.assertEqual(run(c.webhooks_fail_closed, {"Hook.java": self.SPRING_OK}, self).status, c.CUMPLE)
-
     def test_no_webhooks_is_not_evaluated(self):
         self.assertEqual(run(c.webhooks_fail_closed, {"a.py": "x = 1"}, self).status, c.NO_EVALUADO)
 

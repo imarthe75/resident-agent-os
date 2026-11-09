@@ -15,3 +15,9 @@ Criterios de revisión de uso común (RxJS/señales/PrimeNG), no una política d
 10. **Botones que guardan o eliminan** se deshabilitan (`[disabled]`/`[loading]`) mientras la operación está en curso, y las eliminaciones piden confirmación.
 11. **Tipado.** Evita `any`; define interfaces para las respuestas del backend.
 12. **No guardes tokens ni datos sensibles en `localStorage`/`sessionStorage`** ni en la URL; un token en la URL queda en historiales y registros.
+13. **Autenticación OIDC por ambiente.** Authorization Code + PKCE; `requireHttps` y `strictDiscoveryDocumentValidation` en `true` fuera
+    del ambiente local; el token lo administra la librería OIDC, ningún componente lo lee del storage.
+14. **TSDoc** en servicios, componentes de página y utilidades exportadas: qué hacen, entradas y salidas.
+15. **URLs desde configuración.** Servicios con `environment` + constantes de endpoints; nunca `http(s)://` escrito en un servicio.
+16. **Accesibilidad.** Cada control con etiqueta asociada (`for`/`inputId` o `aria-label`), botones de icono con nombre accesible,
+    `autocomplete` en datos personales, ids únicos, foco visible (`common/accessibility.md`).

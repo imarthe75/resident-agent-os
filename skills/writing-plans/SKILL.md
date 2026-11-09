@@ -1,3 +1,8 @@
+---
+name: writing-plans
+description: Planes de implementación por tareas pequeñas, cada una con archivos, cambios y comando exacto de verificación.
+---
+
 # Skill: Writing Plans
 
 **Origen:** Adaptado de [obra/superpowers](https://github.com/obra/superpowers) — MIT License  
@@ -103,3 +108,6 @@ Al guardar el plan, proponer al usuario:
 - **test-driven-development**: Cada tarea del plan sigue el ciclo RED-GREEN-REFACTOR
 - **verification-before-completion**: Verificar antes de marcar cada tarea como completada
 - **opsx-propose**: Crear el spec formal antes de escribir el plan
+
+## Seguridad y calidad en el plan
+Cada tarea que escribe código cita las secciones del catálogo de `prevencion-hallazgos-seguridad-calidad` que aplican y su verificación (prueba del 403, escáner sobre los cambios).

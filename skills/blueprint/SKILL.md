@@ -1,3 +1,8 @@
+---
+name: blueprint
+description: Traza un plan de ejecución por componentes antes de modificar código (investigación de contexto, plan con verificación por tarea, aprobación explícita y cierre verificado).
+---
+
 # 🗺️ Skill: Architectural Construction Blueprint
 
 Este skill le permite al Agente Residente trazar un mapa de ejecución estructurado antes de realizar modificaciones en el código.
@@ -21,3 +26,6 @@ Este skill le permite al Agente Residente trazar un mapa de ejecución estructur
 3. **Verificación Pos-Ejecución:**
    - Valida que el código compile y pase los linters locales.
    - Registra el avance en `task.md`.
+
+## Seguridad y calidad en el plan
+Por componente, anota las reglas del catálogo de `prevencion-hallazgos-seguridad-calidad` que aplican y cómo se verificarán.

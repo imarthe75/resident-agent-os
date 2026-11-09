@@ -15,3 +15,9 @@ Mantener la base de código limpia, legible, bien testeada y alineada con las re
 
 - **Honestidad:** rechaza «completado» con mocks, stubs, `TODO` o éxito sin ejecución real; exige estado, matriz de evidencia y salida real de pruebas (`rules/common/honesty.md`). Verificador: `no_stubs`.
 - **Pruebas:** cada regla con caso positivo y negativo; lo probado solo con mocks se declara como tal (`rules/common/testing.md`).
+- **Documentación:** API pública con Javadoc/TSDoc; cada endpoint con `@Operation`/`@ApiResponses` y ejemplos; migraciones con `COMMENT ON`;
+  README del módulo actualizado; ADR si cambió una decisión (`rules/common/documentation.md`).
+- **Seguridad y BD:** `@PreAuthorize` en cada endpoint, sin secretos, `ddl-auto=none`, PK `uuidv7()`, triggers de auditoría
+  (`rules/java/rules.md`, `rules/postgres/rules.md`, `rules/common/database-style.md`).
+- **Código real:** rechaza datos simulados, maquetas o `TODO` en el código de la aplicación (`rules/common/honesty.md` §1.1).
+- **Evidencia de proceso:** el MR referencia el requisito y lo revisa alguien distinto del autor (`rules/common/compliance.md`).
