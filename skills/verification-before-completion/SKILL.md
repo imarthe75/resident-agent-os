@@ -28,6 +28,10 @@ Antes de decir "listo", "funciona" o "corregido":
 4. **Verifica que el output confirma** específicamente tu afirmación.
 5. **Sólo entonces declara éxito** — con el output como evidencia.
 
+Al verificar, distingue exactamente cuatro resultados: **pasa**, **falla**, **no disponible** (la herramienta o el servicio no existe
+aquí) y **bloqueado** (falta un permiso, una credencial o una decisión). Corre primero la comprobación enfocada y después la más amplia.
+Cuando los criterios de aceptación ya se cumplen, detente: no añadas pulido, limpieza ni pruebas no relacionadas en la misma entrega.
+
 ---
 
 ## Verificaciones por contexto

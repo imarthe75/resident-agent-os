@@ -54,14 +54,19 @@ if not result:
 
 ### Fase 3 — Hipótesis y Test
 
-1. Formula **una sola hipótesis**: "Creo que X es la causa porque Y."
-2. Haz el **cambio mínimo** para probar esa hipótesis.
-3. Verifica si funcionó. Si no: formula **hipótesis nueva** (no acumules fixes).
+1. Separa lo **observado** (el síntoma) de lo **inferido** (la causa supuesta). Si hay varias hipótesis, ordénalas por evidencia y por lo
+   barato que sea descartarlas; prueba primero la que se descarta más barato.
+2. Formula **una sola hipótesis**: "Creo que X es la causa porque Y." No edites código de la aplicación hasta que un mecanismo explique
+   toda la evidencia; si la tarea solo pide diagnosticar, reporta la causa y su prueba sin corregir.
+3. Haz el **cambio mínimo** para probar esa hipótesis.
+4. Verifica si funcionó. Si no: formula **hipótesis nueva** (no acumules fixes).
 
 ### Fase 4 — Implementación
 
 1. **Crea el test que reproduce el bug** (ver `skills/test-driven-development/SKILL.md`).
-2. **Implementa el fix único** — sólo la causa raíz, sin "ya que estoy aquí".
+2. **Implementa el fix único** — sólo la causa raíz, sin "ya que estoy aquí". Antes de editar, busca todas las llamadas a la función que
+   tocas y corrige en la capa más estrecha que es dueña del comportamiento incorrecto (una vez, en el código compartido), sin cambiar el
+   comportamiento vecino.
 3. Verifica que el test pasa y que no rompiste otros tests.
 
 ---

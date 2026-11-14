@@ -14,9 +14,13 @@ Este archivo define las reglas de desarrollo y hooks de sistema inspirados en **
    - Escribir pruebas unitarias/integración antes o durante la codificación (TDD) para validar comportamientos esperados y casos de borde.
    - Pasar por la puerta de verificación (Verificaton Gate) confirmando que los tests pasan y que no hay regresiones.
 
-3. **Higiene de Contexto y Token Saving:**
-   - Al ejecutar comandos o búsquedas, limita el output y la cantidad de líneas devueltas (ej. `head -n 20`).
+3. **Higiene de Contexto y Token Saving** (`rules/common/context-diet.md`):
+   - Buscar antes de leer y leer solo el rango necesario; no releer archivos sin cambios; de pruebas y compilaciones, fallos y resumen
+     (la salida completa se conserva como evidencia).
    - Evita lecturas completas de archivos binarios o bases de datos sin filtros.
+   - Hooks: `scripts/codebase-map.js` da al iniciar la sesión el mapa de lo que ya existe; `scripts/hooks/compress-output.js` recorta
+     salidas largas de Bash conservando errores y guardando el original.
+   - Antes de escribir código: escalera de eficiencia y alcance (`rules/common/efficiency.md`).
 
 4. **Caché de Respuestas y Memoria:**
    - Integración nativa con Valkey. La lógica de control debe verificar la caché semántica local en Valkey (`6379`) antes de enviar consultas redundantes al modelo.

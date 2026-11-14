@@ -1,41 +1,38 @@
 # /ponytail-debt
 
-Compila todos los marcadores `ponytail:` del repositorio en un ledger accionable de deuda técnica de eficiencia.
+Reúne los atajos marcados en el código en un registro de deuda, para que un atajo temporal no se vuelva permanente sin que nadie lo decida. Solo lee y reporta; no cambia nada.
 
 ## Uso
 
 ```
-/ponytail-debt
-/ponytail-debt --by-priority
-/ponytail-debt --by-file
+/ponytail-debt              # marcadores shortcut: y ponytail:
+/ponytail-debt TODO         # otra palabra marcador
+/ponytail-debt --owner      # añade el autor de cada línea (git blame)
 ```
 
 ## Qué hace
 
-1. Busca todos los comentarios `# ponytail:` (Python) y `// ponytail:` (TypeScript/JS/SQL) en el repo.
-2. Clasifica por prioridad: **alta** (stdlib/native disponible hoy) | **media** (dependencia existente) | **baja** (refactor futuro).
-3. Genera un ledger markdown listo para convertir en issues o tareas de sprint.
+1. Busca los marcadores en comentarios, respetando `.gitignore` (deja fuera dependencias, compilados y cachés):
+   `git grep -nE '(#|//|/[*]|--) ?(shortcut|ponytail):'`
+   El prefijo de comentario evita contar texto que solo menciona la convención.
+2. Cada coincidencia es una fila. El formato del marcador es `shortcut: <el límite>, <cuándo mejorarlo>`; el límite y la condición se toman del propio comentario.
+3. Una fila sin condición de mejora se marca **sin condición**: son las que se quedan para siempre.
+4. Con `--owner`, `git blame -L<línea>,<línea>` da el autor.
 
 ## Formato de salida
 
 ```
-# Ponytail Debt Ledger — 2026-06-17
+src/billing/rfc.ts:41 — límite: solo valida formato, no dígito verificador · mejorar: antes de facturar
+memory/cache.py:45 — límite: lista en memoria hasta ~10k registros · mejorar: si crece, consulta paginada
+scripts/sync.py:12 — límite: reintento fijo de 3 veces · sin condición
 
-## Alta prioridad (quick wins)
-- [ ] memory/semantic_cache.py:45 — upgrade a pgvector native similarity
-      Beneficio: -35 líneas, -1 dependencia (numpy)
-
-## Media prioridad
-- [ ] backend/app/utils/format.py:12 — usar f-strings nativas vs format_helper()
-      Beneficio: -8 líneas
-
-## Baja prioridad
-- [ ] scripts/distribute_framework.py:67 — migrar a pathlib una vez en Python 3.12+
-      Beneficio: -15 líneas, más legible
-
-Total deuda: 3 ítems | Ahorro estimado: ~58 líneas
+3 marcadores, 1 sin condición.
 ```
 
-## Integración con el Rito de Cierre
+Sin marcadores: `Sin deuda de atajos.`
 
-Al terminar sesión, ejecutar `/ponytail-debt` y agregar los ítems nuevos al sprint backlog o a `.agent/STATE.md` en la sección **Próximos Pasos**.
+No se estiman líneas ni tokens ahorrados: la versión sin atajo nunca se escribió, así que no hay base real contra la cual medir.
+
+## Integración con el cierre de sesión
+
+Al terminar la sesión, ejecutar `/ponytail-debt` y llevar las filas nuevas o **sin condición** a `.agent/STATE.md` (sección **Próximos Pasos**) o al backlog.

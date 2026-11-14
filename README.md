@@ -2,7 +2,7 @@
 
 Framework de referencia para inicializar un **Agente Residente Soberano** con memoria local multinivel, heurísticas cognitivas y workflows de desarrollo estructurado.
 
-> **Atribución:** Este proyecto integra y adapta las mejores prácticas de [affaan-m/ECC](https://github.com/affaan-m/ECC), [obra/superpowers](https://github.com/obra/superpowers), [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) y [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — todos bajo Licencia MIT.
+> **Atribución:** Este proyecto integra y adapta las mejores prácticas de [affaan-m/ECC](https://github.com/affaan-m/ECC), [obra/superpowers](https://github.com/obra/superpowers), [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) y [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — todos bajo Licencia MIT. También toma ideas (no código) de [JayPokale/Chisle](https://github.com/JayPokale/Chisle) (MIT) y [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0): recorte de salidas de herramientas, dieta de contexto y método de depuración/verificación. La implementación es propia.
 
 ---
 
@@ -84,14 +84,19 @@ resident-agent-framework/
 │   ├── common/
 │   │   ├── coding-style.md
 │   │   ├── database-style.md
-│   │   ├── efficiency.md       # Ponytail efficiency ladder (6 peldaños)
+│   │   ├── context-diet.md     # Leer menos al contexto
+│   │   ├── efficiency.md       # Escalera de eficiencia (7 peldaños)
 │   │   ├── git-workflow.md
 │   │   ├── security.md
 │   │   └── testing.md
 │   ├── python/rules.md
 │   └── typescript/rules.md
 │
+├── templates/                  # lefthook + gitleaks + commitlint, renovate.json (ADR-0004)
 ├── scripts/
+│   ├── codebase-map.js         # Mapa de lo que ya existe (hook SessionStart)
+│   ├── ponytail_audit.py       # Medición de /ponytail-audit (vulture, deptry, knip, jscpd, scc)
+│   ├── hooks/compress-output.js # Recorta salidas largas de Bash (hook PostToolUse)
 │   └── distribute_framework.py # Distribuye el framework a otros proyectos
 │
 ├── skills/                     # Skills del agente Claude Code

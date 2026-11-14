@@ -21,3 +21,7 @@ Todos los mensajes de commit deben seguir la especificación de commits convenci
 1. **Ramas cortas:** Crea ramas enfocadas en resolver una única tarea (ej. `feat/ws-alerts` o `fix/valkey-connection`).
 2. **Sincronización:** Haz rebase o merge constante de la rama principal (`main`) para evitar conflictos de integración tardía.
 3. **No contaminar el historial:** Evita subir archivos temporales, logs o carpetas de datos locales (`data/`, `.env`). Usa siempre el `.gitignore` corporativo.
+
+## 📌 Barreras automáticas antes del commit
+
+El formato de commit y la ausencia de secretos no dependen de la buena voluntad: `templates/git-hooks/` trae `lefthook.yml` (gitleaks sobre lo que está en staging, sintaxis Python, commitlint en el mensaje) y `commitlint.config.mjs`. Si gitleaks no está instalado, el commit falla. `templates/renovate.json` mantiene las dependencias al día cuando el proyecto tiene un bot de Renovate. Detalle y límites: `DECISIONS/0004-ideas-de-proyectos-de-eficiencia.md`.

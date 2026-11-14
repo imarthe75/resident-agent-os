@@ -6,7 +6,7 @@
 
 1. **OpenSpec** (Fission-AI) — Contratos vivos y especificaciones estructuradas
 2. **Superpowers** (obra) — Loop determinista y resiliente con pipelines cognitivos
-3. **Ponytail** (DietrichGebert) — Persistencia ligera y manejo de memoria en capas
+3. **Ponytail** (DietrichGebert) — Reglas de código mínimo: la escalera de eficiencia (`rules/common/efficiency.md`)
 4. **ECC** (affaan-m) — Skills modulares, herramientas ejecutables, control determinista
 
 ---
