@@ -282,5 +282,5 @@ Al terminar cada sesión:
 | Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
 
-Pruebas: `python -m pytest tests -q`. Las 6 pruebas de la caché solo corren si nombras un Valkey **de pruebas** en `ROS_TEST_VALKEY_HOST` (usan la base 15 y borran solo lo suyo); sin esa variable se saltan y lo dicen. Nunca apuntes esa variable a un servicio real.
+Pruebas: `python -m pytest tests -q`. Las 6 pruebas de la caché solo corren si nombras un Valkey **de pruebas** en `ROS_TEST_VALKEY_HOST` (usan la base 15 y borran solo lo suyo); sin esa variable se saltan y lo dicen. Nunca apuntes esa variable a un servicio real. Para correrlas sin red ni variables heredadas: `scripts/sandboxed-tests.sh` (requiere `srt`, bubblewrap y socat; ver ADR-0004 C1). Regresión de skills con un modelo gratuito: `node scripts/eval-skills.js --base origin/main` (ver ADR-0004 C2).
 Qué NO está verificado: ver «Estado de implementación» en `DECISIONS/0003-decisiones-tipadas-verificacion-y-gobierno.md`.

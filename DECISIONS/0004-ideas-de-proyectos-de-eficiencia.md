@@ -1,6 +1,6 @@
 # ADR-0004 — Ideas de Chisle, Caveman, Ponytail y herramientas afines: qué se incorporó, qué queda propuesto
 
-**Estado:** PARCIAL (2026-11-14). Partes A y B implementadas y probadas; parte C decidida el 2026-11-14 como pilotos, todavía no ejecutados.
+**Estado:** ACEPTADO (2026-11-15). Partes A y B implementadas y probadas; pilotos de la parte C ejecutados: C1 y C2 adoptados con sus límites, C3 recomendado como opción.
 **Origen:** lectura del código de Chisle (JayPokale, MIT), Caveman (Julius Brussee, Apache-2.0; el nombre es marca registrada) y Ponytail (DietrichGebert, MIT), más herramientas de código abierto que resuelven el mismo problema con medición en lugar de opinión.
 **Regla aplicada:** de esos proyectos se toman ideas; el código es propio. Solo se reutilizaría código ajeno si escribirlo de nuevo no fuera posible y la licencia lo permitiera.
 
@@ -56,6 +56,77 @@ Hallazgo durante la prueba real: knip 5 se cae con Node 26 sin escribir nada en 
 | C3 | **Evaluar Serena** en un repositorio Java grande; el mapa con expresiones regulares se queda | Medir memoria, tiempo de arranque y lecturas de archivos completos evitadas en tareas reales | Ahorro medido en lecturas frente a su costo de memoria y arranque; sin medición no se recomienda |
 
 Ninguno de los tres se marca como adoptado hasta tener su evidencia.
+
+## Resultado de los pilotos
+
+### C1 — sandbox-runtime: ADOPTADO para la ejecución de pruebas (2026-11-14)
+`scripts/sandboxed-tests.sh` corre la suite bajo `srt` (sandbox-runtime 0.0.81) con `templates/sandbox/srt-tests.json`: sin red salvo una lista
+explícita (`ROS_SANDBOX_ALLOW`), entorno vacío salvo `PATH`, `HOME`, idioma, `TERM` y `ROS_TEST_*`, escritura solo en el repositorio y `/tmp`, sin
+lectura de `~/.ssh`, `~/.aws`, `~/.config`, `~/.docker`, `~/.netrc`, `~/.pgpass`. `tests/test_sandbox_isolation.py` comprueba el aislamiento y
+solo corre dentro de él.
+
+| Criterio | Evidencia |
+|---|---|
+| Las pruebas pasan dentro del aislamiento | 127 pasan, 7 se saltan (las mismas de siempre más las de caché); hooks de Node 11 de 11 |
+| Una prueba que intenta llegar a un destino no permitido falla | Dentro: conexión directa a una IP y a un dominio, proxy hacia un dominio fuera de la lista, variables de producción y escritura en `$HOME` quedan bloqueadas. Control: las mismas 5 comprobaciones sin aislamiento fallan las 5 |
+| Qué se rompe | Ver límites |
+
+**Límites medidos:**
+- `srt` **hereda todo el entorno**; sin `env -i` una variable de producción (`VALKEY_HOST`) llega a la prueba. El script la vacía.
+- Solo sale tráfico HTTP(S)/SOCKS por el proxy de `srt`: **Valkey y PostgreSQL (TCP directo) no son alcanzables aunque estén en la lista**. Las pruebas
+  de la caché se saltan dentro y se corren fuera con sus propias salvaguardas (verificado con un Valkey desechable: 6 pasan fuera, se saltan dentro).
+- La lista acepta dominios con punto o IP; un nombre sin punto (nombre de contenedor) se rechaza.
+- `srt` fija `TMPDIR=/tmp/claude` sin crearlo (rompía `mkdtemp` de Node); el script lo crea.
+- Descarga de dependencias: funciona solo hacia dominios de la lista (pip desde `pypi.org`/`files.pythonhosted.org` verificado; cualquier otro, 403).
+- **Verificado en un contenedor desechable** (node:26-slim + bubblewrap + socat), que además exige `--security-opt seccomp=unconfined`,
+  `apparmor=unconfined` y `systempaths=unconfined` para que bubblewrap cree sus espacios de nombres. No se probó directamente en la máquina de un
+  desarrollador ni en macOS.
+
+### C2 — promptfoo: ADOPTADO como comprobación de regresión de skills, con casos por endurecer (2026-11-15)
+`scripts/eval-skills.js` corre 5 tareas por cada una de las 3 skills con la versión anterior y la actual de su contexto (skill + `rules/common/security.md`
++ reglas del lenguaje) y revisa el código generado con aserciones deterministas (`evals/skills/assertions.js`, sin modelo juez; 19 pruebas
+unitarias las validan con código correcto e incorrecto). No hace nada si `skills/` y `rules/` no cambiaron; se niega a enviar llamadas por
+encima del presupuesto (30); un caso sin medir nunca cuenta como «sin regresión» (salida 2). promptfoo 0.125.1, temperatura 0.
+
+Primera ejecución real, contra el commit `4d81e8a` (las 3 skills no existían; solo reglas más cortas):
+
+| Skill | Sin regresión | Ganó la versión actual | Sin medir |
+|---|---|---|---|
+| backend-seguridad (gemini-3.5-flash) | 5 de 5 pasan en ambas | — | — |
+| backend-modulo-crud (gemini-3.5-flash) | 4 pasan en ambas | borrado lógico | — |
+| frontend-auth-oidc (gemini-3.5-flash-lite) | 3 pasan en ambas | el login delega en el proveedor | 1 (Authorization Code con PKCE, versión actual: Gemini bloquea la respuesta con `RECITATION`) |
+
+**Lo que dice el resultado:** 0 regresiones y 2 mejoras; pero 12 de 15 casos ya pasaban sin la skill: el modelo cumple estos básicos solo con
+las reglas, así que estos casos casi no distinguen versiones. Hay que endurecerlos (requisitos que el modelo no cumple por su cuenta: permiso
+exacto `MODULO_ACCION`, prueba de 403, `@SQLRestriction`, cierre de sesión con revocación). Una muestra por caso a temperatura 0.
+
+**Límites medidos:**
+- El plan gratuito de `gemini-3.5-flash` permite **20 peticiones al día**, menos que el presupuesto de 30; el valor por omisión pasó a
+  `gemini-3.5-flash-lite` (su cupo diario no se agotó en el piloto, pero no se midió su límite). `gemini-2.5-flash` responde 404 a llaves nuevas.
+- promptfoo reintenta un 429 con esperas de 60 s; con la cuota diaria agotada la ejecución se queda reintentando. Para cortar: `--only <skill>`
+  al día siguiente (los resultados ya obtenidos salen de la caché sin gastar llamadas).
+- Una aserción mía rechazó código correcto (login que delega en `AuthService.login()`); se corrigió y se añadió el caso a las pruebas. Una
+  aserción sobre texto generado puede equivocarse: un fallo se lee antes de culpar a la skill.
+- No está conectado a CI: este repositorio no tiene canalización; se corre a mano o desde la CI del proyecto que lo adopte.
+
+### C3 — Serena en un repositorio Java grande: RECOMENDADO como opción, no por omisión (2026-11-15)
+Medido con serena-agent 2.1.0 (Eclipse JDT LS) sobre un backend Spring Boot de 1 609 archivos Java (Gradle), en 10 tareas «encontrar la
+definición de un método de servicio y todos sus llamadores» elegidas al azar con semilla fija. Comparación por tarea: (a) lo que hace hoy el
+agente: `grep -w` y leer completos los archivos que aparecen; (b) Serena: `find_symbol` con cuerpo + `find_referencing_symbols`.
+
+| Medida | Resultado |
+|---|---|
+| Texto que entra al contexto | grep + archivos completos: 3 760 339 bytes; Serena: 28 597 caracteres (≈131 veces menos). Un nombre común (`actualizar`) llevó a grep a 57 archivos (2.2 MB); Serena devolvió el único llamador real |
+| Exactitud | Cada archivo que grep encontró y Serena no se revisó a mano: métodos homónimos de otras clases (repositorio, otro servicio) y una llamada dentro de un bloque comentado. Ningún llamador real omitido en las 10 tareas |
+| Arranque | ~104 s hasta la primera respuesta (servidor de lenguaje + importación Gradle); después, 1–6 s por consulta |
+| Memoria | Pico ≈3.6 GB por encima de la base (Python + JDT LS + daemon de Gradle) |
+
+**Límites:** es una medida de lo que entraría al contexto, no una sesión real de agente (un agente puede leer por rangos). Serena 2.x usa por
+omisión una interfaz REPL; para herramientas separadas hay que poner `agent_interface: tools`. El primer arranque descarga JDT LS y las
+dependencias del proyecto (Maven Central); un proyecto con repositorio privado de dependencias no se probó.
+
+**Recomendación:** opción para proyectos Java con cientos de archivos o más, en máquinas con ≥4 GB libres y sesiones largas (el arranque se
+amortiza). No se vuelve parte de la instalación por omisión; `scripts/codebase-map.js` se queda.
 
 ## Lo que no se incorpora
 - El proxy de Caveman (vería las llaves y todo el tráfico), su selector automático de modelo, su memoria y su nube.

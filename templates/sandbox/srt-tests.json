@@ -1,0 +1,11 @@
+{
+  "filesystem": {
+    "denyRead": ["~/.ssh", "~/.aws", "~/.config", "~/.docker", "~/.git-credentials", "~/.netrc", "~/.pgpass"],
+    "allowWrite": [".", "/tmp"],
+    "denyWrite": [".git/config", ".git/hooks"]
+  },
+  "network": {
+    "allowedDomains": [],
+    "deniedDomains": []
+  }
+}
