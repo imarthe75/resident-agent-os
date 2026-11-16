@@ -82,31 +82,34 @@ solo corre dentro de él.
   `apparmor=unconfined` y `systempaths=unconfined` para que bubblewrap cree sus espacios de nombres. No se probó directamente en la máquina de un
   desarrollador ni en macOS.
 
-### C2 — promptfoo: ADOPTADO como comprobación de regresión de skills, con casos por endurecer (2026-11-15)
+### C2 — promptfoo: ADOPTADO como comprobación de regresión de skills (2026-11-15, casos endurecidos 2026-11-16)
 `scripts/eval-skills.js` corre 5 tareas por cada una de las 3 skills con la versión anterior y la actual de su contexto (skill + `rules/common/security.md`
-+ reglas del lenguaje) y revisa el código generado con aserciones deterministas (`evals/skills/assertions.js`, sin modelo juez; 19 pruebas
++ reglas del lenguaje) y revisa el código generado con aserciones deterministas (`evals/skills/assertions.js`, sin modelo juez; 23 pruebas
 unitarias las validan con código correcto e incorrecto). No hace nada si `skills/` y `rules/` no cambiaron; se niega a enviar llamadas por
-encima del presupuesto (30); un caso sin medir nunca cuenta como «sin regresión» (salida 2). promptfoo 0.125.1, temperatura 0.
+encima del presupuesto (30); un caso sin medir nunca cuenta como «sin regresión» (salida 2). promptfoo 0.125.1, temperatura 0,
+`gemini-3.5-flash-lite`.
 
-Primera ejecución real, contra el commit `4d81e8a` (las 3 skills no existían; solo reglas más cortas):
+**Casos.** Una primera versión medía básicos (`@PreAuthorize`, CORS sin comodín, sin secretos literales…) y 12 de 15 ya pasaban sin la
+skill: no distinguían versiones. Se sustituyeron por requisitos propios de cada skill: autorización por authority `MODULO_ACCION` (no por
+rol), permiso en el método de servicio que persiste, bitácora asíncrona con `enum`, Actuator/Swagger cerrados en producción, `@Version` +
+`@SQLRestriction`, los cuatro permisos `_LEER/_CREAR/_EDITAR/_ELIMINAR`, listado `POST /listar` paginado, registro ajeno → 404, borrado lógico;
+banderas OIDC desde `environment`, Bearer solo hacia la API propia, cierre de sesión que revoca, ruta con `authGuard` + `permisoGuard`, login
+en el proveedor.
 
-| Skill | Sin regresión | Ganó la versión actual | Sin medir |
-|---|---|---|---|
-| backend-seguridad (gemini-3.5-flash) | 5 de 5 pasan en ambas | — | — |
-| backend-modulo-crud (gemini-3.5-flash) | 4 pasan en ambas | borrado lógico | — |
-| frontend-auth-oidc (gemini-3.5-flash-lite) | 3 pasan en ambas | el login delega en el proveedor | 1 (Authorization Code con PKCE, versión actual: Gemini bloquea la respuesta con `RECITATION`) |
+**Resultado** (contra `4d81e8a`, donde las 3 skills no existían): 15 de 15 casos medidos; la versión actual gana 13, 2 pasan en ambas, 0
+regresiones.
 
-**Lo que dice el resultado:** 0 regresiones y 2 mejoras; pero 12 de 15 casos ya pasaban sin la skill: el modelo cumple estos básicos solo con
-las reglas, así que estos casos casi no distinguen versiones. Hay que endurecerlos (requisitos que el modelo no cumple por su cuenta: permiso
-exacto `MODULO_ACCION`, prueba de 403, `@SQLRestriction`, cierre de sesión con revocación). Una muestra por caso a temperatura 0.
+**Defecto real encontrado:** `frontend-auth-oidc` decía que `logOut()` revoca en el proveedor; en angular-oauth2-oidc revoca
+`revokeTokenAndLogout()`, y el modelo, siguiendo la skill, escribió `logOut(true)` (ni revoca ni pasa por el proveedor). Se corrigió la skill y
+el caso pasó.
 
 **Límites medidos:**
-- El plan gratuito de `gemini-3.5-flash` permite **20 peticiones al día**, menos que el presupuesto de 30; el valor por omisión pasó a
-  `gemini-3.5-flash-lite` (su cupo diario no se agotó en el piloto, pero no se midió su límite). `gemini-2.5-flash` responde 404 a llaves nuevas.
-- promptfoo reintenta un 429 con esperas de 60 s; con la cuota diaria agotada la ejecución se queda reintentando. Para cortar: `--only <skill>`
-  al día siguiente (los resultados ya obtenidos salen de la caché sin gastar llamadas).
-- Una aserción mía rechazó código correcto (login que delega en `AuthService.login()`); se corrigió y se añadió el caso a las pruebas. Una
-  aserción sobre texto generado puede equivocarse: un fallo se lee antes de culpar a la skill.
+- Una muestra por caso a temperatura 0: un caso que cambia puede ser azar; se lee la salida antes de concluir.
+- Dos aserciones rechazaron código correcto (importación sin usar contada como uso; URL de la API tomada de `environment` a través de una
+  variable); se corrigieron con su caso de prueba. Antes de culpar a la skill se lee la salida.
+- Cuota gratuita: `gemini-3.5-flash` permite 20 peticiones al día (menos que el presupuesto); `gemini-2.5-flash` responde 404 a llaves
+  nuevas; Gemini devuelve 503 por demanda alta y a veces bloquea una respuesta (`RECITATION`). promptfoo reintenta un 429 con esperas de
+  60 s; con la cuota diaria agotada se queda reintentando: cortar y repetir con `--only <skill>` (lo ya medido sale de la caché).
 - No está conectado a CI: este repositorio no tiene canalización; se corre a mano o desde la CI del proyecto que lo adopte.
 
 ### C3 — Serena en un repositorio Java grande: RECOMENDADO como opción, no por omisión (2026-11-15)

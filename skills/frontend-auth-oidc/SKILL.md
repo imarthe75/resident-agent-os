@@ -30,13 +30,14 @@ description: Autenticación y autorización del frontend Angular de la plantilla
    con `@PreAuthorize` (`backend-seguridad`); la interfaz solo evita mostrar lo que el servidor va a rechazar.
 6. **Interceptor simulado (`mock.interceptor.ts`):** solo con `environment.useLocalMockAuth = true` en local. Nunca registrado en QA/producción;
    el build de producción no debe incluirlo.
-7. **Cierre de sesión:** `logOut()` revoca en el proveedor de identidad y limpia el estado; tras un 401 irrecuperable se limpia la sesión y se redirige al login.
+7. **Cierre de sesión:** `revokeTokenAndLogout()` revoca los tokens en el proveedor de identidad y cierra allí la sesión; luego se limpia el estado. `logOut()` solo cierra la sesión sin revocar, y `logOut(true)` ni siquiera pasa por el proveedor: no se usan para cerrar sesión; tras un 401 irrecuperable se limpia la sesión y se redirige al login.
 8. **Rutas:** constantes `APP_ROUTES`; nada de strings literales repetidos.
 
 ## Checklist
 - [ ] `requireHttps`/`strictDiscoveryDocumentValidation` vienen de `environment` y son `true` fuera de local.
 - [ ] Sin lecturas/escrituras directas de storage fuera del servicio de autenticación.
 - [ ] Rutas privadas con `authGuard` (+ `permisoGuard`); acciones con `*appIfPermiso`; el backend valida el mismo permiso.
+- [ ] Cierre de sesión con `revokeTokenAndLogout()` (no `logOut()`).
 - [ ] Interceptor simulado fuera del build de producción.
 - [ ] Pruebas Playwright de un perfil sin permiso (`bdd-frontend-playwright`).
 

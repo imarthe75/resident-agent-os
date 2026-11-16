@@ -9,49 +9,58 @@ const { compare, plannedCalls, args } = require(path.join(__dirname, "..", "..",
 const fence = (s) => "Aquí está:\n```java\n" + s + "\n```\nNunca uses localStorage ni requireHttps: false.";
 
 const CASES = {
-  everyEndpointHasPreAuthorize: [
-    '@GetMapping("/{id}")\n@PreAuthorize("hasAuthority(\'F_LEER\')")\npublic X get(){}\n@DeleteMapping("/{id}")\n@PreAuthorize("hasAuthority(\'F_ELIMINAR\')")\npublic void del(){}',
-    '@GetMapping("/{id}")\n@PreAuthorize("hasAuthority(\'F_LEER\')")\npublic X get(){}\n@DeleteMapping("/{id}")\n// @PreAuthorize("hasAuthority(\'F_ELIMINAR\')")\npublic void del(){}',
+  preAuthorizeUsesAuthorities: [
+    '@PostMapping\n@PreAuthorize("hasAuthority(\'USUARIOS_CREAR\')")\npublic R crear(){}\n@DeleteMapping("/{id}")\n@PreAuthorize("hasAnyAuthority(\'USUARIOS_ELIMINAR\',\'USUARIOS_ADMIN\')")\npublic void del(){}',
+    '@PostMapping\n@PreAuthorize("hasRole(\'ADMIN\')")\npublic R crear(){}\n@DeleteMapping("/{id}")\n@PreAuthorize("@permisos.puede(authentication, \'X\')")\npublic void del(){}',
   ],
-  resourceServerDeniesByDefault: [
-    'http.authorizeHttpRequests(a -> a.requestMatchers("/actuator/health").permitAll().anyRequest().authenticated()).oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));',
-    'http.authorizeHttpRequests(a -> a.requestMatchers("/**").permitAll()).oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));',
+  serviceWriteChecksPermission: [
+    "@Service\npublic class FacturaService {\n  @PreAuthorize(\"hasAuthority('FACTURAS_CREAR')\")\n  @Transactional\n  public Factura guardar(Factura f){ return repo.save(f); }\n}",
+    "@Service\npublic class FacturaService {\n  @Transactional\n  public Factura guardar(Factura f){ return repo.save(f); }\n}",
   ],
-  corsWithoutWildcard: [
-    'config.setAllowedOrigins(List.of("https://app.ejemplo.mx"));',
-    'registry.addMapping("/**").allowedOrigins("*"); // https://app.ejemplo.mx',
+  businessAuditIsAsyncWithEnum: [
+    "public enum AuditAction { CREAR, MODIFICAR }\n@Async(\"auditExecutor\")\npublic void registrar(AuditAction a, Map<String,Object> cambios){}",
+    "public void registrar(String accion, String detalle){ repo.save(new Bitacora(accion, detalle)); }",
   ],
-  noLiteralSecretsInConfig: [
-    "spring.datasource.password=${DB_PASSWORD}\nspring.security.oauth2.client.registration.x.client-secret=${OIDC_CLIENT_SECRET}",
-    "spring.datasource.password=${DB_PASSWORD:admin123}\nclient-secret=${OIDC_CLIENT_SECRET}",
+  prodClosesActuatorAndSwagger: [
+    "management.endpoints.web.exposure.include=health,info\nspringdoc.api-docs.enabled=false\nspringdoc.swagger-ui.enabled=false",
+    "management.endpoints.web.exposure.include=*\nspringdoc.swagger-ui.path=/swagger-ui.html",
   ],
-  constantTimeComparison: [
-    "if (!MessageDigest.isEqual(given.getBytes(UTF_8), expected.getBytes(UTF_8))) { res.sendError(401); }",
-    "if (!given.equals(expected)) { res.sendError(401); }",
+  entityHasVersionAndSoftDeleteFilter: [
+    '@Entity\n@SQLRestriction("borrado = false")\npublic class Proveedor { @Version private Long rowVersion; }',
+    "@Entity\npublic class Proveedor { @Version private Long rowVersion; }",
   ],
-  entityHasVersion: ["@Version\nprivate Long rowVersion;", "private Long rowVersion;"],
-  everyBodyIsValidated: [
-    "public R crear(@Valid @RequestBody CrearDto d){}\npublic R editar(@PathVariable UUID id, @RequestBody @Valid EditarDto d){}",
-    "public R crear(@Valid @RequestBody CrearDto d){}\npublic R editar(@PathVariable UUID id, @RequestBody EditarDto d){}",
+  crudPermissionSuffixes: [
+    "hasAuthority('PROVEEDORES_LEER') hasAuthority('PROVEEDORES_CREAR') hasAuthority('PROVEEDORES_EDITAR') hasAuthority('PROVEEDORES_ELIMINAR')",
+    "hasAuthority('PROVEEDORES_READ') hasAuthority('PROVEEDORES_WRITE')",
   ],
-  listingIsPaginated: ["public Page<ProveedorDto> listar(Pageable pageable){}", "public List<ProveedorDto> listar(){}"],
+  listingIsPostPaginated: [
+    '@PostMapping("/listar")\npublic Page<ProveedorResponse> listar(@RequestBody Filtro f, Pageable pageable){}',
+    "@GetMapping\npublic List<ProveedorResponse> listar(){}",
+  ],
+  foreignRecordIsNotFound: [
+    "if (!p.getUnidadId().equals(usuario.unidadId())) throw new RecursoNoEncontradoException(\"Proveedor\", id);",
+    "if (!p.getUnidadId().equals(usuario.unidadId())) throw new AccessDeniedException(\"no es de su unidad\"); // NotFound si no existe",
+  ],
   deleteIsLogical: ['@SQLDelete(sql = "UPDATE proveedor SET borrado = true WHERE id = ?")', "repository.deleteById(id);"],
-  codeFlowWithPkce: ["responseType: 'code',\nscope: 'openid profile'", "responseType: 'id_token token',\noidc: true"],
-  productionKeepsHttpsChecks: [
-    "requireHttps: environment.requireHttps,\nstrictDiscoveryDocumentValidation: true",
-    "requireHttps: false,\nstrictDiscoveryDocumentValidation: true",
+  oidcFlagsFromEnvironment: [
+    "requireHttps: environment.oidc.requireHttps,\nstrictDiscoveryDocumentValidation: environment.oidc.strictDiscovery,",
+    "requireHttps: true,\nstrictDiscoveryDocumentValidation: true,",
   ],
-  interceptorWithoutWebStorage: [
-    "export const authInterceptor: HttpInterceptorFn = (req, next) => { const t = oauth.getAccessToken(); return next(req); };",
-    "export const authInterceptor: HttpInterceptorFn = (req, next) => { const t = localStorage.getItem('token'); return next(req); };",
+  bearerOnlyToOwnApi: [
+    "if (!req.url.startsWith(environment.apiUrl)) return next(req);\nreturn next(req.clone({ setHeaders: { Authorization: `Bearer ${oauth.getAccessToken()}` } }));",
+    "return next(req.clone({ setHeaders: { Authorization: `Bearer ${oauth.getAccessToken()}` } }));",
+  ],
+  logoutRevokesAtProvider: [
+    "async cerrarSesion() { await this.oauth.revokeTokenAndLogout(); this.estado.limpiar(); }",
+    "cerrarSesion() { this.oauth.logOut(); }",
+  ],
+  privateRouteHasAuthAndPermissionGuards: [
+    "{ path: 'facturas', canActivate: [authGuard, permisoGuard], data: { permiso: 'FACTURAS_LEER' }, loadComponent: () => import('./f') }",
+    "{ path: 'facturas', canActivate: [authGuard], loadComponent: () => import('./f') }",
   ],
   loginDelegatesToProvider: [
     "login() { this.oauth.initCodeFlow(); }",
     '<input type="password" formControlName="clave"> login() { this.http.post("/api/login", f); }',
-  ],
-  guardChecksPermissionWithoutWebStorage: [
-    "export const permisoGuard: CanActivateFn = () => inject(PermisoService).tiene('FACTURAS_LEER');",
-    "export const permisoGuard: CanActivateFn = () => JSON.parse(sessionStorage.getItem('permisos')).includes('FACTURAS_LEER');",
   ],
 };
 
@@ -69,8 +78,28 @@ test("el login que delega en el servicio de autenticación de la aplicación pas
 });
 
 test("la prosa fuera de los bloques de código no cuenta", () => {
-  const out = "Nunca uses localStorage.\n```ts\nexport const i: HttpInterceptorFn = (r, n) => n(r);\n```";
-  assert.strictEqual(A.interceptorWithoutWebStorage(out).pass, true);
+  const out = "Nunca uses localStorage.\n```ts\nif (!req.url.startsWith(environment.apiUrl)) return next(req);\n```";
+  assert.strictEqual(A.bearerOnlyToOwnApi(out).pass, true);
+});
+
+test("una importación sin usar no cuenta como uso", () => {
+  const out = "```java\nimport org.springframework.security.access.AccessDeniedException;\nif (!propio) throw new RecursoNoEncontradoException(\"Proveedor\");\n```";
+  assert.strictEqual(A.foreignRecordIsNotFound(out).pass, true);
+});
+
+test("el Bearer limitado mediante una variable tomada de environment pasa", () => {
+  const out = "```ts\nconst apiUrl = environment.apiUrl;\nconst esApi = apiUrl && req.url.startsWith(apiUrl);\n```";
+  assert.strictEqual(A.bearerOnlyToOwnApi(out).pass, true);
+  assert.strictEqual(A.bearerOnlyToOwnApi("```ts\nconst otra = 'https://maps.example.com';\nreq.url.startsWith(otra);\n```").pass, false);
+});
+
+test("logOut(true) no cuenta como revocación", () => {
+  assert.strictEqual(A.logoutRevokesAtProvider("```ts\nthis.oauthService.logOut(true);\n```").pass, false);
+});
+
+test("un @PreAuthorize comentado no cuenta", () => {
+  const out = "```java\n@Service\nclass S {\n  // @PreAuthorize(\"hasAuthority('F_CREAR')\")\n  public void guardar(){}\n}\n```";
+  assert.strictEqual(A.serviceWriteChecksPermission(out).pass, false);
 });
 
 test("cada configuración de skill tiene una aserción existente por caso", () => {

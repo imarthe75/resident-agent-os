@@ -8,7 +8,7 @@ function code(output) {
   const blocks = [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1]);
   const body = blocks.length ? blocks.join("\n") : text;
   // Drop line and block comments so a commented-out annotation does not count.
-  return body.replace(/(^|[^"'])\/\*[\s\S]*?\*\//g, "$1").replace(/(^|[^:"'])\/\/.*$/gm, "$1").replace(/^\s*#.*$/gm, "");
+  return body.replace(/^\s*import\s[^\n]*$/gm, "").replace(/(^|[^"'])\/\*[\s\S]*?\*\//g, "$1").replace(/(^|[^:"'])\/\/.*$/gm, "$1").replace(/^\s*#.*$/gm, "");
 }
 
 function result(pass, reason) {
@@ -22,76 +22,90 @@ function count(re, s) {
 const MAPPING = /@(Get|Post|Put|Delete|Patch)Mapping\b/g;
 
 const checks = {
-  everyEndpointHasPreAuthorize(output) {
+  // backend-seguridad
+  preAuthorizeUsesAuthorities(output) {
     const c = code(output);
+    const guards = c.match(/@PreAuthorize\s*\(\s*"[^"]*"\s*\)/g) || [];
+    const byAuthority = guards.filter((g) => /has(Any)?Authority\(\s*'[A-Z0-9]+_[A-Z0-9_]+'/.test(g) && !/hasRole|hasAnyRole|@\w+\./.test(g));
     const endpoints = count(MAPPING, c);
-    const guards = count(/@PreAuthorize\s*\(/g, c);
-    return result(endpoints > 0 && guards >= endpoints, `${endpoints} endpoints, ${guards} @PreAuthorize`);
+    return result(endpoints > 0 && byAuthority.length >= endpoints && byAuthority.length === guards.length,
+      `${endpoints} endpoints, ${guards.length} @PreAuthorize, ${byAuthority.length} por authority MODULO_ACCION`);
   },
-  resourceServerDeniesByDefault(output) {
+  serviceWriteChecksPermission(output) {
     const c = code(output);
-    const rs = /oauth2ResourceServer/.test(c);
-    const closed = /anyRequest\(\)\s*\.\s*(authenticated|denyAll)\(\)/.test(c);
-    const openAll = /requestMatchers\(\s*"\/\*\*"\s*\)\s*\.\s*permitAll|anyRequest\(\)\s*\.\s*permitAll/.test(c);
-    return result(rs && closed && !openAll, `resourceServer=${rs} cierraElResto=${closed} abreTodo=${openAll}`);
+    const service = /@Service\b/.test(c);
+    const guarded = /@PreAuthorize\s*\(/.test(c.slice(c.search(/@Service\b/)));
+    return result(service && guarded, `servicio=${service} permisoEnElServicio=${guarded}`);
   },
-  corsWithoutWildcard(output) {
+  businessAuditIsAsyncWithEnum(output) {
     const c = code(output);
-    const wildcard = /(allowedOrigins?|addAllowedOrigin|allowedOriginPatterns|addAllowedOriginPattern)\(\s*(List\.of\()?\s*"\*"/.test(c);
-    const origin = c.includes("https://app.ejemplo.mx");
-    return result(!wildcard && origin, `comodín=${wildcard} origenExplícito=${origin}`);
+    const enumAction = /\benum\s+\w*(Audit|Auditoria|Accion)\w*/i.test(c);
+    const async = /@Async\b|TransactionPhase\.AFTER_COMMIT|@TransactionalEventListener/.test(c);
+    return result(enumAction && async, `enum=${enumAction} asíncrona=${async}`);
   },
-  noLiteralSecretsInConfig(output) {
+  prodClosesActuatorAndSwagger(output) {
     const c = code(output);
-    const lines = c.split("\n").filter((l) => /^\s*[\w.\-]*(password|secret|clave|contrase)[\w.\-]*\s*[=:]\s*\S/i.test(l));
-    const bad = lines.filter((l) => {
-      const value = l.split(/[=:]/).slice(1).join(":").trim();
-      if (/^\$\{[^}:]+\}$/.test(value)) return false; // ${VAR}: comes from the environment
-      return true; // a literal, or ${VAR:default} with a default value
-    });
-    return result(lines.length > 0 && bad.length === 0, bad.length ? `literal: ${bad[0].trim().slice(0, 60)}` : `${lines.length} claves por variable`);
+    const exposure = (c.match(/management\.endpoints\.web\.exposure\.include\s*[=:]\s*([^\n]+)/) || [])[1] || "";
+    const onlyHealth = exposure !== "" && exposure.split(",").map((x) => x.trim()).every((x) => x === "health" || x === "info");
+    const swaggerOff = /springdoc\.api-docs\.enabled\s*[=:]\s*false/.test(c);
+    return result(onlyHealth && swaggerOff, `actuator=[${exposure.trim()}] swaggerApagado=${swaggerOff}`);
   },
-  constantTimeComparison(output) {
+  // backend-modulo-crud
+  entityHasVersionAndSoftDeleteFilter(output) {
     const c = code(output);
-    const safe = /MessageDigest\.isEqual\s*\(/.test(c);
-    return result(safe, safe ? "MessageDigest.isEqual" : "sin comparación en tiempo constante");
+    const version = /@Version\b/.test(c);
+    const filter = /@SQLRestriction\(\s*"[^"]*borrado\s*=\s*false/.test(c) || /@Where\(\s*clause\s*=\s*"[^"]*borrado\s*=\s*false/.test(c);
+    return result(version && filter, `@Version=${version} filtroBorrado=${filter}`);
   },
-  entityHasVersion(output) {
-    return result(/@Version\b/.test(code(output)), "@Version");
-  },
-  everyBodyIsValidated(output) {
+  crudPermissionSuffixes(output) {
     const c = code(output);
-    const bodies = count(/@RequestBody\b/g, c);
-    const valid = count(/@Valid(ated)?\s+(final\s+)?@RequestBody\b|@RequestBody\s+@Valid(ated)?\b/g, c);
-    return result(bodies > 0 && valid >= bodies, `${bodies} @RequestBody, ${valid} validados`);
+    const missing = ["_LEER", "_CREAR", "_EDITAR", "_ELIMINAR"].filter((s) => !new RegExp(`'[A-Z0-9_]+${s}'`).test(c));
+    return result(missing.length === 0, missing.length ? `faltan ${missing.join(", ")}` : "los cuatro permisos");
   },
-  listingIsPaginated(output) {
+  listingIsPostPaginated(output) {
     const c = code(output);
-    const paged = /\bPageable\b/.test(c) && /\bPage</.test(c);
-    return result(paged, `paginado=${paged}`);
+    const post = /@PostMapping\(\s*(value\s*=\s*|path\s*=\s*)?"\/?(listar|buscar|search)/i.test(c);
+    const paged = /\bPage</.test(c) && /\bPageable\b|PageRequest\.of/.test(c);
+    return result(post && paged, `POST listar=${post} paginado=${paged}`);
+  },
+  foreignRecordIsNotFound(output) {
+    const c = code(output);
+    const notFound = /NotFound|NoEncontrad|HttpStatus\.NOT_FOUND|EntityNotFoundException/.test(c);
+    const forbidden = /AccessDeniedException|HttpStatus\.FORBIDDEN|Forbidden\w*Exception|\b403\b/.test(c);
+    return result(notFound && !forbidden, `404=${notFound} 403=${forbidden}`);
   },
   deleteIsLogical(output) {
     const c = code(output);
     const logical = /@SQLDelete|set(Borrado|Deleted|Eliminado)\(\s*true\s*\)|\b(borrado|deleted|eliminado)\s*=\s*true/i.test(c);
     return result(logical, `borradoLógico=${logical}`);
   },
-  codeFlowWithPkce(output) {
+  // frontend-auth-oidc
+  oidcFlagsFromEnvironment(output) {
     const c = code(output);
-    const codeFlow = /responseType\s*:\s*['"]code['"]/.test(c);
-    const implicit = /oidc\s*:\s*false|responseType\s*:\s*['"](token|id_token)/.test(c);
-    return result(codeFlow && !implicit, `code=${codeFlow} implícito=${implicit}`);
+    const https = /requireHttps\s*:\s*environment\.\w+/.test(c);
+    const strict = /strictDiscoveryDocumentValidation\s*:\s*environment\.\w+/.test(c);
+    return result(https && strict, `requireHttps=${https} strictDiscovery=${strict}`);
   },
-  productionKeepsHttpsChecks(output) {
+  bearerOnlyToOwnApi(output) {
     const c = code(output);
-    const off = /requireHttps\s*:\s*false|strictDiscoveryDocumentValidation\s*:\s*false/.test(c);
-    const on = /requireHttps\s*:\s*(true|environment\.)/.test(c);
-    return result(!off && on, `desactivado=${off} activo=${on}`);
-  },
-  interceptorWithoutWebStorage(output) {
-    const c = code(output);
+    // startsWith(environment.apiUrl) directly, or through a variable assigned from environment.<...api...>
+    const apiVars = [...c.matchAll(/(?:const|let|readonly|private)\s+(?:readonly\s+)?(\w+)\s*(?::\s*\w+)?\s*=\s*environment\.\w*[aA]pi\w*/g)].map((m) => m[1]);
+    const target = ["environment\\.\\w*[aA]pi\\w*", ...apiVars.map((v) => `(this\\.)?${v}\\b`)].join("|");
+    const scoped = new RegExp(`\\.url\\s*\\.\\s*startsWith\\(\\s*(${target})`).test(c) ||
+      /sendAccessToken\s*:\s*true/.test(c) && /allowedUrls\s*:\s*\[\s*environment\.\w*[aA]pi\w*/.test(c);
     const storage = /\b(localStorage|sessionStorage)\b/.test(c);
-    const interceptor = /HttpInterceptor(Fn)?\b/.test(c);
-    return result(interceptor && !storage, `interceptor=${interceptor} webStorage=${storage}`);
+    return result(scoped && !storage, `soloApiPropia=${scoped} webStorage=${storage}`);
+  },
+  logoutRevokesAtProvider(output) {
+    const c = code(output);
+    const revokes = /revokeTokenAndLogout\s*\(/.test(c);
+    return result(revokes, `revoca=${revokes}`);
+  },
+  privateRouteHasAuthAndPermissionGuards(output) {
+    const c = code(output);
+    const guards = /canActivate\s*:\s*\[[^\]]*authGuard[^\]]*permisoGuard|canActivate\s*:\s*\[[^\]]*permisoGuard[^\]]*authGuard/.test(c);
+    const data = /data\s*:\s*\{\s*permiso\s*:\s*['"]FACTURAS_LEER['"]/.test(c);
+    return result(guards && data, `authGuard+permisoGuard=${guards} data.permiso=${data}`);
   },
   loginDelegatesToProvider(output) {
     const c = code(output);
@@ -99,12 +113,6 @@ const checks = {
     // Direct call to the OIDC library, or to the app's auth service that wraps it (the skill's own AuthService.login()).
     const redirect = /initCodeFlow|initLoginFlow|\b\w*[aA]uth\w*\.login\(\s*\)/.test(c);
     return result(redirect && !passwordField, `redirige=${redirect} campoContraseña=${passwordField}`);
-  },
-  guardChecksPermissionWithoutWebStorage(output) {
-    const c = code(output);
-    const guard = /CanActivate(Fn)?\b/.test(c);
-    const storage = /\b(localStorage|sessionStorage)\b/.test(c);
-    return result(guard && !storage, `guard=${guard} webStorage=${storage}`);
   },
 };
 
