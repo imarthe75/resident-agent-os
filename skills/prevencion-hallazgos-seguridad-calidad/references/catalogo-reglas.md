@@ -203,6 +203,11 @@ Documenta cada objeto nuevo con `COMMENT ON` en la misma migración (skill `docu
 | `SCA-CVE-*`, `CVE-*` | Versión corregida de la dependencia (una actualización suele cerrar varias CVE); quitar dependencias que no se usan | java-springboot |
 | `SUPPLY-CHAIN-NO-LOCKFILE` | Lockfile versionado (`package-lock.json`, `gradle.lockfile`, `poetry.lock`) | java-springboot |
 | `SUPPLY-CHAIN-UNPINNED-DEPENDENCY` | Versiones exactas (sin `latest`, rangos Maven ni `requirements` sin `==`) | java-springboot |
+| `SCA-MAL-*` | Paquete malicioso conocido: retirarlo (no basta subir de versión), revisar los equipos y runners donde se instaló y rotar sus credenciales | java-springboot |
+| `SUPPLY-CHAIN-INSTALL-SCRIPT-RISKY` | Sin descargas ni `eval`/`node -e`/`\| sh` en `preinstall`/`postinstall`; las herramientas se instalan en un paso explícito con versión y SHA-256 | java-springboot |
+| `SUPPLY-CHAIN-DEPENDENCY-FROM-URL` | Dependencias desde el registro (interno si es propia); si viene de git, fijar el commit completo; nunca credenciales en la URL | java-springboot |
+| `SUPPLY-CHAIN-LOCKFILE-INSECURE-SOURCE` | Registro configurado con `https://`; regenerar el lockfile | java-springboot |
+| `SUPPLY-CHAIN-POSSIBLE-TYPOSQUAT` | Copiar el nombre del paquete de su página oficial; revisar autor y descargas antes de agregarlo | java-springboot |
 | `SCA-LICENSE-NETWORK-COPYLEFT`, `SCA-LICENSE-STRONG-COPYLEFT`, `SCA-LICENSE-RESTRICTED`, `SCA-LICENSE-UNKNOWN` | Preferir MIT/Apache/BSD; documentar la decisión legal de cualquier otra; sin paquetes sin licencia | cumplimiento-cmmi-iso |
 
 ---
@@ -223,11 +228,18 @@ Documenta cada objeto nuevo con `COMMENT ON` en la misma migración (skill `docu
 | `CICD-DOCKER-PRIVILEGED` | Construir con Kaniko o BuildKit sin privilegios | java-springboot |
 | `CICD-TLS-VERIFICATION-DISABLED` | Sin `-k`, `verify=False` ni `GIT_SSL_NO_VERIFY` | java-springboot |
 | `CICD-REMOTE-INCLUDE-INSECURE` | `include:` remotos solo por HTTPS y a una versión fija | java-springboot |
+| `CICD-INCLUDE-UNPINNED` | `include: project:` siempre con `ref:` a un tag o commit | java-springboot |
+| `CICD-UNTRUSTED-INPUT-INJECTION` | Mensaje de commit, rama o título de MR solo como `"$VARIABLE"` entre comillas; nunca dentro de `eval` o `sh -c` | java-springboot |
+| `CICD-INPUT-INTERPOLATION-IN-SCRIPT` | `$[[ inputs.x \| posix_escape ]]` o la entrada como variable de entorno | java-springboot |
+| `CICD-DEPENDENCY-INSTALL-NOT-FROZEN` | `npm ci` / `yarn install --frozen-lockfile` en CI, nunca `npm install` | java-springboot |
+| `REPO-BINARY-ARTIFACT` | Nada de `.jar`/`.exe`/`.apk`/llaves en git: artefactos desde un repositorio con versión; las llaves en el gestor de secretos | java-springboot |
+| `REPO-BUILD-OUTPUT-COMMITTED` (inf.) | `target/`, `build/`, `.gradle/`, `__pycache__/` en `.gitignore` | java-springboot |
 | `GITLAB-PROJECT-DEFAULT-BRANCH-UNPROTECTED`, `GITLAB-PROJECT-BRANCH-FORCE-PUSH`, `GITLAB-PROJECT-BRANCH-DEVELOPER-PUSH` | Rama por defecto protegida, sin force-push, push solo de mantenedores | cumplimiento-cmmi-iso |
 | `GITLAB-PROJECT-MR-NO-PIPELINE-GATE` | Fusionar solo con pipeline en verde y revisión de otra persona | cumplimiento-cmmi-iso |
 | `GITLAB-PROJECT-CI-VARIABLE-UNMASKED`, `GITLAB-PROJECT-CI-VARIABLE-UNPROTECTED` | Variables sensibles enmascaradas y protegidas | java-springboot |
 | `GITLAB-PROJECT-WEBHOOK-INSECURE` | Webhooks por HTTPS, con secreto y verificación TLS | backend-seguridad |
 | `GITLAB-PROJECT-PUBLIC-VISIBILITY` | Proyectos internos o privados salvo decisión expresa | reglas-globales |
+| `IMAGE-CERT-EXPIRED`, `IMAGE-CERT-WEAK-KEY`, `IMAGE-CERT-WEAK-SIGNATURE` | No copiar certificados propios dentro de la imagen de contenedor: montarlos como secreto al ejecutar; si van en la imagen, RSA ≥ 2048 o ECDSA, firma SHA-256+ y renovarlos antes de vencer |
 
 ---
 

@@ -77,6 +77,13 @@ El verificador `webhooks_fail_closed` revisa las rutas `webhook` de FastAPI.
 1. Sin dependencias con CVE conocido sin plan (SCA); lockfile versionado y versiones fijadas; versiones vigentes al crear el proyecto (`rules/common/versions.md`).
 2. Nada de `curl | sh` en Dockerfile ni CI; imágenes con etiqueta fija, no `:latest`.
 3. Licencias compatibles con el proyecto (auditor de licencias).
+4. Un paquete malicioso conocido se **retira** (no basta subir de versión) y se rotan las credenciales de los equipos y runners donde se
+   instaló. Sin descargas ni `eval`/`| sh` en scripts `preinstall`/`postinstall`.
+5. Dependencias desde el registro por `https://`, nunca desde una URL con credenciales; de git, solo a un commit completo. El nombre del
+   paquete se copia de su página oficial (typosquatting).
+6. CI: instalación congelada (`npm ci`, `--frozen-lockfile`); `include:` de otros proyectos con `ref:` fijo; rama, título de MR o mensaje
+   de commit solo como `"$VARIABLE"` entre comillas, nunca dentro de `eval`/`sh -c`.
+7. Nada de binarios (`.jar`, `.exe`, llaves) ni salida de compilación en git.
 
 ## Por capa · 8. Contenedores, infraestructura y servidores
 1. Dockerfile con `USER` no root; sin `privileged`, `hostPath` ni `0.0.0.0/0` de entrada; puertos de
