@@ -1,0 +1,7 @@
+node_modules/
+# sesiones de capturar.js: contienen tokens
+*.local.json
+sesion*.json
+# salidas de prueba
+salida/
+_fallo_*.png

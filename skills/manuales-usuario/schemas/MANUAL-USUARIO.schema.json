@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "MANUAL-USUARIO.schema.json",
+  "title": "Payload MANUAL-USUARIO — Manual de usuario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "codigo",
+    "sistema",
+    "cliente",
+    "modulo",
+    "ubicacion_menu",
+    "descripcion",
+    "objetivo",
+    "publico",
+    "para_que_sirve",
+    "perfil_requerido",
+    "funcionalidad",
+    "tarea",
+    "pregunta",
+    "termino"
+  ],
+  "$defs": {
+    "textoLimpio": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "\\[(Cierto|Probable|Suponiendo)\\]|como (IA|modelo|asistente)|«[^»]*»"
+      }
+    }
+  },
+  "properties": {
+    "codigo": {
+      "const": "MANUAL-USUARIO"
+    },
+    "sistema": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "cliente": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "clave_proyecto": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "modulo": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "ubicacion_menu": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "descripcion": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/textoLimpio"
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "objetivo": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "publico": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "para_que_sirve": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/textoLimpio"
+      },
+      "minItems": 2,
+      "maxItems": 10
+    },
+    "url_acceso": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "perfil_requerido": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "conexion": {
+      "$ref": "#/$defs/textoLimpio"
+    },
+    "consideraciones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/textoLimpio"
+      }
+    },
+    "concepto": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "parrafos"
+        ],
+        "properties": {
+          "titulo": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "parrafos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/textoLimpio"
+            },
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "vinetas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/textoLimpio"
+            }
+          }
+        }
+      }
+    },
+    "funcionalidad": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nombre",
+          "descripcion"
+        ],
+        "properties": {
+          "nombre": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "descripcion": {
+            "$ref": "#/$defs/textoLimpio"
+          }
+        }
+      }
+    },
+    "tarea": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "titulo",
+          "pasos"
+        ],
+        "properties": {
+          "titulo": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "intro": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "pasos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "texto"
+              ],
+              "properties": {
+                "texto": {
+                  "$ref": "#/$defs/textoLimpio"
+                },
+                "captura": {
+                  "$ref": "#/$defs/textoLimpio"
+                },
+                "pie": {
+                  "$ref": "#/$defs/textoLimpio"
+                },
+                "nota": {
+                  "$ref": "#/$defs/textoLimpio"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 40
+          },
+          "reglas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/textoLimpio"
+            }
+          }
+        }
+      }
+    },
+    "mensaje": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "texto",
+          "cuando",
+          "que_hacer"
+        ],
+        "properties": {
+          "texto": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "cuando": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "que_hacer": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "regla": {
+            "$ref": "#/$defs/textoLimpio"
+          }
+        }
+      }
+    },
+    "pregunta": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pregunta",
+          "respuesta"
+        ],
+        "properties": {
+          "pregunta": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "respuesta": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "regla": {
+            "$ref": "#/$defs/textoLimpio"
+          }
+        }
+      }
+    },
+    "termino": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 25,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "termino",
+          "definicion"
+        ],
+        "properties": {
+          "termino": {
+            "$ref": "#/$defs/textoLimpio"
+          },
+          "definicion": {
+            "$ref": "#/$defs/textoLimpio"
+          }
+        }
+      }
+    }
+  }
+}

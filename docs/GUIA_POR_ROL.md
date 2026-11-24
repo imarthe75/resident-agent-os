@@ -36,6 +36,7 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 | Migración o modelo de datos | `database-liquibase-postgresql`, `postgres-audit` |
 | Proyecto nuevo, Dockerfile, pipeline | `java-springboot`, `backend-pruebas-unitarias` (versiones vigentes con `scripts/latest_versions.py`) |
 | Documentar | `documentacion-codigo-y-api`, `generacion-documentacion` |
+| Manual de usuario de un módulo | `manuales-usuario` (reglas contrastadas contra el código, capturas reproducibles, `.docx` generado por script con hoja de validación; identidad en `references/marca.json`) |
 | Algo falla | `systematic-debugging` (comando `/debug`: subagente depurador con prueba de regresión) |
 | Funcionalidad no trivial o requisitos ambiguos | `/opsx-propose` → `/opsx-apply` → `/opsx-verify` (spec con requisitos EARS y convergencia contra pruebas) |
 | Cambio grande | `blueprint` o `writing-plans` antes de tocar código |

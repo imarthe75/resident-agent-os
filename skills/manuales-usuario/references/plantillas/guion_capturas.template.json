@@ -1,0 +1,21 @@
+{
+  "_nota": "Rutas relativas a la carpeta de este guion. 'archivo' de cada escena = 'captura' del paso en payload.json.",
+  "base_url": "http://localhost:4200",
+  "estado_sesion": "sesion.local.json",
+  "login_listo_si": "localhost:4200/(inicio|home)",
+  "sin_sesion": false,
+  "mocks": null,
+  "navegador": null,
+  "salida": "capturas",
+  "viewport": { "width": 1366, "height": 768 },
+  "escala": 1,
+  "resaltado": { "color": "#E53935", "grosor": 3 },
+  "pausa": 400,
+  "timeout_ms": 10000,
+  "escenas": [
+    { "id": "01", "archivo": "01-menu.png", "ruta": "/inicio", "resaltar": "button.layout-menu-button" },
+    { "id": "02", "archivo": "02-opcion-menu.png", "continuar": true, "acciones": [{ "clic": "button.layout-menu-button" }, { "esperar": 600 }], "resaltar": "text=<Opción del menú>" },
+    { "id": "03", "archivo": "03-pantalla-principal.png", "ruta": "/<ruta-del-modulo>", "acciones": [{ "esperar_selector": ".p-datatable" }] },
+    { "id": "04", "archivo": "04-dialogo.png", "continuar": true, "acciones": [{ "clic": "p-button:has-text('Agregar') button" }, { "esperar_selector": ".p-dialog" }], "recorte": "selector:.p-dialog" }
+  ]
+}

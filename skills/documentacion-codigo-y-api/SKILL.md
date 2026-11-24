@@ -87,6 +87,8 @@ Cada migración que crea o cambia un objeto lleva su `COMMENT ON`; el diccionari
 - ADR (`DECISIONS/NNNN-titulo.md`): contexto, decisión, alternativas descartadas, consecuencias. Uno por decisión que cambie arquitectura,
   dependencia o estándar.
 - Documentos redactados como versión vigente, con fecha y fuente en las cifras (skill `reglas-globales` §3).
+- Manual de usuario de un módulo: skill `manuales-usuario` (reglas contrastadas contra el código, capturas reproducibles, `.docx`
+  generado por script).
 
 **Prueba de lectura (README, ADR, manuales, entregables).** Antes de publicar un documento que leerá otra persona, dáselo a un agente
 nuevo **sin el contexto de la conversación** (subagente o sesión nueva, skill `delegacion-subagentes`) junto con 5–10 preguntas que haría su

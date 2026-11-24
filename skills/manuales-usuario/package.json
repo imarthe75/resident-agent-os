@@ -1,0 +1,16 @@
+{
+  "name": "manuales-usuario",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generador de manuales de usuario de módulo: reglas contrastadas contra back/front, capturas reproducibles y .docx determinista.",
+  "scripts": {
+    "schema": "node scripts/tools/gen_schema.js references/manifiestos/MANUAL-USUARIO.manifest.yaml schemas/MANUAL-USUARIO.schema.json",
+    "regresion": "node scripts/tools/regresion.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "docx": "^8.5.0",
+    "js-yaml": "^4.1.0",
+    "playwright-core": "^1.48.0"
+  }
+}

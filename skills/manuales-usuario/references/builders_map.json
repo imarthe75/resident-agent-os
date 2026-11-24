@@ -1,0 +1,3 @@
+{
+  "MANUAL-USUARIO": { "builder": "build_manual.js", "manifiesto": "MANUAL-USUARIO", "nota": "Manual de usuario de módulo" }
+}

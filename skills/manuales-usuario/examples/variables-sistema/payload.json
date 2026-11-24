@@ -1,0 +1,128 @@
+{
+  "codigo": "MANUAL-USUARIO",
+  "_control": {
+    "version": "2.0",
+    "autor": "Organización de ejemplo",
+    "descripcion_cambio": "Regeneración del manual con reglas contrastadas contra back y front (skill manuales-usuario-ca).",
+    "aprobador": { "rol": "PM / Líder de Proyecto" }
+  },
+  "sistema": "Sistema CORE",
+  "cliente": "Organización de ejemplo",
+  "modulo": "Variables de sistema",
+  "ubicacion_menu": "Menú principal > Variables del sistema",
+  "descripcion": [
+    "El módulo Variables de sistema permite administrar los parámetros de configuración que controlan el comportamiento de la plataforma, como tiempos de sesión, direcciones de servicios o valores de negocio.",
+    "Desde la pantalla principal se consulta el listado de variables con su nombre, tipo de valor, valor, descripción y estatus, y se pueden filtrar, registrar, editar y activar o desactivar."
+  ],
+  "objetivo": "Permitir la consulta y el mantenimiento controlado de las variables de configuración del sistema, validando que cada valor corresponda a su tipo.",
+  "publico": "Administradores del sistema con acceso al menú Variables del sistema, responsables de la configuración de la plataforma.",
+  "para_que_sirve": [
+    "Consultar las variables de configuración registradas y su estatus.",
+    "Registrar nuevas variables con su tipo de valor y descripción.",
+    "Actualizar el valor y la descripción de una variable existente.",
+    "Activar o desactivar variables sin perder su configuración.",
+    "Proteger los valores de tipo contraseña, que nunca se muestran en pantalla."
+  ],
+  "perfil_requerido": "Usuario con el menú Variables del sistema asignado a su rol.",
+  "url_acceso": "https://sistema.example/",
+  "conexion": "Red institucional / VPN según política de la dependencia",
+  "funcionalidad": [
+    { "nombre": "Consulta y filtrado", "descripcion": "Búsqueda de variables por nombre, descripción, tipo de valor y estatus, y búsqueda rápida sobre el listado." },
+    { "nombre": "Agregar", "descripcion": "Registro de una nueva variable con su nombre, tipo de valor, descripción y valor." },
+    { "nombre": "Editar registro", "descripcion": "Modificación del valor y la descripción de una variable." },
+    { "nombre": "Cambiar estatus", "descripcion": "Activa o desactiva una variable, previa confirmación." },
+    { "nombre": "Información del módulo", "descripcion": "Muestra la descripción del módulo y permite descargar este manual." }
+  ],
+  "tarea": [
+    {
+      "titulo": "Acceso al módulo",
+      "pasos": [
+        { "texto": "En la pantalla principal, pulsar el menú hamburguesa ubicado en la esquina superior izquierda.", "captura": "capturas/01-menu.png", "pie": "Menú hamburguesa en la pantalla principal." },
+        { "texto": "Seleccionar la opción Variables del sistema.", "captura": "capturas/02-opcion-menu.png", "pie": "Opción Variables del sistema en el menú." },
+        { "texto": "El sistema muestra la pantalla Variables de sistema con el listado de variables registradas.", "captura": "capturas/03-pantalla-principal.png", "pie": "Pantalla principal del módulo Variables de sistema." }
+      ]
+    },
+    {
+      "titulo": "Consulta y filtrado de variables",
+      "pasos": [
+        { "texto": "Pulsar el botón Mostrar filtros.", "captura": "capturas/04-mostrar-filtros.png", "pie": "Botón Mostrar filtros." },
+        { "texto": "Capturar uno o varios criterios en los campos Nombre, Descripción, Tipo de valor y Estatus.", "captura": "capturas/05-filtros.png", "pie": "Sección Filtros de búsqueda." },
+        { "texto": "Pulsar el botón Aplicar filtros. El sistema muestra en la tabla las variables que cumplen los criterios.", "captura": "capturas/06-resultados.png", "pie": "Resultados de la consulta con filtros aplicados." },
+        { "texto": "Para volver al listado completo, pulsar el botón Limpiar filtros." },
+        { "texto": "Para una búsqueda rápida, escribir en el campo Buscar... ubicado sobre la tabla.", "captura": "capturas/07-busqueda-rapida.png", "pie": "Búsqueda rápida en el listado de variables." }
+      ],
+      "reglas": [
+        "[RN-03] El listado muestra 10, 20 o 50 registros por página; el número se elige en el paginador al pie de la tabla.",
+        "[RN-02] El valor de las variables de tipo contraseña nunca se muestra: en su lugar aparecen asteriscos (**********)."
+      ]
+    },
+    {
+      "titulo": "Agregar una nueva variable",
+      "pasos": [
+        { "texto": "Pulsar el botón Agregar.", "captura": "capturas/08-agregar.png", "pie": "Botón Agregar." },
+        { "texto": "En la ventana Nueva variable, capturar el Nombre.", "captura": "capturas/09-nueva-variable.png", "pie": "Ventana Nueva variable." },
+        { "texto": "Seleccionar el Tipo de valor. El campo Valor cambia según el tipo elegido (texto, número, decimal, verdadero/falso, fecha, hora, JSON o contraseña)." },
+        { "texto": "Capturar la Descripción y el Valor.", "captura": "capturas/10-tipo-valor.png", "pie": "Captura de descripción y valor según el tipo." },
+        { "texto": "Pulsar el botón Aceptar para guardar la variable.", "captura": "capturas/11-aceptar.png", "pie": "Botón Aceptar para registrar la variable.", "nota": "[RN-14] Si el nombre pertenece a una variable eliminada, el sistema muestra el aviso Registro duplicado y ofrece restablecerla; pulsar Aceptar para recuperarla o Cancelar para capturar otro nombre." }
+      ],
+      "reglas": [
+        "[RN-04] Nombre, Tipo de valor, Descripción y Valor son obligatorios; el botón Aceptar no guarda mientras falte alguno.",
+        "[RN-06] El nombre solo acepta letras y guion bajo (por ejemplo, TIEMPO_SESION).",
+        "[RN-05] El nombre se guarda siempre en mayúsculas.",
+        "[RN-07] La descripción admite como máximo 200 caracteres.",
+        "[RN-11] El valor debe corresponder a su tipo: número entero, decimal con hasta 4 decimales o Verdadero/Falso.",
+        "[RN-09] En las variables de tipo contraseña, el valor se captura dos veces (Nuevo Valor y Confirmar Valor) y ambos deben coincidir."
+      ]
+    },
+    {
+      "titulo": "Editar una variable",
+      "pasos": [
+        { "texto": "En la columna Acciones de la variable, pulsar el botón Editar registro.", "captura": "capturas/12-editar.png", "pie": "Botón Editar registro." },
+        { "texto": "En la ventana Editar variable, modificar la Descripción o el Valor.", "captura": "capturas/13-editar-variable.png", "pie": "Ventana Editar variable." },
+        { "texto": "Pulsar el botón Aceptar para guardar los cambios, o Cancelar para descartarlos." }
+      ],
+      "reglas": [
+        "[RN-08] El Nombre y el Tipo de valor no se pueden modificar; aparecen deshabilitados.",
+        "[RN-09] En una variable de tipo contraseña, dejar en blanco Nuevo Valor y Confirmar Valor conserva el valor actual.",
+        "[RN-13] Algunas variables tienen la edición restringida; en ese caso el botón muestra el aviso Acción restringida en el sistema."
+      ]
+    },
+    {
+      "titulo": "Activar o desactivar una variable",
+      "pasos": [
+        { "texto": "En la columna Acciones, pulsar el botón Cambiar estatus de la variable.", "captura": "capturas/14-cambiar-estatus.png", "pie": "Botón Cambiar estatus." },
+        { "texto": "El sistema solicita confirmación. Pulsar Aceptar para aplicar el cambio o Cancelar para conservar el estatus actual.", "captura": "capturas/15-confirmar-estatus.png", "pie": "Confirmación de cambio de estatus." }
+      ],
+      "reglas": [
+        "[RN-15] El sistema siempre pide confirmación antes de activar o desactivar una variable.",
+        "[RN-13] Si la variable tiene el cambio de estatus restringido, el sistema no permite la acción y lo indica con un mensaje."
+      ]
+    },
+    {
+      "titulo": "Información del módulo y manual de usuario",
+      "pasos": [
+        { "texto": "Pulsar el botón Información (i) ubicado junto al título del módulo.", "captura": "capturas/16-info.png", "pie": "Botón Información del módulo." },
+        { "texto": "El sistema muestra la descripción del módulo. Pulsar el botón Descargar manual de usuario para obtener este documento.", "captura": "capturas/17-descargar-manual.png", "pie": "Descarga del manual de usuario." }
+      ]
+    }
+  ],
+  "mensaje": [
+    { "texto": "Las contraseñas no coinciden.", "cuando": "Al capturar una variable de tipo contraseña con valores distintos en Nuevo Valor y Confirmar Valor.", "que_hacer": "Capturar el mismo valor en ambos campos.", "regla": "RN-09" },
+    { "texto": "Ya existe un variable de sistema registrado con el nombre '<NOMBRE>'.", "cuando": "Al guardar una variable con un nombre que ya usa otra variable activa.", "que_hacer": "Usar otro nombre o editar la variable existente.", "regla": "RN-14" },
+    { "texto": "El registro <NOMBRE> se encuentra eliminado lógicamente. ¿Desea restablecerlo?", "cuando": "Al guardar una variable con el nombre de una variable eliminada.", "que_hacer": "Pulsar Aceptar para restablecerla o Cancelar para capturar otro nombre.", "regla": "RN-14" },
+    { "texto": "No se puede editar la variable <NOMBRE> - esta acción está restringida en el sistema.", "cuando": "Al intentar editar una variable con la edición restringida.", "que_hacer": "Solicitar el cambio al administrador de la plataforma.", "regla": "RN-13" },
+    { "texto": "Maximo 4 decimales permitidos", "cuando": "Al guardar una variable decimal con más de cuatro decimales.", "que_hacer": "Capturar el valor con cuatro decimales como máximo.", "regla": "RN-11" }
+  ],
+  "pregunta": [
+    { "pregunta": "¿Puedo cambiar el nombre de una variable?", "respuesta": "No. El nombre y el tipo de valor se definen al crearla y no se pueden modificar. Si se necesita otro nombre, se registra una variable nueva.", "regla": "RN-08" },
+    { "pregunta": "¿Por qué no veo el valor de algunas variables?", "respuesta": "Las variables de tipo contraseña nunca muestran su valor; en el listado aparecen asteriscos. Para cambiarlo, edita la variable y captura el nuevo valor dos veces.", "regla": "RN-02" },
+    { "pregunta": "¿Qué pasa si desactivo una variable?", "respuesta": "La variable conserva su configuración y puede reactivarse en cualquier momento con el botón Cambiar estatus.", "regla": "RN-15" },
+    { "pregunta": "¿Por qué un botón de acciones aparece con el aviso Acción restringida en el sistema?", "respuesta": "Algunas variables críticas tienen acciones bloqueadas para proteger la operación de la plataforma. Solicita el cambio al administrador.", "regla": "RN-13" }
+  ],
+  "termino": [
+    { "termino": "Variable de sistema", "definicion": "Parámetro de configuración con nombre único que la plataforma consulta para ajustar su comportamiento." },
+    { "termino": "Tipo de valor", "definicion": "Clase de dato que admite la variable: texto, número, decimal, verdadero/falso, fecha, hora, JSON o contraseña." },
+    { "termino": "Estatus", "definicion": "Indica si la variable está activa o inactiva." },
+    { "termino": "Acción restringida", "definicion": "Operación (editar, activar o desactivar) que el sistema bloquea para una variable específica." }
+  ]
+}

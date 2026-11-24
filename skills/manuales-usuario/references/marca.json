@@ -1,0 +1,7 @@
+{
+  "_nota": "Identidad del documento: llena organizacion, el logo (archivo PNG en references/) y el código del documento de tu organización. Vacío, el manual muestra «Organización» como marcador. El formato vive en scripts/manual_mold.js.",
+  "organizacion": "",
+  "logo": "",
+  "plantilla": "MANUAL-USUARIO",
+  "codigo_documento": "MANUAL-USUARIO"
+}

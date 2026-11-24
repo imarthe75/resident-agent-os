@@ -1,0 +1,133 @@
+# Manifiesto — MANUAL-USUARIO Manual de usuario de módulo
+# Contrato semántico. El esquema (schemas/MANUAL-USUARIO.schema.json) se GENERA de aquí:
+#   node scripts/tools/gen_schema.js references/manifiestos/MANUAL-USUARIO.manifest.yaml schemas/MANUAL-USUARIO.schema.json
+plantilla:
+  codigo: MANUAL-USUARIO
+  nombre: "Manual de usuario"
+  dueno_estandar: Líder de proyecto
+  aprobacion: [Líder de proyecto]
+  nota: >
+    Un manual por módulo del sistema, escrito para quien lo opera (usuario final o administrador),
+    no para el equipo técnico. Estructura de un manual de módulo para el usuario final.
+    Las reglas que cita deben estar CONTRASTADAS contra back y front (reglas_contrastadas.md).
+
+campos:
+  # ---- Portada · 1. Información general ----
+  - { id: mu.sistema, seccion: "1", etiqueta: "Nombre del sistema", autoria: derivado, fuente: "proyecto / onboarding", instruccion: "Ej.: «Sistema CORE». Igual en todos los manuales del sistema." }
+  - { id: mu.cliente, seccion: "1", etiqueta: "Cliente / Titular", autoria: derivado, fuente: "proyecto / onboarding" }
+  - { id: mu.clave_proyecto, seccion: "1", etiqueta: "Clave de proyecto", autoria: derivado, opcional: true, fuente: "proyecto" }
+  - { id: mu.modulo, seccion: "1", etiqueta: "Módulo documentado", autoria: derivado, fuente: "front: <h1> de la pantalla principal del módulo", instruccion: "Nombre del módulo TAL COMO aparece en el título de la pantalla o en el menú." }
+  - { id: mu.ubicacion_menu, seccion: "4", etiqueta: "Ubicación en el menú", autoria: derivado, fuente: "menú del sistema (exploración) · catálogo de menús", requiere_validacion_humana: true, instruccion: "Ruta de navegación con «>», p. ej. «Seguridad y accesos > Usuarios»." }
+
+  # ---- 2. Introducción ----
+  - { id: mu.descripcion, seccion: "2", etiqueta: "Descripción del módulo", tipo: lista, autoria: ia, fuente: "reglas_contrastadas.md · especificación · pantalla", requiere_validacion_humana: true, cardinalidad: { min: 1, max: 5 }, instruccion: "1 a 5 párrafos (un elemento por párrafo) en lenguaje del usuario: qué es el módulo, qué información muestra y qué permite hacer. Sin términos técnicos (endpoint, DTO, tabla, caché)." }
+  - { id: mu.objetivo, seccion: "2", etiqueta: "Objetivo", autoria: ia, fuente: "especificación · reglas_contrastadas.md", requiere_validacion_humana: true, instruccion: "Una o dos frases: «Permitir …»." }
+  - { id: mu.publico, seccion: "2", etiqueta: "Público / rol usuario", autoria: derivado, fuente: "roles/privilegios que dan acceso al módulo", requiere_validacion_humana: true, instruccion: "Perfiles que usan el módulo y para qué. No inventes roles." }
+  - { id: mu.para_que_sirve, seccion: "2", etiqueta: "¿Para qué sirve?", tipo: lista, autoria: ia, fuente: "reglas_contrastadas.md", requiere_validacion_humana: true, cardinalidad: { min: 2, max: 10 }, instruccion: "Viñetas que empiezan con verbo en infinitivo («Registrar…», «Controlar…»). Solo funciones que existen en el sistema." }
+
+  # ---- 3. Acceso al sistema ----
+  - { id: mu.url_acceso, seccion: "3", etiqueta: "URL de acceso", autoria: derivado, opcional: true, fuente: "ambiente (deployments/values-*.yaml) · usuario", instruccion: "Si no se conoce, omítela: el documento deja el marcador y la hoja lo reporta." }
+  - { id: mu.perfil_requerido, seccion: "3", etiqueta: "Perfil requerido", autoria: derivado, fuente: "privilegios del módulo", requiere_validacion_humana: true }
+  - { id: mu.conexion, seccion: "3", etiqueta: "Conexión", autoria: derivado, opcional: true, fuente: "proyecto" }
+  - { id: mu.navegadores, seccion: "3", etiqueta: "Navegadores compatibles", autoria: auto, valor: "Google Chrome, Microsoft Edge, Mozilla Firefox u Opera (últimas versiones estables)" }
+  - { id: mu.resolucion, seccion: "3", etiqueta: "Resolución recomendada", autoria: auto, valor: "1366 × 768 px o superior" }
+
+  # ---- 4.x Consideraciones / 6. ----
+  - { id: mu.consideraciones, seccion: "C", etiqueta: "Consideraciones", tipo: lista, autoria: ia, opcional: true, fuente: "reglas_contrastadas.md", requiere_validacion_humana: true, instruccion: "Advertencias generales que no pertenecen a una tarea (p. ej. «Los cambios se aplican de inmediato a todos los usuarios»). Puede llevar prefijo [RN-xx]." }
+
+bloques_repetibles:
+  # ---- 2. Conceptos (opcional) ----
+  - id: mu.concepto
+    seccion: "2"
+    etiqueta: "Concepto"
+    opcional: true
+    cardinalidad: { min: 0, max: 8 }
+    unidad_de_conteo: "un concepto del negocio que el usuario necesita entender antes de operar (jerarquía, relación entre entidades, seguridad)"
+    instruccion: |
+      Subtítulo de la introducción (p. ej. «Relación entre privilegios, roles y usuarios», «Gestión de la seguridad»).
+      Solo si ayuda a operar el módulo; no repitas la descripción.
+    subcampos:
+      - { id: titulo, autoria: ia, requiere_validacion_humana: true }
+      - { id: parrafos, tipo: lista, autoria: ia, cardinalidad: { min: 1, max: 4 }, requiere_validacion_humana: true }
+      - { id: vinetas, tipo: lista, autoria: ia, opcional: true, requiere_validacion_humana: true }
+
+  # ---- 4. Tabla de funcionalidades ----
+  - id: mu.funcionalidad
+    seccion: "4"
+    etiqueta: "Funcionalidad"
+    cardinalidad: { min: 1, max: 30 }
+    unidad_de_conteo: "una fila por cada acción que ofrece la pantalla (consultar, filtrar, agregar, editar, activar/inactivar, eliminar, asignar…)"
+    instruccion: "Nombre corto + descripción de una frase. Solo acciones que existen en el front (botones visibles)."
+    subcampos:
+      - { id: nombre, autoria: derivado, fuente: "front (botones y acciones)", requiere_validacion_humana: true }
+      - { id: descripcion, autoria: ia, requiere_validacion_humana: true }
+
+  # ---- 4. Procedimiento ----
+  - id: mu.tarea
+    seccion: "4"
+    etiqueta: "Tarea"
+    cardinalidad: { min: 1, max: 40 }
+    unidad_de_conteo: "una tarea por flujo que el usuario completa (acceso, consulta y filtrado, agregar, editar, activar/inactivar, eliminar, reactivar, información del módulo)"
+    instruccion: |
+      Título con sustantivo de acción, como en los manuales vigentes: «Acceso al módulo», «Consulta y filtrado de usuarios», «Alta de un nuevo usuario».
+      La primera tarea es SIEMPRE el acceso al módulo (menú hamburguesa y, si existe, la tarjeta de Inicio).
+      La última es SIEMPRE «Información del módulo y manual de usuario» (botón «i» del módulo, si el sistema lo tiene).
+      Pasos en infinitivo impersonal («Pulsar el botón Guardar», «Seleccionar la opción Usuarios»), un paso por acción, con los nombres EXACTOS de botones, campos y menús (copiados del front, entre comillas solo si llevan símbolos: «+ Agregar usuario»).
+      Cada paso que cambia la pantalla lleva captura; el pie describe lo que se ve («Botón Guardar para confirmar la edición.»). No numeres pasos ni figuras: el builder numera.
+      Reglas: solo reglas CITABLES de reglas_contrastadas.md, con prefijo [RN-xx] y redactadas para el usuario. El prefijo no se imprime.
+      No inventes pasos, pantallas, botones ni mensajes: si no están en la evidencia o en la exploración, no se escriben.
+    subcampos:
+      - { id: titulo, autoria: ia, requiere_validacion_humana: true }
+      - { id: intro, autoria: ia, opcional: true, requiere_validacion_humana: true, nota: "una frase de contexto antes de los pasos" }
+      - id: pasos
+        tipo: objetos
+        autoria: ia
+        cardinalidad: { min: 1, max: 40 }
+        requiere_validacion_humana: true
+        subcampos:
+          - { id: texto, autoria: ia }
+          - { id: captura, autoria: derivado, opcional: true, fuente: "capturar.js (guion_capturas.json)", nota: "ruta relativa a la carpeta del payload (PNG/JPG)" }
+          - { id: pie, autoria: ia, opcional: true }
+          - { id: nota, autoria: ia, opcional: true, nota: "se imprime como «Nota importante:»; admite prefijo [RN-xx]" }
+      - { id: reglas, tipo: lista, autoria: ia, opcional: true, requiere_validacion_humana: true, nota: "«Importante:» + viñetas; cada elemento con prefijo [RN-xx]" }
+
+  # ---- 4.x Mensajes del sistema (opcional) ----
+  - id: mu.mensaje
+    seccion: "4"
+    etiqueta: "Mensaje del sistema"
+    opcional: true
+    cardinalidad: { min: 0, max: 60 }
+    unidad_de_conteo: "un renglón por mensaje que el usuario puede ver (validación, confirmación, error), tomado TEXTUAL de la evidencia"
+    instruccion: "Texto exacto (sin variables técnicas: sustituye ${variable.nombre} por «<nombre>»), cuándo aparece y qué hacer."
+    subcampos:
+      - { id: texto, autoria: derivado, fuente: "evidencia (front toast/confirm/small · back throw/ErrorConstants)", requiere_validacion_humana: true }
+      - { id: cuando, autoria: ia, requiere_validacion_humana: true }
+      - { id: que_hacer, autoria: ia, requiere_validacion_humana: true }
+      - { id: regla, autoria: derivado, opcional: true, fuente: "reglas_contrastadas.md", nota: "id RN-xx sin corchetes" }
+
+  # ---- 5. Preguntas frecuentes ----
+  - id: mu.pregunta
+    seccion: "5"
+    etiqueta: "Pregunta frecuente"
+    cardinalidad: { min: 3, max: 15 }
+    unidad_de_conteo: "una duda real o una regla no obvia (inactivar contra eliminar, reactivar, qué pasa con los registros dependientes…)"
+    instruccion: "Respuesta corta basada en reglas citables. No rellenes con preguntas genéricas."
+    subcampos:
+      - { id: pregunta, autoria: ia, requiere_validacion_humana: true }
+      - { id: respuesta, autoria: ia, requiere_validacion_humana: true }
+      - { id: regla, autoria: derivado, opcional: true, fuente: "reglas_contrastadas.md", nota: "id RN-xx sin corchetes" }
+
+  # ---- 6. Glosario ----
+  - id: mu.termino
+    seccion: "6"
+    etiqueta: "Término"
+    cardinalidad: { min: 3, max: 25 }
+    unidad_de_conteo: "un término del negocio o de la pantalla que el usuario puede no entender"
+    subcampos:
+      - { id: termino, autoria: ia, requiere_validacion_humana: true }
+      - { id: definicion, autoria: ia, requiere_validacion_humana: true }
+
+# Fuera del contrato (claves reservadas):
+#   _control: { version, fecha, autor, descripcion_cambio, aprobador: { nombre, rol } }
+# Las dicta el usuario; no las inventa la IA. La FIRMA siempre queda en blanco.
+higiene_salida: "Sin [Cierto]/[Probable]/[Suponiendo], sin «...», sin comentarios del modelo, sin credenciales, usuarios o contraseñas reales, sin datos personales reales en textos ni capturas."

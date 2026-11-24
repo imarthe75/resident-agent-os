@@ -1,0 +1,29 @@
+{
+  "_nota": "Guion del ejemplo. Selectores tomados del código del front (topbar, variables-sistema.component.html). La ruta /variables-sistema y la etiqueta del menú se confirman en la exploración (Fase 3) antes de correrlo.",
+  "base_url": "http://localhost:4200",
+  "estado_sesion": "sesion.local.json",
+  "login_listo_si": "localhost:4200/(inicio|home|dashboard)",
+  "salida": "capturas",
+  "viewport": { "width": 1366, "height": 768 },
+  "resaltado": { "color": "#E53935", "grosor": 3 },
+  "pausa": 500,
+  "escenas": [
+    { "id": "01", "archivo": "01-menu.png", "ruta": "/inicio", "resaltar": "button.layout-menu-button" },
+    { "id": "02", "archivo": "02-opcion-menu.png", "continuar": true, "acciones": [{ "clic": "button.layout-menu-button" }, { "esperar": 600 }], "resaltar": "text=Variables del sistema" },
+    { "id": "03", "archivo": "03-pantalla-principal.png", "ruta": "/variables-sistema", "acciones": [{ "esperar_selector": "p-table, .p-datatable" }] },
+    { "id": "04", "archivo": "04-mostrar-filtros.png", "continuar": true, "resaltar": "text=Mostrar filtros" },
+    { "id": "05", "archivo": "05-filtros.png", "continuar": true, "acciones": [{ "clic": "text=Mostrar filtros" }, { "escribir": ["#filtroNombre", "SESION"] }], "resaltar": "#filtroNombre" },
+    { "id": "06", "archivo": "06-resultados.png", "continuar": true, "acciones": [{ "clic": "text=Aplicar filtros" }, { "esperar": 800 }], "resaltar": ".p-datatable" },
+    { "id": "07", "archivo": "07-busqueda-rapida.png", "ruta": "/variables-sistema", "acciones": [{ "escribir": ["input[placeholder='Buscar...']", "TIEMPO"] }], "resaltar": "input[placeholder='Buscar...']" },
+    { "id": "08", "archivo": "08-agregar.png", "ruta": "/variables-sistema", "resaltar": "p-button:has-text('Agregar') button" },
+    { "id": "09", "archivo": "09-nueva-variable.png", "continuar": true, "acciones": [{ "clic": "p-button:has-text('Agregar') button" }, { "esperar_selector": "#varNombre" }, { "escribir": ["#varNombre", "TIEMPO_EJEMPLO"] }], "resaltar": "#varNombre" },
+    { "id": "10", "archivo": "10-tipo-valor.png", "continuar": true, "acciones": [{ "clic": "#varTipo" }, { "clic": "li[role='option'] >> text=NUMERO" }, { "escribir": ["#varDescripcion", "Variable de ejemplo para el manual"] }], "resaltar": ["#varTipo", "#varDescripcion"] },
+    { "id": "11", "archivo": "11-aceptar.png", "continuar": true, "resaltar": "p-button:has-text('Aceptar') button", "_nota": "NO se pulsa Aceptar: el guion no debe crear datos en el ambiente" },
+    { "id": "12", "archivo": "12-editar.png", "ruta": "/variables-sistema", "resaltar": "button[ptooltip='Editar registro'], tr:first-child button >> nth=1" },
+    { "id": "13", "archivo": "13-editar-variable.png", "continuar": true, "acciones": [{ "clic": "tr:first-child button >> nth=1" }, { "esperar_selector": "#varDescripcion" }], "resaltar": "#varNombre", "recorte": "selector:.p-dialog" },
+    { "id": "14", "archivo": "14-cambiar-estatus.png", "ruta": "/variables-sistema", "resaltar": "tr:first-child button >> nth=0" },
+    { "id": "15", "archivo": "15-confirmar-estatus.png", "continuar": true, "acciones": [{ "clic": "tr:first-child button >> nth=0" }, { "esperar_selector": ".p-confirmdialog, .p-dialog" }], "recorte": "selector:.p-confirmdialog, .p-dialog", "_nota": "Se captura el diálogo y se cierra con Cancelar en la escena siguiente; no se cambia el estatus" },
+    { "id": "16", "archivo": "16-info.png", "ruta": "/variables-sistema", "acciones": [{ "tecla": "Escape" }], "resaltar": "p-button[ptooltip='Información'] button" },
+    { "id": "17", "archivo": "17-descargar-manual.png", "continuar": true, "acciones": [{ "clic": "p-button[ptooltip='Información'] button" }, { "esperar_selector": "text=Descargar manual de usuario" }], "resaltar": "text=Descargar manual de usuario" }
+  ]
+}

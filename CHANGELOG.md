@@ -2,6 +2,10 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.9
+- **Manuales de usuario** (`skills/manuales-usuario`): reglas contrastadas contra el código, capturas reproducibles y `.docx` determinista con hoja de validación; identidad configurable en `references/marca.json`.
+- README y guía por rol como versión vigente; historial movido a este archivo.
+
 ## 2.8
 - **Mutation testing** (`skills/pruebas-mutacion`, `templates/ci/mutation-testing.gitlab-ci.yml`): PIT y Stryker solo sobre lo que cambia el MR,
   umbral que solo sube.

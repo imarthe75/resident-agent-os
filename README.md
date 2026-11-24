@@ -302,6 +302,7 @@ Al terminar cada sesión:
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
 | Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
+| Manuales de usuario | reglas de negocio contrastadas contra el código con evidencia archivo:línea, capturas reproducibles con Playwright y `.docx` determinista con hoja de validación; la identidad de la organización se configura en un archivo | `skills/manuales-usuario/` |
 | Guía por rol | instalación y uso para desarrolladores, líderes de proyecto/PM, testers/QA y seguridad | `docs/GUIA_POR_ROL.md` |
 
 El historial por versión está en `CHANGELOG.md`.
