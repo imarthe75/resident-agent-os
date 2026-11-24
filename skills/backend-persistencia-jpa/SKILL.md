@@ -46,7 +46,13 @@ public abstract class EntidadBase {
   mismo usuario. Nunca `SET` sin `LOCAL` (con PgBouncer el valor pasa a otro cliente). Detalle en `postgres-audit` §5.
 
 ## 2. Concurrencia optimista (`@Version`)
-- Toda entidad editable usa `@Version` sobre `row_version`. Hibernate envía `row_version = anterior + 1` y el trigger `audit_biu` lo acepta;
+- **Quién lleva `@Version`** (decisión 2026-11-23): toda entidad de negocio que editan varias personas (trámites, expedientes,
+  asignaciones, folios, configuraciones compartidas) hereda de una base versionada (p. ej. `EntidadAuditableVersionada extends EntidadAuditable`
+  con `@Version` sobre `row_version`). Los **catálogos** (`ct_*`) pueden quedarse en la base de solo lectura (`rowVersion` `@Generated`) y
+  aceptar que gane la última escritura, **de forma explícita**: Javadoc de la entidad («concurrencia: última escritura gana, catálogo de baja
+  edición»), nota en el README del módulo y el hallazgo `JPA-ENTITY-MISSING-VERSION` de esa entidad registrado como **riesgo aceptado** en
+  el escáner con su justificación y vencimiento (máximo 365 días). Sin esa documentación, un catálogo sin `@Version` es un hallazgo abierto.
+- Con `@Version` sobre `row_version`, Hibernate envía `row_version = anterior + 1` y el trigger `audit_biu` lo acepta;
   si otra transacción ya lo cambió, el `UPDATE` no afecta filas y Hibernate lanza `ObjectOptimisticLockingFailureException` → 409.
 - El DTO de actualización trae el `rowVersion` que vio el usuario y el servicio lo compara antes de guardar (evita «última escritura gana»
   entre dos pestañas).

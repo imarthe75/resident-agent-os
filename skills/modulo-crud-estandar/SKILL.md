@@ -37,7 +37,9 @@ Con dudas críticas, pregunta primero; si todo está claro, presenta un plan bre
 ## 3. Backend — `backend-modulo-crud`, `backend-endpoint-paginado`, `backend-persistencia-jpa`
 - Piezas, mapa de endpoints, duplicados y borrado recuperable: `backend-modulo-crud`.
 - Búsqueda `POST /search` con `PaginadoRequestDTO` + `textoLibre`: `backend-endpoint-paginado`.
-- Sin `@SQLRestriction`; `borrado = false` en la `Specification`; concurrencia según `backend-persistencia-jpa` §2.
+- Sin `@SQLRestriction`; `borrado = false` en la `Specification`.
+- Concurrencia (`backend-persistencia-jpa` §2): entidad de negocio que editan varias personas → base versionada con `@Version`,
+  `rowVersion` en `Actualizar<Entidad>Request` y en la respuesta, 409 al haber conflicto; catálogo → última escritura aceptada y documentada.
 - Javadoc y OpenAPI completos (`documentacion-codigo-y-api`); pruebas de servicio y controlador (`backend-pruebas-unitarias`).
 - Validación durante el trabajo: `./gradlew test --tests "*<Entidad>*"`. Antes de declarar terminado, la suite completa o el pipeline de CI
   en verde (`verification-before-completion`); una prueba puntual en verde no basta.
@@ -64,6 +66,7 @@ Con dudas críticas, pregunta primero; si todo está claro, presenta un plan bre
 | Auditoría | Seis acciones granulares; sin emojis en logs | Tres acciones; emojis en logs |
 | Servicio frontend | `API_ENDPOINTS` con `CAMBIAR_ESTADO`/`REESTABLECER` + `.service.spec.ts` | URL concatenada a mano, sin spec |
 | UI | Smart/Dumb, sin `CommonModule`, `*appIfPermiso`, errores por el interceptor | Componente único, `CommonModule`, sin permisos, toasts de error a mano |
+| Concurrencia | Base versionada con `@Version` en entidades de negocio; catálogos con «última escritura gana» documentado | Versión en la respuesta «para concurrencia» que nunca se compara |
 | Pruebas backend | UUID, `@MockitoBean`, `jwt()` con authorities, todo el CRUD | `Long id`, sin authorities, solo `POST` |
 
 ## 6. Prompt para herramientas de IA
@@ -73,6 +76,7 @@ Las dos plantillas (con documento de análisis y diseño, o con requisitos dados
 ## Checklist
 - [ ] Migración idempotente con `chk_activo_borrado`, único parcial, triggers, privilegios y menú.
 - [ ] Siete endpoints con su permiso; 404 para borrados y registros de otra unidad; 409 recuperable con id; restablecer.
+- [ ] `@Version` en entidades de negocio editadas por varias personas (prueba de 409); catálogos sin él solo con la decisión documentada.
 - [ ] Sin `@SQLRestriction`; búsqueda paginada con `LIKE` escapado; auditoría que nunca se pierde en silencio.
 - [ ] Frontend registrado (`API_ENDPOINTS`, ruta con guards, ficha del módulo); tabla lazy con una sola carga; acciones con `*appIfPermiso`.
 - [ ] Javadoc, OpenAPI, `COMMENT ON` y README del módulo en el mismo cambio.

@@ -48,7 +48,7 @@ Un comodín (`SCA-CVE-*`) agrupa reglas cuyo sufijo varía.
 ### 1.3 Datos, concurrencia e integridad
 | Regla | Riesgo | Haz esto | Skill |
 |---|---|---|---|
-| `JPA-ENTITY-MISSING-VERSION` | Dos usuarios pierden cambios en silencio | `@Version` en entidades editables; conflicto → 409 | backend-persistencia-jpa |
+| `JPA-ENTITY-MISSING-VERSION` | Dos usuarios pierden cambios en silencio | `@Version` (base versionada) en entidades de negocio que editan varias personas; conflicto → 409. Catálogo: última escritura aceptada solo documentada y como riesgo aceptado | backend-persistencia-jpa |
 | `JPA-MULTI-WRITE-NO-TRANSACTIONAL` | Escrituras parciales si algo falla | `@Transactional` en el método de servicio con ≥ 2 escrituras | backend-persistencia-jpa |
 | `JPA-EAGER-FETCH`, `JPA-QUERY-IN-LOOP`, `ORM-N-PLUS-ONE-QUERY` | Consultas en cascada, lentitud | `LAZY` + `JOIN FETCH` o proyección donde se necesite; `findAllById`/`IN` por lote | backend-persistencia-jpa |
 | `REPOSITORY-FINDALL-UNPAGINATED` | Listados sin límite | `Pageable` con tamaño máximo | backend-endpoint-paginado |
