@@ -1,0 +1,13 @@
+{ "hallazgos": [
+  { "id": "SEC-01", "regla": "AUTHZ-NO-METHOD-AUTHZ", "titulo": "Endpoint de borrado sin autorización por método", "severidad": "ALTA", "categoria": "VULNERABILIDAD",
+    "archivo": "back/src/main/java/com/example/app/controllers/ExpedienteController.java", "lineas": [88, 120], "evidencia": "Cierto", "estado": "abierto",
+    "detectado": "2026-11-01", "esfuerzo_horas": 2, "responsable": "equipo backend" },
+  { "id": "SEC-02", "regla": "SQL-INJECTION-CONCAT", "titulo": "Consulta armada por concatenación", "severidad": "CRITICA", "categoria": "VULNERABILIDAD",
+    "archivo": "back/src/main/java/com/example/app/repositories/ReporteRepository.java", "lineas": [41], "evidencia": "Probable", "estado": "abierto",
+    "detectado": "2026-11-01", "esfuerzo_horas": 3 },
+  { "id": "A11Y-01", "regla": "WCAG-1.1.1-IMG-NO-ALT", "titulo": "Imagen sin texto alternativo", "severidad": "BAJA", "categoria": "CUMPLIMIENTO",
+    "archivo": "front/src/app/features/inicio/inicio.component.html", "lineas": [12], "evidencia": "Cierto", "estado": "abierto", "detectado": "2026-11-01", "esfuerzo_horas": 0.5 },
+  { "id": "SEC-03", "regla": "HARDCODED-SECRET", "titulo": "Valor de ejemplo en prueba", "severidad": "ALTA", "categoria": "VULNERABILIDAD",
+    "archivo": "back/src/test/java/com/example/app/AuthTest.java", "lineas": [15], "evidencia": "Cierto", "estado": "falso_positivo",
+    "detectado": "2026-11-01", "justificacion": "Cadena fija de una prueba unitaria; no es una credencial de ningún ambiente." }
+] }

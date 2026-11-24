@@ -1,15 +1,10 @@
----
-name: universal-code-audit
-description: Metodología reproducible, agnóstica de lenguaje y framework, para auditar seguridad, estándares de código y errores probables en cualquier proyecto — cómo encontrar los hallazgos del catálogo en docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md de forma sistemática (mapeo mutación↔disparador, catálogo de falsos positivos, muestreo real con evidencia) en vez de a ojo o con un solo grep de presencia.
----
-
-# Skill: Auditoría Universal de Código (Seguridad + Estándares + Errores Probables)
+# Metodología de detección (auditoría de código sin escáner)
 
 **Portable — sin dependencia de Angular, Java, Spring, OpenAPI ni de ningún stack
 específico.** Es la versión generalizada de una metodología probada en 3+ rondas reales
 de auditoría de un sistema de producción (backend Java/Python + frontend Angular),
 destilada para aplicarse en cualquier proyecto. El catálogo de *qué* buscar vive en
-`docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`; este documento cubre el
+`references/estandar-maestro.md`; este documento cubre el
 *método* — cómo encontrarlo de forma reproducible, con evidencia real, sin quemar tiempo
 redescubriendo los mismos falsos positivos cada ronda.
 
@@ -34,7 +29,7 @@ mocks de prueba desalineados de la realidad) — ver §6.
 ## 1. Cuándo aplicar este skill
 
 - Al auditar seguridad, estándares o "errores probables" de cualquier proyecto,
-  siguiendo el catálogo de `docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`.
+  siguiendo el catálogo de `references/estandar-maestro.md`.
 - Antes de dar por cerrado cualquier módulo nuevo que agregue puntos de mutación
   (crear/editar/borrar algo) — pasar el checklist de §5 antes de considerarlo terminado.
 - Cuando alguien pide "auditar UX", "revisar heurísticas cognitivas", "revisar
@@ -304,7 +299,7 @@ Mapeo rápido de las 10 heurísticas a qué tipo de evidencia buscar:
   tocar cualquier componente compartido consumido por múltiples pantallas.
 - Documenta explícitamente el criterio/comando usado para declarar algo "0 hallazgos" —
   para que la siguiente ronda pueda ampliarlo en vez de heredarlo ciegamente (ver
-  catálogo maestro `docs/security/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` §8).
+  catálogo maestro `references/estandar-maestro.md` §8).
 
 ---
 

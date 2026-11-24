@@ -32,6 +32,8 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 |---|---|
 | Catálogo o módulo completo (BD, backend y pantalla) | `modulo-crud-estandar` |
 | Módulo o endpoint Spring Boot | `backend-base-spring`, `backend-modulo-crud` o `backend-endpoint-paginado`, `backend-soporte-api`, `backend-persistencia-jpa`, `backend-seguridad` |
+| Tema visual (colores, modo oscuro, marca) | `theming-tokens`: un `tema.json` genera variables CSS, Tailwind, el preset de PrimeNG y el reporte de contraste |
+| Backend FastAPI | `backend-fastapi` |
 | Pantalla Angular | `primeng21-expert`, `generacion-componentes-ts`/`-html`, `generacion-servicios`, `frontend-auth-oidc`, `frontend-heuristicas-usabilidad` |
 | Migración o modelo de datos | `database-liquibase-postgresql`, `postgres-audit` |
 | Proyecto nuevo, Dockerfile, pipeline | `backend-proyecto-gradle`, `java-springboot`, `backend-pruebas-unitarias` (versiones vigentes con `scripts/latest_versions.py`) |
@@ -131,7 +133,8 @@ criterio cubre es **cambio**.
 ---
 
 ## 5. Seguridad
-**Carga:** `triage-findings` y `prevencion-hallazgos-seguridad-calidad`. La clasificación (vulnerabilidad / falso positivo / riesgo
+**Carga:** `triage-findings`, `prevencion-hallazgos-seguridad-calidad` y, para auditar un proyecto sin escáner, `auditoria-codigo`
+(mismas reglas, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas). La clasificación (vulnerabilidad / falso positivo / riesgo
 aceptado) es del analista; un falso positivo se decide por repositorio y archivo, nunca como regla general; nunca se reproducen secretos en
 un informe; quien corrige no valida su propio cierre. Para revisar un cambio: `/audit` (subagente `security-reviewer`, solo lectura).
 

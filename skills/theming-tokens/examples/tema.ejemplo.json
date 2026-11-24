@@ -1,0 +1,15 @@
+{
+  "nombre": "mi-marca",
+  "colores": {
+    "primario": "#1E5FA8",
+    "secundario": "#14406F",
+    "superficie": "#64748B",
+    "exito": "#15803D",
+    "advertencia": "#B45309",
+    "error": "#B91C1C",
+    "info": "#1D4ED8"
+  },
+  "tipografia": { "familia": "Inter, system-ui, sans-serif", "tamano_base": "14px" },
+  "radio": "6px",
+  "modo_oscuro": { "habilitado": true, "selector": ".app-dark" }
+}

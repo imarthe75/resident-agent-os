@@ -1,6 +1,6 @@
 # Estándar Universal de Prácticas CMMI — Setag
 
-**Alcance: universal / multi-proyecto.** Igual que `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` (seguridad), este documento es portable: aplica a cualquier
+**Alcance: universal / multi-proyecto.** Igual que `skills/auditoria-codigo/references/estandar-maestro.md` (seguridad), este documento es portable: aplica a cualquier
 proyecto de Setag, sin importar el stack. Se copia tal cual a cada repositorio o se referencia desde su `CLAUDE.md`/`AGENTS.md`.
 
 **Alcance del documento:** traduce las áreas de proceso de los niveles de madurez 2 a 5 en prácticas concretas y verificables con las herramientas que
@@ -22,7 +22,7 @@ mapearlo a ese modelo; aquí no se hace ese mapeo.
 - Marca cada práctica como **[Cumple]** (evidencia real y verificable existe hoy),
   **[Parcial]** (existe informalmente, sin ser sistemático/documentado) o **[Falta]**
   (no existe evidencia). Esta es la misma disciplina de honestidad que exige
-  `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` §8 — no declares "cumple" sin evidencia.
+  `skills/auditoria-codigo/references/estandar-maestro.md` §8 — no declares "cumple" sin evidencia.
 - No se espera cumplir el 100% de inmediato. El objetivo es tener, por proyecto, un
   diagnóstico honesto y un plan de cierre de brechas priorizado.
 
@@ -66,7 +66,7 @@ puede revertir. Esa configuración necesita su propia bitácora (antes/después 
 **Exige:** verificación objetiva e independiente de que el proceso y el producto
 cumplen lo definido — no autoevaluación únicamente.
 **Con las herramientas actuales:** skill `/code-review` y `/code-review ultra`
-(revisión multi-agente independiente); `docs/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`
+(revisión multi-agente independiente); `skills/auditoria-codigo/references/estandar-maestro.md`
 como catálogo objetivo de qué auditar.
 **Checklist:**
 - [ ] Todo cambio significativo pasa por una revisión que no sea la misma persona/sesión que lo escribió.
@@ -108,7 +108,7 @@ sin guía propia es una brecha.
 procesos estándar.
 **Con las herramientas actuales:** un `docs/` compartido entre proyectos (este framework, que se
 distribuye con `scripts/distribute_framework.py` y se comprueba con `--check`) es el lugar correcto para los estándares organizacionales; este mismo
-documento y `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` son ejemplos.
+documento y `skills/auditoria-codigo/references/estandar-maestro.md` son ejemplos.
 **Checklist:**
 - [ ] Los estándares organizacionales viven en un solo lugar compartido, no duplicados/divergentes por proyecto.
 - [ ] Hay un mecanismo real (no solo intención) para proponer y aprobar mejoras a esos estándares.
@@ -122,7 +122,7 @@ documento y `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md` son ejemplos.
 ### 2.4 Gestión Integrada de Proyecto (IPM)
 **Exige:** el proyecto se gestiona con los procesos estándar de la organización, adaptados, no un proceso propio aislado.
 **Checklist:**
-- [ ] El proyecto usa los estándares universales (`docs/ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`, este documento) en vez de inventar los suyos.
+- [ ] El proyecto usa los estándares universales (`skills/auditoria-codigo/references/estandar-maestro.md`, este documento) en vez de inventar los suyos.
 
 ### 2.5 Gestión de Riesgos (RSKM)
 **Exige:** identificación proactiva de riesgos, no solo reacción a incidentes.
@@ -201,5 +201,5 @@ Para cada proyecto, llenar (con evidencia verificable; sin evidencia es «Falta�
 ## Procedencia
 
 Este documento traduce el modelo CMMI (áreas de proceso de los niveles 2 a 5, nomenclatura clásica de 22 áreas) a prácticas verificables usando
-herramientas comunes (git, guías de `docs/skills/`, auditorías de `ESTANDAR_MAESTRO_AUDITORIA_UNIVERSAL.md`, manuales técnicos por proyecto). No reemplaza
+herramientas comunes (git, guías de `docs/skills/`, auditorías de `skills/auditoria-codigo/references/estandar-maestro.md`, manuales técnicos por proyecto). No reemplaza
 una evaluación SCAMPI formal: es el punto de partida práctico para cerrar brechas antes de, si es la decisión organizacional, buscar una certificación real.
