@@ -1,0 +1,8 @@
+{
+  "_nota": "Identidad de los documentos .docx: nombre de la organización, logo (PNG en references/, opcional) y colores. Vacío, el documento muestra «Organización».",
+  "organizacion": "",
+  "logo": "",
+  "color_primario": "1E5FA8",
+  "color_texto": "222222",
+  "fuente": "Calibri"
+}

@@ -1,6 +1,6 @@
 # Compuertas de cierre de etapa
 
-Cada punto se responde con **evidencia** (enlace al artefacto, merge request, salida de pruebas o reporte) o con **«no aplica: <motivo>»**
+Cada punto se responde con **evidencia** (enlace al artefacto, merge request, salida de pruebas o reporte) o con **`no aplica: <motivo>`**
 según el registro de adaptación. Un punto marcado ★ es crítico: sin él la etapa no cierra; lo verifica alguien distinto de quien lo hizo.
 
 ## Etapa 1 · Requerimientos

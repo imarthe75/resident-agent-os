@@ -11,7 +11,7 @@ El detalle de cómo se escribe un requerimiento, se diseña, se prueba y se atie
 
 ## Principios
 1. **Cada etapa cierra con evidencia, no con una declaración.** Su compuerta (checklist de cierre) se responde con artefactos, pruebas y
-   revisiones reales; lo que no aplica se marca «no aplica» con su motivo (`references/compuertas.md`).
+   revisiones reales; lo que no aplica se marca `no aplica: <motivo>` (`references/compuertas.md`).
 2. **Trazabilidad de punta a punta:** requisito → diseño → código → prueba → aceptación. Cada eslabón cita al anterior; un eslabón
    suelto es un hueco, no un detalle.
 3. **Artefactos vivos:** la matriz de trazabilidad, la estimación, los casos de aceptación y la bitácora de decisiones nacen en la etapa 1
@@ -43,6 +43,23 @@ Se registra una vez, con el visto bueno del líder técnico, y de ella salen los
 
 Detalle de cada etapa (decisiones que la definen, quién hace y quién responde, qué hace el agente): `references/etapas.md`.
 Compuertas de cierre: `references/compuertas.md`.
+
+## Plantillas
+Una plantilla Markdown por entregable en `plantillas/` (catálogo y convención en `plantillas/README.md`): tabla de control, quién llena
+cada sección (`> Llena: persona` · `IA (revisión obligatoria)` · `derivado de <fuente>`), pendientes entre `«…»` y firmas en blanco.
+1. Copia la plantilla al proyecto (`docs/entregables/<etapa>/`) y llénala con datos reales; el agente nunca llena las secciones de persona.
+2. Lo que redacta la IA lleva al final de su sección la línea `Revisó: <nombre> · <fecha>`.
+3. Antes de entregar: `python3 scripts/verificar_entregable.py <documento.md>` (pendientes, revisión de lo redactado por IA, secciones
+   obligatorias, secretos). Ejemplo llenado: `examples/adr-0001-motor-de-colas.md`.
+4. Versión `.docx` con la identidad de la organización:
+   ```bash
+   docker run --rm --user $(id -u):$(id -g) -v <skill>:/s -v $PWD:/w -w /w node:26-slim sh -c "cd /s && npm ci --no-audit --no-fund"   # una vez
+   docker run --rm --user $(id -u):$(id -g) -v <skill>:/s:ro -v $PWD:/w -w /w node:26-slim \
+     node /s/scripts/render_docx.mjs --doc docs/entregables/2/adr-0001.md --out salida/adr-0001.docx [--marca marca.json] [--borrador]
+   ```
+   Aplica las mismas compuertas que el verificador y además exige la organización en `references/marca.json` (organización, logo PNG,
+   color primario, fuente). Si algo falla no genera el final (código 2); con `--borrador` genera y marca «BORRADOR» en cada página.
+   El contenido sale siempre de la plantilla llenada: el `.docx` no se edita a mano.
 
 ## Control de cambios
 Solo con el proyecto vivo (antes del cierre). Toda petición nueva: se registra → se analiza su impacto en alcance, tiempo, costo y riesgo →

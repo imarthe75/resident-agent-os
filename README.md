@@ -302,7 +302,7 @@ Al terminar cada sesión:
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
 | Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
-| Metodología de entrega | etapas 0–5 más soporte con entregables, roles, compuertas de cierre, adaptación por proyecto, control de cambios y trazabilidad a CMMI V3.0 | `skills/metodologia-entrega/` |
+| Metodología de entrega | etapas 0–5 más soporte con 21 plantillas Markdown de entregables (verificador y generador `.docx` con la identidad de la organización), roles, compuertas de cierre, adaptación por proyecto, control de cambios y trazabilidad a CMMI V3.0 | `skills/metodologia-entrega/` |
 | Auditoría sin escáner | catálogo de reglas, método de detección, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas (Solventado / Persiste / Nuevo / Reaparecido / No re-verificado) | `skills/auditoria-codigo/` |
 | Theming por tokens | un `tema.json` genera escalas, variables CSS claro/oscuro, Tailwind 4, preset de PrimeNG y reporte de contraste WCAG | `skills/theming-tokens/` |
 | Backend FastAPI | autorización por dependencia y propiedad, DTOs, secretos cifrados, migraciones versionadas | `skills/backend-fastapi/` |

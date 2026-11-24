@@ -2,6 +2,9 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.13.0
+- **Plantillas de la metodología** (`skills/metodologia-entrega/plantillas/`): 21 entregables en Markdown con la convención de quién llena cada sección, pendientes y firmas; `verificar_entregable.py` y `render_docx.mjs` (generador `.docx` con identidad configurable y las mismas compuertas).
+
 ## 2.12.0
 - **`metodologia-entrega`**: metodología genérica de entrega por etapas con compuertas de cierre (`references/compuertas.md`) y roles y papel del agente por etapa (`references/etapas.md`).
 
