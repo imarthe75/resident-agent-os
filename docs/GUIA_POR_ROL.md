@@ -70,7 +70,7 @@ proyecto en servicios de la web (`rules/common/privacidad-y-herramientas.md`); e
 
 Usa el framework para que el trabajo del equipo y de los agentes deje **evidencia verificable**.
 
-**Carga:** `cumplimiento-cmmi-iso` (qué evidencia CMMI / ISO 27001 produce el trabajo diario), `triage-findings` (cómo leer un reporte de
+**Carga:** `metodologia-entrega` (etapas, entregables, compuertas de cierre, adaptación y control de cambios), `cumplimiento-cmmi-iso` (qué evidencia CMMI / ISO 27001 produce el trabajo diario), `triage-findings` (cómo leer un reporte de
 seguridad) y las reglas `rules/common/delivery-process.md` (requerimientos, diseño, pruebas y soporte) y `rules/common/business-rules.md`.
 Si el proyecto tiene una metodología propia, gana la del proyecto.
 

@@ -1,7 +1,8 @@
 # Proceso de entrega: requerimientos, diseño, pruebas y soporte
 
 Prácticas que el agente aplica cuando ayuda a analistas, diseñadores, testers o al equipo de soporte. Si el proyecto tiene una metodología
-propia, gana la del proyecto; esta regla cubre lo que no diga.
+propia, gana la del proyecto; esta regla cubre lo que no diga. El ciclo completo (etapas, entregables, compuertas, adaptación y control de
+cambios) está en la skill `metodologia-entrega`.
 
 ## Límites del agente
 - El agente propone; una persona valida. Lo que redacta la IA en un documento formal lleva una marca visible de revisión humana; la IA no

@@ -2,6 +2,9 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.12.0
+- **`metodologia-entrega`**: metodología genérica de entrega por etapas con compuertas de cierre (`references/compuertas.md`) y roles y papel del agente por etapa (`references/etapas.md`).
+
 ## 2.11.0
 - **`auditoria-codigo`**: auditoría sin escáner con las reglas del catálogo, `scripts/auditoria.py` (validar, resumen con matriz y plazos, comparativo con alcance declarado). Incluye la metodología y el estándar maestro que estaban en `docs/` sin cargarse como skill.
 - **`theming-tokens`**: tema desde un JSON con generador sin dependencias y reporte de contraste WCAG.
