@@ -34,7 +34,7 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 | Módulo o endpoint Spring Boot | `backend-base-spring`, `backend-modulo-crud` o `backend-endpoint-paginado`, `backend-soporte-api`, `backend-persistencia-jpa`, `backend-seguridad` |
 | Pantalla Angular | `primeng21-expert`, `generacion-componentes-ts`/`-html`, `generacion-servicios`, `frontend-auth-oidc`, `frontend-heuristicas-usabilidad` |
 | Migración o modelo de datos | `database-liquibase-postgresql`, `postgres-audit` |
-| Proyecto nuevo, Dockerfile, pipeline | `java-springboot`, `backend-pruebas-unitarias` (versiones vigentes con `scripts/latest_versions.py`) |
+| Proyecto nuevo, Dockerfile, pipeline | `backend-proyecto-gradle`, `java-springboot`, `backend-pruebas-unitarias` (versiones vigentes con `scripts/latest_versions.py`) |
 | Documentar | `documentacion-codigo-y-api`, `generacion-documentacion` |
 | Manual de usuario de un módulo | `manuales-usuario` (reglas contrastadas contra el código, capturas reproducibles, `.docx` generado por script con hoja de validación; identidad en `references/marca.json`) |
 | Algo falla | `systematic-debugging` (comando `/debug`: subagente depurador con prueba de regresión) |

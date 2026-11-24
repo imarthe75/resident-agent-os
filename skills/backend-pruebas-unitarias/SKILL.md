@@ -102,7 +102,14 @@ Con Testcontainers: leer el registro dos veces (dos `rowVersion` iguales), actua
 - La cobertura no sustituye a las pruebas de 403/409: se revisan explícitamente en el PR.
 - Reportar el resultado real de la ejecución (comando y salida). Si algo solo se probó con mocks, decirlo.
 
+## Reportes del CI
+Publica en el CI los reportes JUnit XML (Surefire/Gradle `build/test-results/**/TEST-*.xml`) y JaCoCo XML (`jacocoTestReport.xml`) como
+artefactos: son la evidencia de verificación que leen las herramientas de calidad y los revisores. Las pruebas de autorización y
+concurrencia llevan el código en el **nombre** (`crear_sinPermiso_responde403`, `actualizar_versionObsoleta_responde409`) para que se
+puedan contar y rastrear sin abrir el código.
+
 ## Checklist
+- [ ] Nombres de prueba con 401/403/409 y reportes JUnit/JaCoCo publicados por el CI.
 - [ ] Servicio: feliz, 404, 409 (duplicado), propiedad, dependientes, versión.
 - [ ] Controller: 400 por validación, 401, 403 por rol, 2xx con permiso.
 - [ ] Consultas nativas y Specifications contra PostgreSQL real.

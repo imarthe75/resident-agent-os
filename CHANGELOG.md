@@ -2,6 +2,10 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.10.0
+- **`backend-proyecto-gradle`**: configuración inicial de un backend Spring Boot nuevo (build, paquetes, 12-factor, tareas asíncronas, contenedor), versión genérica de la skill del kit.
+- **Reportes del CI** en `backend-pruebas-unitarias` (JUnit/JaCoCo publicados; 401/403/409 en el nombre de la prueba) y **etiquetas de trazabilidad** en `bdd-spec-driven-development`.
+
 ## 2.9.1
 - **Skill `manuales-usuario` sin referencias de ninguna organización** (códigos de artefactos y rutas del ejemplo neutralizados).
 - **Guía técnica de implementación de un componente** (`skills/manuales-usuario/references/guia-tecnica-componente.md`): estructura y reglas para la documentación técnica dirigida a desarrolladores, con la misma evidencia `archivo:línea`.

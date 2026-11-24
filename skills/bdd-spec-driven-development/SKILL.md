@@ -154,6 +154,9 @@ Con estos datos generaré:
 
 ## Documentación y trazabilidad
 - Cada escenario cita el requisito (`RF-xxx`) que prueba; un requisito sin escenario es un hueco de trazabilidad (`rules/common/delivery-process.md`).
+- Etiquetas para que un ejecutor de pruebas funcionales identifique y trace cada escenario: id del caso (`@CI-59` o `@id:<x>`),
+  requisito de origen (`@RQ-09`, en la característica o el escenario) y perfil con el que se ejecuta (`@actor:Administrador_general`, con
+  guion bajo en lugar de espacio). Un escenario que ningún ejecutor automatiza queda «no ejecutado», nunca aprobado.
 - Documentación del código bajo prueba: skill `documentacion-codigo-y-api`.
 
 ## Reglas del escáner que esta skill evita
