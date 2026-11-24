@@ -3,6 +3,7 @@
 Bitácora de cambios por versión (el README describe el estado vigente).
 
 ## 2.9.1
+- **Skill `manuales-usuario` sin referencias de ninguna organización** (códigos de artefactos y rutas del ejemplo neutralizados).
 - **Guía técnica de implementación de un componente** (`skills/manuales-usuario/references/guia-tecnica-componente.md`): estructura y reglas para la documentación técnica dirigida a desarrolladores, con la misma evidencia `archivo:línea`.
 
 ## 2.9

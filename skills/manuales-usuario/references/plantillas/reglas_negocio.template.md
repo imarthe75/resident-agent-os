@@ -5,7 +5,7 @@
 
 | ID | Regla | Fuente |
 |---|---|---|
-| RN-01 | <Qué se permite o qué se impide, en una frase. Ej.: «El código del rol no se puede modificar al editarlo.»> | <Documento y sección. Ej.: ART-F1-03 §RF-12 · minuta 2026-10-04> |
+| RN-01 | <Qué se permite o qué se impide, en una frase. Ej.: «El código del rol no se puede modificar al editarlo.»> | <Documento y sección. Ej.: Documento de requerimientos §RF-12 · minuta 2026-10-04> |
 | RN-02 | | |
 
 ## Cómo escribir una regla útil

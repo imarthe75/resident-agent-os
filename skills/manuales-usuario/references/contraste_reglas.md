@@ -4,7 +4,7 @@
 
 ## Entradas
 
-1. **`reglas_negocio.md`**: lo entrega el usuario o el analista. Se toma de la especificación, los requerimientos, las minutas o la especificación de campos (ART-F2-08). Plantilla: `references/plantillas/reglas_negocio.template.md`. **Si no existe, se pide; no se inventa.** Si el usuario solo tiene una especificación (como `front/.agents/specs/<módulo>/*.md`), la IA puede convertirla a la tabla, citando la sección de origen, y el usuario la confirma antes de seguir.
+1. **`reglas_negocio.md`**: lo entrega el usuario o el analista. Se toma de la especificación, los requerimientos, las minutas o la especificación de campos. Plantilla: `references/plantillas/reglas_negocio.template.md`. **Si no existe, se pide; no se inventa.** Si el usuario solo tiene una especificación (como `front/.agents/specs/<módulo>/*.md`), la IA puede convertirla a la tabla, citando la sección de origen, y el usuario la confirma antes de seguir.
 2. **`evidencia.md`**: se genera, nunca se escribe a mano.
    ```bash
    node scripts/evidencia.js --repo <raíz del sistema> --front front/src/app/features/<feature> --back <PrefijoJava> --out <trabajo>/evidencia.md

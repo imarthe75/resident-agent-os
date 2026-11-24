@@ -165,7 +165,7 @@ if (!borrador) {
   L.push('## Reglas de negocio (fuente: `' + path.basename(reglasArg) + '`)', '', '| ✓ | ID | Estado | Regla | Citada en |', '|:-:|---|---|---|---|');
   for (const r of reglas) L.push('| ☐ | ' + r.id + ' | `' + r.estado + '` | ' + trunc(r.regla, 80) + ' | ' + (citadas.has(r.id) ? trunc(citadas.get(r.id).join('; '), 70) : (citables.has(r.id) ? '**sin citar** — ¿falta en el manual?' : 'no citable')) + ' |');
   const pend = reglas.filter(r => !citables.has(r.id));
-  if (pend.length) { L.push('', '### Decisiones pendientes (no aparecen en el manual)', ''); pend.forEach(r => L.push('- **' + r.id + '** `' + r.estado + '` — ' + r.regla + (r.decision ? ' · ' + r.decision : '') + ' → Decide el LP/analista y cambia el estado a `decidida` para poder documentarla.')); }
+  if (pend.length) { L.push('', '### Decisiones pendientes (no aparecen en el manual)', ''); pend.forEach(r => L.push('- **' + r.id + '** `' + r.estado + '` — ' + r.regla + (r.decision ? ' · ' + r.decision : '') + ' → Decide el líder de proyecto o el analista y cambia el estado a `decidida` para poder documentarla.')); }
   const nd = reglas.filter(r => r.estado === 'no_documentada');
   if (nd.length) { L.push('', '### Reglas que el sistema aplica y la fuente no menciona', ''); nd.forEach(r => L.push('- **' + r.id + '** — ' + r.regla + ' → el analista debe agregarla a `reglas_negocio.md`.')); }
   L.push('');
