@@ -77,6 +77,19 @@ Nunca se usan credenciales del cliente que no se entregaron formalmente ni se de
   lecciones del cierre. El avance se mide por requerimientos con pruebas aprobadas, no por archivos creados.
 - **Riesgos** como sección viva del plan: probabilidad, impacto, respuesta y dueño.
 
+## Dentro de la construcción: ciclos cortos con agentes
+Con agentes, una tarea se planea, se implementa y se revisa en horas, no en un bloque de semanas. Las etapas y sus compuertas no cambian;
+cambia el ritmo dentro de la construcción:
+- **Ciclo por tarea:** planear (la tarea de `tasks.md` con su requisito, archivos y prueba), implementar (prueba primero) y revisar
+  (`/review`, `/audit`, verificadores) en el mismo día. Un tercio del tiempo para cada parte es una referencia útil: si la revisión no
+  cabe, la tarea era demasiado grande.
+- **MR pequeños:** un MR por tarea o por pocas tareas relacionadas; uno que nadie puede revisar en una sentada se parte.
+- **Tablero continuo** (más kanban que sprint): la planeación se repite en cada ciclo con lo aprendido; el seguimiento quincenal mide lo
+  terminado y revisado, no lo empezado.
+- **Roles que se solapan:** desarrollo y QA entran desde los requerimientos (QA escribe los casos de aceptación mientras se especifica;
+  desarrollo señala lo que no se puede construir o probar); diseño acompaña la implementación; QA revisa durante la implementación, no
+  solo al final. Cada artefacto sigue teniendo un responsable que lo aprueba.
+
 ## Qué hace el agente en cada etapa
 | Etapa | Sí | No |
 |---|---|---|

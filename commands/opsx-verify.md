@@ -36,7 +36,16 @@ la persona si cambia el alcance) y después el código.
 ⚠️  ADVERTENCIA: test de expiración de token cubre sólo happy path
 ```
 
-### 3. Coherencia
+### 3. Trazabilidad y observabilidad
+¿Cada requisito funcional tiene una prueba que lo cite y una señal que lo demuestre en producción?
+
+```
+✅ RF-01 citado por test_crear_pedido_RF01 · señal: evento de auditoría PEDIDO_CREADO
+❌ RF-03 sin prueba que lo cite (verificador spec_traceability)
+⚠️  RF-02 sin señal de observabilidad en la spec
+```
+
+### 4. Coherencia
 ¿La implementación es consistente con el resto del sistema?
 
 ```

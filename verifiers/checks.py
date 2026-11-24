@@ -480,7 +480,93 @@ def webhooks_fail_closed(root: Path) -> Result:
     return Result("webhooks_fail_closed", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
 
 
+# ----------------------------------------------------------------------------- spec_traceability
+_REQ_ID = re.compile(r"(?<![A-Za-z0-9-])(RF|RQ|REQ|HU|US|CU)-(\d{1,4})(?!\d)")
+
+
+def _spec_files(root: Path) -> List[Path]:
+    """Especificaciones del proyecto: changes/<cambio>/spec.md, docs/specs/**, specs/** y .agent/SPECS.md (sin plantillas)."""
+    out = [f for f in _files(root, (".md",)) if re.search(r"(^|/)(changes/[^/]+/spec\.md|docs/specs/.+|specs/.+)$",
+                                                             str(f.relative_to(root)).replace(os.sep, "/"))]
+    agent = root / ".agent" / "SPECS.md"
+    if agent.exists():
+        out.append(agent)
+    return [f for f in out if "TEMPLATE" not in f.name.upper()]
+
+
+def spec_traceability(root: Path) -> Result:
+    """STATIC: every functional requirement ID (RF-, RQ-, REQ-, HU-, US-, CU-) of an approved specification is cited by at least one test
+    (name, comment or scenario tag such as `@RF-01`; RF01, RF_01 and RF-1 count). Draft specs (state «borrador») are skipped: nothing is
+    built yet. Non-functional requirements (RNF-) are measured, not unit-tested, and are not asked for here."""
+    reqs = {}
+    for f in _spec_files(root):
+        text = f.read_text(encoding="utf-8", errors="replace")
+        state = re.search(r"Estado:?\**\s*:?\s*\**\s*([A-Za-zÁÉÍÓÚáéíóú]+)", text)
+        if state and state.group(1).lower() == "borrador":
+            continue
+        for m in _REQ_ID.finditer(text):
+            reqs.setdefault((m.group(1), int(m.group(2))), f"{m.group(1)}-{m.group(2)}  ({f.relative_to(root)})")
+    if not reqs:
+        return Result("spec_traceability", NO_EVALUADO, "static", ["no hay especificaciones aprobadas con IDs de requisito"], 0)
+    corpus = []
+    for f in _files(root, (".py", ".java", ".kt", ".ts", ".tsx", ".js", ".jsx", ".feature", ".robot", ".cs", ".go")):
+        rel = str(f.relative_to(root))
+        if f.suffix == ".feature" or _is_test(rel):
+            corpus.append(f.read_text(encoding="utf-8", errors="replace"))
+    if not corpus:
+        return Result("spec_traceability", NO_CUMPLE, "static", ["hay requisitos especificados y ninguna prueba en el repositorio"], len(reqs))
+    tests = "\n".join(corpus)
+    missing = [label for (prefix, num), label in sorted(reqs.items())
+               if not re.search(rf"(?i)(?<![a-z0-9]){prefix}[-_]?0*{num}(?!\d)", tests)]
+    return Result("spec_traceability", NO_CUMPLE if missing else CUMPLE, "static",
+                  [f"{m}: ninguna prueba cita este requisito" for m in missing], len(reqs))
+
+
+# ----------------------------------------------------------------------------- observability_min
+_OBS_KINDS = {
+    "spring": {"build": ("pom.xml", "build.gradle", "build.gradle.kts"), "marker": r"spring-boot",
+               "files": (".java", ".kt", ".xml", ".gradle", ".kts", ".properties", ".yml", ".yaml"),
+               "health": r"spring-boot-starter-actuator|Mapping\(\s*(?:value\s*=\s*)?[\"'][^\"']*health",
+               "correlation": r"micrometer-tracing|spring-cloud-sleuth|opentelemetry|MDC\.put\s*\(|X-Request-Id|X-Correlation-Id|traceparent"},
+    "fastapi": {"build": (), "marker": r"FastAPI\(", "files": (".py", ".toml", ".txt", ".cfg"),
+                "health": r"[\"']/[\w/-]*(health|healthz|ready|readiness|live|liveness)[\"']",
+                "correlation": r"opentelemetry|X-Request-Id|X-Correlation-Id|request_id_ctx|correlation_id|asgi-correlation-id|traceparent"},
+    "node": {"build": ("package.json",), "marker": r"\"(express|@nestjs/core|fastify)\"", "files": (".ts", ".js", ".mjs", ".json"),
+             "health": r"[\"'`]/[\w/-]*(health|healthz|ready|readiness|live|liveness)[\"'`]|@nestjs/terminus",
+             "correlation": r"opentelemetry|x-request-id|x-correlation-id|AsyncLocalStorage|cls-rtracer|genReqId|nestjs-cls|traceparent"},
+}
+
+
+def observability_min(root: Path) -> Result:
+    """STATIC: a backend (Spring Boot, FastAPI, Express/NestJS/Fastify) exposes a health check (Actuator or a /health, /ready, /live route)
+    and carries a correlation id through its logs (Micrometer Tracing, OpenTelemetry, MDC, X-Request-Id/X-Correlation-Id/traceparent).
+    Without them a failure in production cannot be told apart from a stopped service, nor one request followed across services
+    (rules/common/observability.md). Structured (JSON) logs are a rule, not checked here. Frontends are not evaluated."""
+    found, bad = [], []
+    for kind, spec in _OBS_KINDS.items():
+        if spec["build"]:
+            present = any(re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace")) for f in _files(root, spec["build"])
+                          if f.name in spec["build"])
+        else:
+            present = any(re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace")) for f in _files(root, (".py",))
+                          if not _is_test(str(f.relative_to(root))))
+        if not present:
+            continue
+        found.append(kind)
+        text = "\n".join(f.read_text(encoding="utf-8", errors="replace") for f in _files(root, spec["files"])
+                         if f.is_file() and not _is_test(str(f.relative_to(root))))
+        if not re.search(spec["health"], text, re.IGNORECASE):
+            bad.append(f"{kind}: sin health check (Actuator o una ruta /health, /ready o /live)")
+        if not re.search(spec["correlation"], text, re.IGNORECASE):
+            bad.append(f"{kind}: sin id de correlación en los logs (Micrometer Tracing, OpenTelemetry, MDC o X-Request-Id)")
+    if not found:
+        return Result("observability_min", NO_EVALUADO, "static", ["no se encontró un backend Spring Boot, FastAPI, Express, NestJS ni Fastify"], 0)
+    return Result("observability_min", NO_CUMPLE if bad else CUMPLE, "static", bad, len(found))
+
+
 REGISTRY: Dict[str, Callable[..., Result]] = {"pk_uuid": pk_uuid, "compose_volumes": compose_volumes, "audit_triggers": audit_triggers,
                                               "endpoints_auth": endpoints_auth, "versions_current": versions_current,
                                               "no_stubs": no_stubs, "tests_isolated": tests_isolated, "no_silent_except": no_silent_except,
-                                              "webhooks_fail_closed": webhooks_fail_closed}
+                                              "webhooks_fail_closed": webhooks_fail_closed,
+                                              "spec_traceability": spec_traceability,
+                                              "observability_min": observability_min}

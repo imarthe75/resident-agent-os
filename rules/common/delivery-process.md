@@ -12,6 +12,11 @@ cambios) está en la skill `metodologia-entrega`.
   «se ve mal» es una observación, no un defecto.
 - Lo nuevo que pide el cliente durante una sesión va a control de cambios; no se acepta en silencio.
 
+## Ritmo con agentes
+- Ciclos cortos por tarea (planear, implementar, revisar el mismo día) y MR pequeños; la planeación se repite en cada ciclo. Detalle en la
+  skill `metodologia-entrega` («Dentro de la construcción»).
+- Los roles se solapan: QA y desarrollo participan desde los requerimientos; la aprobación de cada artefacto sigue siendo de su responsable.
+
 ## Requerimientos
 Unidad: el caso de uso con valor de negocio. Seis campos:
 1. **Nombre:** verbo + resultado de negocio, nunca una pantalla o un botón.

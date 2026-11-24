@@ -22,6 +22,20 @@ Cada requisito en formato EARS, observable desde fuera y sin tecnología: «CUAN
 | RNF-01 | Tiempo de respuesta | < 200ms en P95 |
 | RNF-02 | [seguridad, escalabilidad, etc.] | [métrica] |
 
+## Observabilidad: cómo se sabe en producción que funciona
+
+Por cada requisito funcional, la señal que lo demuestra en ejecución y quién la mira. Sin señal, un requisito solo está probado en el
+ambiente de pruebas.
+
+| ID | Señal (métrica, traza, log estructurado o evento de auditoría) | Dónde se ve | Cuándo alerta |
+|----|------------|-------------|---------------|
+| RF-01 | [p. ej. contador `pedidos_creados_total`, evento de auditoría `PEDIDO_CREADO`] | [tablero, consulta, bitácora] | [p. ej. 0 en 1 h hábil, o > 2 % de errores] |
+
+## Trazabilidad con las pruebas
+
+Cada requisito funcional lo cita al menos una prueba: en su nombre (`crear_pedido_RF01_…`), en un comentario o en la etiqueta del
+escenario (`@RF-01`). El verificador `spec_traceability` lo comprueba; un requisito que ninguna prueba cita queda sin verificar.
+
 ## Restricciones mandatorias
 
 *Las de abajo son las de un proyecto de ejemplo; cámbialas por las de tu organización. Si una tiene verificador, se cita entre paréntesis y `/opsx-verify` la comprueba con `verifiers/run.py`.*

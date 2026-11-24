@@ -285,7 +285,9 @@ Al terminar cada sesión:
 | Motor de heurísticas que no traga errores | valida operadores al cargar; las reglas guarda fallan cerradas | `agent/heuristic_engine.py` |
 | Contrato de spec real | id exacto + estado propio `APROBADO`; requisitos en EARS y convergencia contra la salida real de las pruebas | `agent/specs.py`, `commands/opsx-*.md`, `changes/TEMPLATE-spec.md` |
 | Decisiones tipadas | preguntas cerradas + probabilidad; el código decide con umbrales | `agent/decisions.py`, `.agent/decisions.json` |
-| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO` | `verifiers/` |
+| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO`: PK uuid, auditoría, autorización de endpoints y webhooks fail-closed (FastAPI, Spring, NestJS, Express; rutas públicas declaradas en `.agent/public-routes.txt`), errores silenciados (Python, Java, Kotlin, TypeScript, JavaScript), versiones vigentes (npm, Maven, Gradle, imágenes), stubs, pruebas aisladas, volúmenes en `./data`, trazabilidad requisito ↔ prueba y observabilidad mínima (health check e id de correlación) | `verifiers/` |
+| Observabilidad desde el diseño | cada requisito con la señal que lo demuestra en producción; health check, id de correlación y logs estructurados | `rules/common/observability.md`, `changes/TEMPLATE-spec.md` |
+| Ritmo con agentes | ciclos cortos por tarea (planear, implementar y revisar en horas), MR pequeños y roles que se solapan | `skills/metodologia-entrega/`, `rules/common/delivery-process.md` |
 | Validación humana y compuertas | la IA no firma; cierra alguien distinto | `agent/human_validation.py`, `agent/gates.py`, `.agent/gates/` |
 | Perfil del proyecto | qué reglas aplican (p. ej. accesibilidad solo con interfaz) | `.agent/PROFILE.json`, `agent/profile.py` |
 | Preflight con escáner opcional | hallazgos abiertos de los archivos que vas a tocar | `agent/preflight_client.py`, `skills/preflight/` |
