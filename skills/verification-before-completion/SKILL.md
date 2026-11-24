@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Compuerta antes de declarar algo terminado: ejecutar la verificación, leer la salida real y el diff, y entregar con estado honesto y evidencia.
+description: "Compuerta antes de declarar algo terminado: ejecutar la verificación, leer la salida real y el diff, y entregar con estado honesto y evidencia."
 ---
 
 # Skill: Verification Before Completion

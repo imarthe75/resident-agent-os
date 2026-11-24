@@ -1,6 +1,6 @@
 ---
 name: clean-code-contract
-description: Contrato de generación de código para agentes de IA: lo que se aplica antes de escribir, durante y antes de entregar para que el código no contenga errores ni vulnerabilidades detectables.
+description: "Contrato de generación de código para agentes de IA: lo que se aplica antes de escribir, durante y antes de entregar para que el código no contenga errores ni vulnerabilidades detectables."
 ---
 
 # Contrato de código limpio

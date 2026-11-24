@@ -1,0 +1,58 @@
+# Mutation testing en merge requests (skill pruebas-mutacion). Incluir desde el .gitlab-ci.yml del proyecto:
+#   include:
+#     - local: ci/mutation-testing.gitlab-ci.yml
+# Solo muta lo que cambió el MR; la corrida completa va en un pipeline programado (MUTATION_FULL=1).
+# Imágenes con etiqueta fija: reemplaza <version> por la vigente (rules/common/versions.md); nunca :latest.
+# Sin allow_failure: si el puntaje baja del umbral, el MR no pasa (skill pruebas-mutacion, regla 2).
+
+mutation:java:
+  rules:                                          # solo en proyectos Gradle
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      exists: [build.gradle, build.gradle.kts]
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $MUTATION_FULL == "1"'
+      exists: [build.gradle, build.gradle.kts]
+  stage: test
+  image: eclipse-temurin:<version>-jdk
+  timeout: 45m
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        git fetch --depth=200 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        targets=$(git diff --name-only "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD -- 'src/main/java/**/*.java' \
+                  | sed -e 's#^src/main/java/##' -e 's#\.java$##' -e 's#/#.#g' | paste -sd, -)
+        if [ -z "$targets" ]; then echo "Sin clases Java de producción cambiadas: nada que mutar."; exit 0; fi
+        ./gradlew pitest -PpitTargets="$targets"
+      else
+        ./gradlew pitest
+      fi
+  artifacts:
+    when: always
+    paths:
+      - build/reports/pitest/
+    expire_in: 14 days
+
+mutation:angular:
+  rules:                                          # solo en proyectos con Stryker configurado
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      exists: [stryker.config.json, stryker.conf.json, stryker.config.mjs]
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $MUTATION_FULL == "1"'
+      exists: [stryker.config.json, stryker.conf.json, stryker.config.mjs]
+  stage: test
+  image: node:<version>-slim
+  timeout: 45m
+  script:
+    - npm ci
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        git fetch --depth=200 origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        files=$(git diff --name-only "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD -- 'src/app/**/*.ts' | grep -v '\.spec\.ts$' | paste -sd, -)
+        if [ -z "$files" ]; then echo "Sin archivos TypeScript de producción cambiados: nada que mutar."; exit 0; fi
+        npx stryker run --mutate "$files"
+      else
+        npx stryker run
+      fi
+  artifacts:
+    when: always
+    paths:
+      - reports/mutation/
+    expire_in: 14 days

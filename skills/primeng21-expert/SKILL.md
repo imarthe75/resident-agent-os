@@ -1,6 +1,6 @@
 ---
 name: primeng21-expert
-description: Punto de entrada para trabajar en el frontend Angular 21 + PrimeNG 21 + Tailwind 4 de la plantilla base: reglas base (inject(), señales, control de flujo @if/@for, sin any) y tabla de qué skill de generación cargar según la tarea.
+description: "Punto de entrada para trabajar en el frontend Angular 21 + PrimeNG 21 + Tailwind 4 de la plantilla base: reglas base (inject(), señales, control de flujo @if/@for, sin any) y tabla de qué skill de generación cargar según la tarea."
 ---
 
 # Skill: PrimeNG 21 Specialist

@@ -57,6 +57,11 @@ Antes de escribir el `.feature`, el agente debe revisar:
 - [ ] **Propiedad del recurso:** ¿Un usuario puede ver o editar registros de otra unidad/dueño? (escenario que debe responder 404).
 
 > **Si alguna de estas reglas no está clara:** El agente debe formular preguntas precisas al usuario para despejar ambigüedades.
+> Como máximo **5 preguntas, juntas en un solo mensaje**, y solo las que cambian el alcance o la regla de negocio; lo demás lo decide el
+> agente y lo anota en la especificación como supuesto, para que el usuario lo vea y lo corrija.
+>
+> **Especificación viva:** si el código o una prueba contradice la especificación, primero se corrige la especificación (con el usuario,
+> si cambia el alcance) y después el código. Nunca se ajusta el `.feature` para que pase un código que no cumple la regla.
 
 ---
 

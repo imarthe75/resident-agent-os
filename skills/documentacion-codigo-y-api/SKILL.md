@@ -88,11 +88,18 @@ Cada migración que crea o cambia un objeto lleva su `COMMENT ON`; el diccionari
   dependencia o estándar.
 - Documentos redactados como versión vigente, con fecha y fuente en las cifras (skill `reglas-globales` §3).
 
+**Prueba de lectura (README, ADR, manuales, entregables).** Antes de publicar un documento que leerá otra persona, dáselo a un agente
+nuevo **sin el contexto de la conversación** (subagente o sesión nueva, skill `delegacion-subagentes`) junto con 5–10 preguntas que haría su
+lector real («¿cómo levanto el servicio?», «¿qué pasa si falla X?»). Pídele también que señale ambigüedades, supuestos no dichos y
+contradicciones. Lo que no pudo responder solo con el documento es un hueco: se corrige el documento, no la respuesta. Con datos de un
+cliente, el agente de prueba debe cumplir la misma política de datos que el autor.
+
 ## Checklist
 - [ ] API pública con Javadoc/TSDoc (qué hace, parámetros, retorno, errores, regla de negocio).
 - [ ] Cada endpoint: `@Operation` + `@ApiResponses` con ejemplos de éxito y de cada error; DTOs con `@Schema`.
 - [ ] Migración con `COMMENT ON` de tabla, columnas y restricciones.
 - [ ] README del módulo y ADR actualizados si aplica.
+- [ ] Documento para otras personas con prueba de lectura hecha y sus huecos corregidos.
 
 ## Reglas del escáner que esta skill evita
 `API-NO-CONTRACT`, `API-ENDPOINT-UNDOCUMENTED`.

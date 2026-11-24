@@ -1,6 +1,6 @@
 ---
 name: backend-base-spring
-description: Reglas base obligatorias para cualquier cambio de backend Spring Boot (plantilla base, Spring Boot 4 / Java 21) — capas Controller->Service->Repository, autorización por método, DTOs validados, ResponseDto, concurrencia optimista, manejo de errores sin fuga de información y logging seguro. Úsala al generar o revisar controller, service, repository, dto o configuración.
+description: Reglas base obligatorias para cualquier cambio de backend Spring Boot (plantilla base, Spring Boot 4 / Java 21) — capas Controller→Service→Repository, autorización por método, DTOs validados, ResponseDto, concurrencia optimista, manejo de errores sin fuga de información y logging seguro. Úsala al generar o revisar controller, service, repository, dto o configuración.
 ---
 
 # Backend Base Spring

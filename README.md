@@ -225,7 +225,12 @@ El framework implementa los 10 principios de Nielsen y heurísticas de Sweller e
 python scripts/distribute_framework.py --target /ruta/al/nuevo-proyecto
 ```
 
-Copia `.agent/`, `rules/`, `skills/`, `commands/`, `contexts/`, `hooks/` al proyecto destino.
+Copia `.agent/`, `agents/`, `rules/`, `skills/`, `commands/`, `contexts/`, `hooks/`, `verifiers/`, `prompts/` y `templates/` (lista completa en `ITEMS` del script) al proyecto destino.
+
+**Claude Code y Gemini CLI con las mismas skills.** El formato `SKILL.md` es el mismo en ambos: copia `skills/` a `.claude/skills/` (Claude
+Code) y a `.agents/skills/` (Gemini CLI, que también lee `.gemini/skills/`). Copia `agents/*.md` a `.claude/agents/` para usarlos como
+subagentes de Claude Code. Para que Gemini CLI lea `AGENTS.md` (por omisión solo lee `GEMINI.md`), copia
+`templates/.gemini/settings.json` a la raíz del proyecto. No hace falta ninguna extensión para compartir las skills.
 
 ---
 
@@ -254,6 +259,18 @@ Al terminar cada sesión:
 4. Verificar que `docker compose ps` muestra todos los servicios running
 
 ---
+
+## Novedades 2.8
+- **Mutation testing** (`skills/pruebas-mutacion`, `templates/ci/mutation-testing.gitlab-ci.yml`): PIT y Stryker solo sobre lo que cambia el MR,
+  umbral que solo sube.
+- **Delegación a subagentes** (`skills/delegacion-subagentes`): encargo completo, entrega por archivo, límite de reintentos y verificación.
+- **Revisores de solo lectura con veredicto único** (`agents/`): APTO / APTO CON OBSERVACIONES / NO APTO con severidad P0–P4; los cuatro
+  agentes tienen encabezado para usarse como subagentes de Claude Code.
+- **Especificación viva** y preguntas acotadas (máximo 5) en `bdd-spec-driven-development`, `writing-plans` y `agents/planner.md`.
+- **Prueba de lectura** de documentos con un agente sin contexto (`documentacion-codigo-y-api`).
+- **Formato Agent Skills verificado** (`tests/test_skill_descriptions.py`): YAML estricto, `name` igual a la carpeta; se corrigieron 8 skills
+  cuyo encabezado era YAML inválido. Guía para escribir skills en `skills/README.md`.
+- **Gemini CLI**: `templates/.gemini/settings.json` para que lea `AGENTS.md`; las skills se comparten en `.agents/skills/`.
 
 ## Novedades 2.3
 

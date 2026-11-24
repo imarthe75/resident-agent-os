@@ -1,6 +1,6 @@
 ---
 name: using-git-worktrees
-description: Trabajo en paralelo con git worktrees: un árbol aislado por tarea o rama, línea base verde antes de cambiar y limpieza al terminar.
+description: "Trabajo en paralelo con git worktrees: un árbol aislado por tarea o rama, línea base verde antes de cambiar y limpieza al terminar."
 ---
 
 # Skill: Using Git Worktrees

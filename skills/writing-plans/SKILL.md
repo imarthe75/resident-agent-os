@@ -86,6 +86,8 @@ Todo plan debe contemplar las restricciones del proyecto (las de abajo son un ej
 3. **Auth middleware** en endpoints sensibles
 4. **Test antes de código** (TDD obligatorio)
 5. **Verificación de salud** al final del plan
+6. **Especificación viva**: si el código contradice la especificación o el plan, se actualiza primero el documento (con el usuario si cambia el alcance) y después el código
+7. **Pruebas de mutación** sobre lo que cambia, si el proyecto las tiene configuradas (`pruebas-mutacion`)
 
 ---
 

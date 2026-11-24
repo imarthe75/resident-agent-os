@@ -1,5 +1,5 @@
 ---
-name: postgres-audit-setup
+name: postgres-audit
 description: Instalar, habilitar y verificar la auditoría estándar de PostgreSQL (bitácora de solo inserción con hash encadenado) mediante el instalador único.
 ---
 
