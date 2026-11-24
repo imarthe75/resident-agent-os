@@ -41,14 +41,32 @@ function getFilePath() {
   return null;
 }
 
+// compile() only parses: `python -m py_compile` would also write a __pycache__/*.pyc next to the edited file.
+const PY_CHECK = "import sys; compile(open(sys.argv[1], encoding='utf-8').read(), sys.argv[1], 'exec')";
+
+/** Runs the first Python interpreter found; returns false when there is none (ENOENT), so a missing tool never blocks an edit. */
+function runPython(args) {
+  for (const bin of ["python3", "python"]) {
+    try {
+      execFileSync(bin, args, { stdio: "pipe" });
+      return true;
+    } catch (e) {
+      if (e.code === "ENOENT") continue;
+      throw e;
+    }
+  }
+  return false;
+}
+
 function checkSyntax(filePath) {
   const ext = path.extname(filePath);
 
   try {
     if (ext === ".py") {
-      execFileSync("python3", ["-m", "py_compile", filePath], {
-        stdio: "pipe",
-      });
+      if (!runPython(["-c", PY_CHECK, filePath])) {
+        console.warn(`[post-edit] ⚠️  ${filePath} — no Python interpreter found, syntax not checked`);
+        return true;
+      }
       console.log(`[post-edit] ✅ ${filePath} — syntax OK`);
       return true;
     } else if ([".js", ".mjs", ".cjs"].includes(ext)) {

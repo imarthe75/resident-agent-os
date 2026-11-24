@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: "Ciclo rojo-verde-refactor: primero la prueba que falla, el código mínimo que la pasa y refactor en verde; toda regla con un caso que pasa y otro que falla."
+description: "Ciclo rojo-verde-refactor: escribir primero la prueba que falla, el código mínimo que la pasa y refactorizar en verde; toda regla o validación con un caso que debe pasar y otro que debe fallar."
 ---
 
 # Skill: Test-Driven Development (TDD)

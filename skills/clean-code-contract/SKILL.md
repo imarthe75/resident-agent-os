@@ -8,6 +8,7 @@ description: "Contrato de generación de código para agentes de IA: lo que se a
 **Cuándo aplicar:** siempre que generes o modifiques código de una aplicación.
 
 ## Antes de escribir
+0. Cuando la escala de eficiencia (`rules/common/efficiency.md`) sugiera «la solución más simple», nunca se salta una regla obligatoria (capas, autorización, validación, auditoría, pruebas): lo simple se busca dentro de esas reglas.
 1. Identifica el stack (backend Java/Python, frontend Angular/React, SQL, Docker/CI) y aplica de memoria `rules/<stack>/` y `rules/common/`.
 2. Escribe primero la prueba: un caso que debe fallar y otro que debe pasar (`skills/test-driven-development`).
 
@@ -27,6 +28,7 @@ description: "Contrato de generación de código para agentes de IA: lo que se a
 | HTML sin etiquetas accesibles (`alt`, `label`, `lang`) | texto alternativo, etiquetas y atributos de accesibilidad |
 | `any` en TypeScript, `setTimeout` para sincronizar, métodos pesados en plantillas | tipos reales, señales/`computed` |
 | pruebas que borran datos compartidos | base desechable y variables de prueba exclusivas |
+| datos simulados, respuestas fijas o maquetas en el código de la aplicación (servicios, controladores, componentes) | la llamada real al backend o al servicio; mocks solo en pruebas o en un simulador de ambiente local (`rules/common/honesty.md` §1.1) |
 
 ## Antes de entregar
 1. Corre las pruebas y `python verifiers/run.py`; lee el `git diff` real.

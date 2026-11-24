@@ -64,7 +64,7 @@ Dependiendo de lo que el usuario solicite, usted DEBE cargar y aplicar las regla
 | **Autenticación / permisos en la vista** | `../frontend-auth-oidc/SKILL.md` |
 | **Diseño de una pantalla nueva** | `../frontend-heuristicas-usabilidad/SKILL.md` |
 | **Pruebas de interfaz (Playwright)** | `../bdd-frontend-playwright/SKILL.md` |
-| **Reglas Angular verificables** | `../clean-code-contract/references/angular.md` |
+| **Reglas Angular verificables** | `rules/angular/rules.md` |
 | **Finalizar Tarea**        | `../generacion-documentacion/SKILL.md` (Siempre al terminar) y `../verification-before-completion/SKILL.md` |
 
 ## 7. Reglas de Oro del Frontend (Angular 21 / PrimeNG 21)

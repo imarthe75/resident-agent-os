@@ -178,7 +178,7 @@ def _mm(v):
 
 def versions_current(root: Path, resolved=None) -> Result:
     """A project's manifests use the CURRENT versions (the ones scripts/latest_versions.py resolves today). Examined: package.json (Angular,
-    React, TypeScript majors), pom.xml (java release, Spring Boot parent), Dockerfile FROM (node, python, eclipse-temurin) and compose images
+    React, TypeScript majors), pom.xml and build.gradle(.kts) (Java release or toolchain, Spring Boot), Dockerfile FROM (node, python, eclipse-temurin) and compose images
     (postgres, pgvector, valkey). A tool whose current version could not be resolved (offline) is reported, never assumed current.
     Behind by one MAJOR (or, for Spring Boot/Python, one minor line) is NO_CUMPLE; exact patch lag is not."""
     cur = _resolved_versions(resolved)
@@ -207,6 +207,15 @@ def versions_current(root: Path, resolved=None) -> Result:
             if pkg in deps:
                 cmp_major(pkg, str(f.relative_to(root)), re.sub(r"^[\^~>=<\s]+", "", str(deps[pkg])), tool)
 
+    def cmp_boot(rel, found):
+        nonlocal checked
+        if not cur.get("spring-boot", {}).get("version"):
+            unresolved.add("spring-boot")
+            return
+        checked += 1
+        if _mm(found) < _mm(cur["spring-boot"]["version"]):
+            bad.append(f"{rel}: Spring Boot {found} (vigente: {cur['spring-boot']['version']})")
+
     for f in _files(root, ("pom.xml",)):
         text = f.read_text(encoding="utf-8", errors="replace")
         rel = str(f.relative_to(root))
@@ -214,12 +223,19 @@ def versions_current(root: Path, resolved=None) -> Result:
         if m:
             cmp_major("Java", rel, m.group(1), "java")
         m = re.search(r"<parent>.*?spring-boot-starter-parent.*?<version>\s*([\d.]+)", text, re.DOTALL)
-        if m and cur.get("spring-boot", {}).get("version"):
-            checked += 1
-            if _mm(m.group(1)) < _mm(cur["spring-boot"]["version"]):
-                bad.append(f"{rel}: Spring Boot {m.group(1)} (vigente: {cur['spring-boot']['version']})")
-        elif m:
-            unresolved.add("spring-boot")
+        if m:
+            cmp_boot(rel, m.group(1))
+
+    # Gradle (Groovy and Kotlin DSL): plugin `org.springframework.boot` and the Java toolchain / source compatibility.
+    for f in _files(root, ("build.gradle", "build.gradle.kts")):
+        text = f.read_text(encoding="utf-8", errors="replace")
+        rel = str(f.relative_to(root))
+        m = re.search(r"JavaLanguageVersion\.of\(\s*(\d+)\s*\)|(?:source|target)Compatibility\s*=\s*(?:JavaVersion\.VERSION_|['\"])?(\d+)", text)
+        if m:
+            cmp_major("Java", rel, m.group(1) or m.group(2), "java")
+        m = re.search(r"""id\s*\(?\s*['"]org\.springframework\.boot['"]\s*\)?\s*version\s*['"]([\d.]+)""", text)
+        if m:
+            cmp_boot(rel, m.group(1))
 
     for f in _files(root, ("Dockerfile", ".dockerfile")) + [p for p in _files(root, (".yml", ".yaml")) if "compose" in p.name.lower()]:
         text = f.read_text(encoding="utf-8", errors="replace")

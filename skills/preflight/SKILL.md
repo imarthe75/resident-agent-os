@@ -14,7 +14,12 @@ GET {PREFLIGHT_URL}/api/preflight?asset=<activo>&paths=ruta/a.java,ruta/b.ts
 
 ## Pasos
 1. Lista los archivos que la tarea va a modificar (rutas relativas al repositorio) y el nombre del activo en el escáner.
-2. Ejecuta: `python -c "from agent.preflight_client import query, summarize; print(summarize(query('<activo>', ['<ruta1>','<ruta2>'])))"`
+2. Consulta el escáner:
+   ```bash
+   curl -sf -G "$PREFLIGHT_URL/api/preflight" --data-urlencode "asset=<activo>" --data-urlencode "paths=<ruta1>,<ruta2>" \
+        ${PREFLIGHT_TOKEN:+-H "Authorization: Bearer $PREFLIGHT_TOKEN"}
+   ```
+   Dentro del repositorio del framework también sirve el cliente `agent.preflight_client` (`query`, `summarize`).
 3. Lee el resultado con estas reglas:
    - **«Sin hallazgos» no es «limpio»**: solo que ningún motor marcó ese archivo en el último escaneo. Revisa `engines_seen` y la fecha.
    - **Activo desconocido o servicio caído** = sin información. Dilo; no lo trates como cero hallazgos.

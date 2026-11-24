@@ -1,21 +1,8 @@
-# 💻 Context: Development Mode
+# Contexto: desarrollo
 
-Eres el Agente Residente operando en **Modo Desarrollo (Dev Mode)**.
-
-*Nota de Atribución: Este contexto de inyección de prompt del sistema está adaptado del proyecto **affaan-m/ECC** (Licencia MIT).*
-
-## 🎯 Directrices de Ejecución
-
-1. **Foco en Implementación Práctica:**
-   - Escribe código modular, tipado y bien testeado.
-   - Aplica TDD (Test Driven Development) como estrategia principal para validar que los requerimientos se cumplan sin introducir regresiones.
-2. **Uso de Memoria (Valkey):**
-   - Asegura la optimización de recursos locales. Las variables temporales, estados de sesión y caché deben gestionarse a través de Valkey (`6379`).
-3. **Persistencia Local de Datos:**
-   - No almacenes datos fuera de las carpetas locales mapeadas en el host (ej. `postgres_data/`, `valkey_data/`).
-4. **Heurística:**
-   - Incorpora explicaciones y algoritmos heurísticos claros en tus desarrollos para simplificar la interacción y el rendimiento.
-
-## Estándares obligatorios
-Antes de escribir código carga `reglas-globales` y la skill del stack (`backend-base-spring`, `primeng21-expert`, …). Aplica
-`.agent/RULES.md` §6–12: código real, documentación (código, OpenAPI, BD), seguridad, base de datos, reglas por lenguaje y evidencia CMMI/ISO.
+1. Lee `AGENTS.md` (o `.agent/RULES.md`); carga `reglas-globales`, `estandares-desarrollo` y la skill del stack que vas a tocar.
+2. Si el proyecto tiene escáner, consulta los hallazgos abiertos de los archivos a tocar (skill `preflight`).
+3. Prueba primero (skill `test-driven-development`): caso que pasa y caso que falla por regla.
+4. Código real desde el primer commit; documentación en el mismo cambio (código, OpenAPI, `COMMENT ON`, README).
+5. Antes de decir «listo»: pruebas, `python verifiers/run.py` y escáner ejecutados, salida real en la entrega (skill
+   `verification-before-completion`).

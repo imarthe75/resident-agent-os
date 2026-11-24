@@ -106,5 +106,5 @@ Si el override es deseado para **toda la aplicación** (por ejemplo, estandariza
 - [ ] ¿Se intentó aplicar el layout usando las clases PrimeFlex de Angular antes de recurrir a CSS personalizado?
 
 ## Reglas del escáner que esta skill evita
-`WCAG-2.4.7-FOCUS-OUTLINE-REMOVED`.
+`WCAG-2.4.7-FOCUS-OUTLINE-REMOVED`, `WCAG-<criterio>-AXE-*`.
 Corrección de cada una y el resto del catálogo: skill `prevencion-hallazgos-seguridad-calidad`.

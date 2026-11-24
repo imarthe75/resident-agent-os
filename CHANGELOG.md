@@ -2,6 +2,15 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.14.0
+- **Subagentes y contextos** reescritos sin directivas propias del entorno del framework (Valkey, persistencia en `./data`): revisión por lista con archivo:línea, verificadores y escáner antes de aprobar; arquitecto que entrega un ADR; planificador con trazabilidad al requisito.
+- **`preflight`** consulta el escáner con `curl` (el cliente `agent.preflight_client` solo existe dentro del repositorio del framework).
+- **`rules/python`**: conexiones con pool y descarte de conexiones muertas, excepciones con traza, parches validados y SQL parametrizado.
+- `blueprint`, `clean-code-contract` y las descripciones de `systematic-debugging`, `test-driven-development`, `using-git-worktrees` y `verification-before-completion` dicen cuándo usarlas; `generacion-estilos` cita las reglas de accesibilidad renderizada.
+- **Hook `post-edit.js`**: sin intérprete de Python ya no bloquea la edición de un `.py` (antes lo reportaba como error de sintaxis) y valida con `compile()` en lugar de `py_compile`, que dejaba un `__pycache__` junto al archivo editado.
+- **`versions_current`** lee también `build.gradle` y `build.gradle.kts` (plugin de Spring Boot y toolchain o compatibilidad de Java); antes un backend Gradle quedaba sin evaluar.
+- `primeng21-expert` remite a `rules/angular/rules.md`; `tests/test_skill_references.py` comprueba que las rutas dentro de una skill y las skills citadas existan.
+
 ## 2.13.0
 - **Plantillas de la metodología** (`skills/metodologia-entrega/plantillas/`): 21 entregables en Markdown con la convención de quién llena cada sección, pendientes y firmas; `verificar_entregable.py` y `render_docx.mjs` (generador `.docx` con identidad configurable y las mismas compuertas).
 

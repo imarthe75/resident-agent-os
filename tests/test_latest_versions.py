@@ -246,6 +246,14 @@ class TestVerifier(unittest.TestCase):
         for expected in ("@angular/core 20.3.0", "typescript 5.9.2", "Spring Boot 3.5.9", "Java 17", "python:3.12", "node (imagen) 20", "postgres (imagen) 15", "valkey (imagen) 8"):
             self.assertIn(expected, text)
 
+    def test_gradle_groovy_and_kotlin_are_read(self):
+        ok = self.run_v({"build.gradle": "plugins {\n  id 'org.springframework.boot' version '4.1.1'\n}\njava { toolchain { languageVersion = JavaLanguageVersion.of(25) } }\n"})
+        self.assertEqual((ok.status, ok.checked), (c.CUMPLE, 2))
+        old = self.run_v({"api/build.gradle.kts": 'plugins {\n  id("org.springframework.boot") version "3.5.9"\n}\njava { sourceCompatibility = JavaVersion.VERSION_17 }\n'})
+        self.assertEqual(old.status, c.NO_CUMPLE)
+        self.assertIn("Spring Boot 3.5.9", "\n".join(old.detail))
+        self.assertIn("Java 17", "\n".join(old.detail))
+
     def test_unresolvable_current_version_is_never_assumed_current(self):
         none = {k: {"version": None} for k in CUR}
         r = self.run_v({"package.json": json.dumps({"dependencies": {"@angular/core": "^22.0.0"}})}, none)
