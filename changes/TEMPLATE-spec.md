@@ -28,7 +28,7 @@ Cada requisito en formato EARS, observable desde fuera y sin tecnología: «CUAN
 
 - [ ] PKs: UUID v7 (`uuidv7()` en PG 18+) (verificador: `pk_uuid`)
 - [ ] Audit triggers en tablas nuevas con mutaciones (verificador heurístico: `audit_triggers`)
-- [ ] Autenticación en endpoints que modifican datos (verificador heurístico, solo FastAPI: `endpoints_auth`)
+- [ ] Autenticación en endpoints que modifican datos (verificador heurístico `endpoints_auth`: FastAPI, Spring, NestJS y Express; las rutas públicas a propósito van en `.agent/public-routes.txt`)
 - [ ] Fallback local si servicio externo no disponible
 - [ ] Volúmenes de servicios con estado mapeados a `./data/` (verificador: `compose_volumes`)
 

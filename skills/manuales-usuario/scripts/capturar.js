@@ -63,12 +63,12 @@ async function login() {
       await page.waitForTimeout(1000); continue;
     }
     // Sin patrón: se guarda cada segundo mientras la pestaña está abierta; al cerrarla queda la última foto.
-    const cerrada = await page.waitForEvent('close', { timeout: 1000 }).then(() => true).catch(() => false);
+    const cerrada = await page.waitForEvent('close', { timeout: 1000 }).then(() => true).catch(() => false);  // sin evento de cierre en 1 s = la ventana sigue abierta
     if (cerrada) break;
     try { await guardar(); guardada = true; } catch (_) {}
   }
   if (guardada) aviso(); else console.log('✖ No se guardó la sesión (tiempo agotado).');
-  await browser.close().catch(() => {});
+  await browser.close().catch(() => {});  // el navegador ya pudo cerrarse solo
 }
 
 // ---------- Acciones ----------
@@ -90,12 +90,12 @@ async function accion(page, a) {
 async function resaltar(page, sels) {
   const hs = [];
   for (const s of [].concat(sels || [])) {
-    const h = await loc(page, s).elementHandle({ timeout: 5000 }).catch(() => null);
+    const h = await loc(page, s).elementHandle({ timeout: 5000 }).catch(() => null);  // un selector que no aparece se reporta abajo como faltante
     if (!h) { console.log('   ⚠ No encontré para resaltar: ' + s); continue; }
     await h.evaluate((el, o) => { el.dataset._muOutline = el.style.outline; el.dataset._muOffset = el.style.outlineOffset; el.style.outline = o.g + 'px solid ' + o.c; el.style.outlineOffset = '2px'; }, { c: color, g: grosor });
     hs.push(h);
   }
-  return async () => { for (const h of hs) await h.evaluate(el => { el.style.outline = el.dataset._muOutline || ''; el.style.outlineOffset = el.dataset._muOffset || ''; }).catch(() => {}); };
+  return async () => { for (const h of hs) await h.evaluate(el => { el.style.outline = el.dataset._muOutline || ''; el.style.outlineOffset = el.dataset._muOffset || ''; }).catch(() => {}); };  // el elemento pudo desaparecer tras la captura; no hay nada que restaurar
 }
 
 async function capturas() {
@@ -115,7 +115,7 @@ async function capturas() {
     if (solo && solo !== true && String(e.id) !== String(solo)) continue;
     if (e.modo === 'extension' || (G.modo === 'extension' && e.modo !== 'auto')) { console.log('· ' + e.id + ' ' + e.archivo + ': modo extensión (usa scripts/tools/captura_ext.js)'); continue; }
     try {
-      if (e.ruta && !e.continuar) { await page.goto(new URL(e.ruta, G.base_url).toString()); await page.waitForLoadState('networkidle').catch(() => {}); }
+      if (e.ruta && !e.continuar) { await page.goto(new URL(e.ruta, G.base_url).toString()); await page.waitForLoadState('networkidle').catch(() => {}); }  // una página con conexiones persistentes nunca queda «networkidle»: la espera es opcional
       for (const a of e.acciones || []) await accion(page, a);
       await page.waitForTimeout(e.pausa !== undefined ? e.pausa : (G.pausa || 400));
       const quitar = await resaltar(page, e.resaltar);

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Callable, Dict, List
 
 CUMPLE, NO_CUMPLE, NO_EVALUADO = "CUMPLE", "NO_CUMPLE", "NO_EVALUADO"
-SKIP_DIRS = {".git", "node_modules", "target", "build", "dist", "__pycache__", ".venv", "venv", "data"}
+SKIP_DIRS = {".git", "node_modules", "target", "build", "dist", "__pycache__", ".venv", "venv", "data", ".angular", ".next", ".nuxt", "coverage", ".cache"}
 
 
 @dataclass
@@ -133,9 +133,43 @@ def audit_triggers(root: Path) -> Result:
 _ROUTE_PY = re.compile(r"^@(?:\w+)\.(get|post|put|patch|delete)\(\s*[\"']([^\"']+)", re.MULTILINE)
 
 
+def _stack_routes(root: Path):
+    """(archivo relativo, Route) de Spring (Java/Kotlin), NestJS y Express."""
+    from verifiers import stacks
+    java = [f for f in _files(root, stacks.JAVA_SUFFIXES)
+            if not _is_test(str(f.relative_to(root)))]
+    js = [f for f in _files(root, stacks.JS_SUFFIXES)
+          if stacks.is_source(f.name, stacks.JS_SUFFIXES, str(f.relative_to(root))) and not _is_test(str(f.relative_to(root)))]
+    js_text = {f: f.read_text(encoding="utf-8", errors="replace") for f in js}
+    global_guard = stacks.find_global_nest_guard(list(js_text.values()))
+    for f in java:
+        for r in stacks.spring_routes(f.read_text(encoding="utf-8", errors="replace")):
+            yield str(f.relative_to(root)), r
+    for f, text in js_text.items():
+        routes = list(stacks.nest_routes(text, global_guard)) if "@Controller(" in text else list(stacks.express_routes(text))
+        for r in routes:
+            yield str(f.relative_to(root)), r
+
+
+def _declared_public(root: Path, method: str, path: str) -> bool:
+    """La ruta está en `.agent/public-routes.txt` (pública a propósito, con su motivo)."""
+    from verifiers import stacks
+    f = root / ".agent" / "public-routes.txt"
+    if not f.exists():
+        return False
+    return any((not m or m == method) and rx.match(path) for m, rx in stacks.public_routes(f.read_text(encoding="utf-8", errors="replace")))
+
+
 def endpoints_auth(root: Path, auth_regex: str = None) -> Result:
-    """HEURISTIC, FastAPI only: every mutating route (post/put/patch/delete) declares an authentication dependency matching AUTH_REGEX
-    (default: Depends(<name containing auth|user|token|oidc|principal|require>)). Other frameworks are NOT evaluated (not guessed)."""
+    """HEURISTIC: every mutating route (POST/PUT/PATCH/DELETE) declares its authentication or authorization.
+    FastAPI: a dependency matching AUTH_REGEX (default: Depends(<name containing auth|user|token|oidc|principal|require|verify>)).
+    Spring (Java/Kotlin): @PreAuthorize/@Secured/@RolesAllowed/@DenyAll on the method or the class, or else the first matching URL rule of the
+    security configuration (requestMatchers/antMatchers/pathMatchers, Kotlin `authorize(...)`, then anyRequest()), as Spring evaluates them.
+    NestJS: @UseGuards on the method or class, or a global guard (APP_GUARD / useGlobalGuards).
+    A route that is public on purpose (login, registration, a signed callback) goes in `.agent/public-routes.txt`, one per line:
+    `[METHOD] /path/pattern  # reason` (lines without a reason are ignored). permitAll/@PermitAll/@Public() routes not listed there fail.
+    Express: an auth-named middleware in the route or an earlier `app.use`/`router.use` with one in the same file.
+    Frontends (Angular, React) expose no server endpoints: they are not evaluated here. Other frameworks are NOT guessed."""
     rx = re.compile(auth_regex or os.getenv("AUTH_REGEX", r"Depends\(\s*\w*(auth|user|token|oidc|principal|require|verify)\w*"), re.IGNORECASE)
     bad, checked = [], 0
     for f in _files(root, (".py",)):
@@ -148,10 +182,29 @@ def endpoints_auth(root: Path, auth_regex: str = None) -> Result:
             block = text[m.start(): end if end != -1 else len(text)]
             sig_end = block.find("):")
             signature = block[: sig_end if sig_end != -1 else min(len(block), 600)]
-            if not rx.search(m.group(0) + signature):
+            if not rx.search(m.group(0) + signature) and not _declared_public(root, m.group(1).upper(), m.group(2)):
                 bad.append(f"{f.relative_to(root)}: {m.group(1).upper()} {m.group(2)} sin dependencia de autenticación reconocible")
+    from verifiers import stacks
+    java_texts = [f.read_text(encoding="utf-8", errors="replace") for f in _files(root, stacks.JAVA_SUFFIXES) if not _is_test(str(f.relative_to(root)))]
+    rules, fallback = stacks.spring_security_rules(java_texts)
+    for rel, r in _stack_routes(root):
+        if r.method not in ("POST", "PUT", "PATCH", "DELETE", "ANY", "ALL"):
+            continue
+        checked += 1
+        decision = "authorized" if r.authorized else ("public" if r.public else "")
+        if r.framework == "spring" and not decision:
+            decision = stacks.url_decision(rules, fallback, r.method, r.path)
+        if decision == "authorized" or _declared_public(root, r.method, r.path):
+            continue
+        if decision == "public":
+            bad.append(f"{rel}:{r.line}: {r.method} {r.path} ({r.framework}) es pública (permitAll/@Public) y no está en .agent/public-routes.txt")
+        else:
+            need = {"spring": "@PreAuthorize/@Secured/@RolesAllowed ni regla de la configuración de seguridad",
+                    "nestjs": "@UseGuards ni guard global", "express": "middleware de autenticación"}[r.framework]
+            bad.append(f"{rel}:{r.line}: {r.method} {r.path} ({r.framework}) sin {need}")
     if checked == 0:
-        return Result("endpoints_auth", NO_EVALUADO, "heuristic", ["no se encontraron rutas mutantes de FastAPI (otros frameworks no se evalúan)"], 0)
+        return Result("endpoints_auth", NO_EVALUADO, "heuristic",
+                      ["no se encontraron rutas mutantes de FastAPI, Spring, NestJS ni Express (otros frameworks no se evalúan)"], 0)
     return Result("endpoints_auth", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
 
 
@@ -284,7 +337,9 @@ _TEST_FILE = re.compile(r"(^|/)(test_[^/]*\.py|[^/]*_test\.py|conftest\.py|[^/]*
 
 
 def _is_test(rel: str) -> bool:
-    return bool(_TEST_FILE.search(rel.replace(os.sep, "/"))) or "/tests/" in "/" + rel.replace(os.sep, "/")
+    r = "/" + rel.replace(os.sep, "/")
+    return bool(_TEST_FILE.search(r[1:])) or "/tests/" in r or "/src/test/" in r or "/__tests__/" in r \
+        or bool(re.search(r"(Test|Tests|IT)\.(java|kt)$", r))
 
 
 def _py_modules(root: Path):
@@ -354,8 +409,12 @@ def tests_isolated(root: Path) -> Result:
 
 
 def no_silent_except(root: Path) -> Result:
-    """STATIC (Python AST): an `except` that catches everything (bare, Exception, BaseException) must re-raise, log the traceback (logger.*, logging.*,
-    traceback.print_exc, exc_info=True) or return an explicit error. Swallowing it (pass / continue / returning a success value) hides failures."""
+    """STATIC (Python AST) + structural (Java/Kotlin, TypeScript/JavaScript: Spring, Angular, React, Node). An `except` that catches everything (bare, Exception, BaseException) must re-raise, log the traceback (logger.*, logging.*,
+    traceback.print_exc, exc_info=True) or return an explicit error. Swallowing it (pass / continue / returning a success value) hides failures.
+    Java/Kotlin (catch of Exception/Throwable/RuntimeException/Error) and TypeScript/JavaScript (every catch): silent = the block does nothing
+    with the error (empty, or only `return <literal>`, `continue`, `break`), plus `.catch(() => {}|[]|null)` and a subscription's
+    `error: () => {}`. A variable named `ignored`/`expected`, a comment inside the block or (for `.catch(...)`) on the same line states the intent and is not reported.
+    Third-party code copied into the repository (vendor/, jquery/, plugins/, assets/, *.min.js) is skipped."""
     bad, checked = [], 0
     for f, rel, tree_ in _py_modules(root):
         if _is_test(rel):
@@ -372,14 +431,26 @@ def no_silent_except(root: Path) -> Result:
                 r"(logger|logging|log)\.(error|exception|warning|critical)|print_exc|exc_info|traceback\.", src)
             if not handled:
                 bad.append(f"{rel}:{node.lineno}: except {kind or '(vacío)'} traga el error sin traza ni relanzar")
+    from verifiers import stacks
+    for suffixes, reader in ((stacks.JAVA_SUFFIXES, stacks.java_catches), (stacks.JS_SUFFIXES, stacks.js_catches)):
+        for f in _files(root, suffixes):
+            rel = str(f.relative_to(root))
+            if not stacks.is_source(f.name, suffixes, rel if suffixes == stacks.JS_SUFFIXES else "") or _is_test(rel):
+                continue
+            for c in reader(f.read_text(encoding="utf-8", errors="replace")):
+                checked += 1
+                if not c.handled:
+                    bad.append(f"{rel}:{c.line}: {c.kind} traga el error sin traza ni relanzar")
     if checked == 0:
         return Result("no_silent_except", NO_EVALUADO, "static", ["no hay bloques except amplios que revisar"], 0)
     return Result("no_silent_except", NO_CUMPLE if bad else CUMPLE, "static", bad, checked)
 
 
 def webhooks_fail_closed(root: Path) -> Result:
-    """HEURISTIC, FastAPI only: a route whose path contains 'webhook' must authenticate the caller and fail closed: compare a configured secret in constant
-    time (hmac.compare_digest) AND answer 401/403/503 when the secret is missing or wrong. Other frameworks are NOT evaluated."""
+    """HEURISTIC: a route whose path contains 'webhook' must authenticate the caller and fail closed: compare a configured secret in constant
+    time AND answer 401/403/503 when the secret is missing or wrong. FastAPI: hmac.compare_digest. Spring: MessageDigest.isEqual.
+    NestJS/Express: crypto.timingSafeEqual. The check reads the handler itself; a comparison delegated to another function or a filter is
+    not seen (move it into the handler or document it). Other frameworks are NOT evaluated."""
     bad, checked = [], 0
     for f in _files(root, (".py",)):
         text = f.read_text(encoding="utf-8", errors="replace")
@@ -393,8 +464,19 @@ def webhooks_fail_closed(root: Path) -> Result:
                 bad.append(f"{f.relative_to(root)}: {m.group(2)} no compara el secreto en tiempo constante (hmac.compare_digest)")
             if not re.search(r"\b(401|403|503)\b|HTTP_40[13]|HTTP_503", block):
                 bad.append(f"{f.relative_to(root)}: {m.group(2)} no responde 401/403/503 cuando falta o no coincide el secreto")
+    const_time = {"spring": r"MessageDigest\.isEqual", "nestjs": r"timingSafeEqual", "express": r"timingSafeEqual"}
+    reject = r"\b(401|403|503)\b|UNAUTHORIZED|FORBIDDEN|SERVICE_UNAVAILABLE|Unauthorized\w*Exception|Forbidden\w*Exception|ServiceUnavailable\w*Exception"
+    for rel, r in _stack_routes(root):
+        if "webhook" not in r.path.lower():
+            continue
+        checked += 1
+        if not re.search(const_time[r.framework], r.body):
+            bad.append(f"{rel}:{r.line}: {r.path} no compara el secreto en tiempo constante ({const_time[r.framework].replace(chr(92), '')})")
+        if not re.search(reject, r.body):
+            bad.append(f"{rel}:{r.line}: {r.path} no responde 401/403/503 cuando falta o no coincide el secreto")
     if checked == 0:
-        return Result("webhooks_fail_closed", NO_EVALUADO, "heuristic", ["no se encontraron rutas webhook de FastAPI (otros frameworks no se evalúan)"], 0)
+        return Result("webhooks_fail_closed", NO_EVALUADO, "heuristic",
+                      ["no se encontraron rutas webhook de FastAPI, Spring, NestJS ni Express (otros frameworks no se evalúan)"], 0)
     return Result("webhooks_fail_closed", NO_CUMPLE if bad else CUMPLE, "heuristic", bad, checked)
 
 

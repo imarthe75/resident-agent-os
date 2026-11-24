@@ -2,6 +2,11 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.15.0
+- **Verificadores para Spring, NestJS, Express, Angular y React** (`verifiers/stacks.py`): `endpoints_auth` lee Spring (Java y Kotlin: anotaciones del método o de la clase y, si no hay, la primera regla por URL de la configuración de seguridad, como la evalúa Spring), NestJS (guards del método, de la clase o globales) y Express (middleware de la ruta o `use` previo); `webhooks_fail_closed` exige comparación en tiempo constante y rechazo 401/403/503 en Spring, NestJS y Express; `no_silent_except` revisa `catch` de Java, Kotlin, TypeScript y JavaScript, `.catch(() => {})` y `error: () => {}` de una suscripción.
+- **`.agent/public-routes.txt`**: lista revisable de las rutas públicas a propósito, cada una con su motivo; una ruta con `permitAll`/`@PermitAll`/`@Public()` que no esté ahí no cumple.
+- Medido sobre 202 repositorios reales: un `catch` que asigna un valor por omisión, toma otro camino o explica con un comentario por qué no hace nada es una decisión visible y no se reporta; el código de terceros copiado al repositorio y las cachés generadas no se revisan.
+
 ## 2.14.0
 - **Subagentes y contextos** reescritos sin directivas propias del entorno del framework (Valkey, persistencia en `./data`): revisión por lista con archivo:línea, verificadores y escáner antes de aprobar; arquitecto que entrega un ADR; planificador con trazabilidad al requisito.
 - **`preflight`** consulta el escáner con `curl` (el cliente `agent.preflight_client` solo existe dentro del repositorio del framework).

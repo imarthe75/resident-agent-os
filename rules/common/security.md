@@ -22,7 +22,7 @@ Normas estrictas para la prevención de vulnerabilidades y la gestión segura de
 2. **Comparación en tiempo constante** (`hmac.compare_digest`).
 3. **El payload no decide a quién llamas.** No clones ni descargues una URL tomada del cuerpo de la petición: valida el host contra el servidor autorizado **antes** de adjuntar credenciales (previene SSRF y fuga de tokens).
 4. **Peticiones sin token en rutas públicas** no deben alcanzar lógica de negocio ni escribir en la base.
-El verificador `webhooks_fail_closed` revisa las rutas `webhook` de FastAPI.
+El verificador `webhooks_fail_closed` revisa las rutas `webhook` de FastAPI, Spring, NestJS y Express. `endpoints_auth` exige autenticación o autorización declarada en cada ruta que modifica datos (FastAPI, Spring, NestJS, Express); una ruta pública a propósito (inicio de sesión, registro, una devolución de llamada firmada) va en `.agent/public-routes.txt` con su motivo.
 
 ## 📌 Reglas por capa (OWASP Top 10 / API Top 10 / ASVS 4.0)
 
