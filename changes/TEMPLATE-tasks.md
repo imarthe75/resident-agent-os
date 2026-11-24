@@ -31,11 +31,20 @@
 - [ ] Verificar: `npm test -- --testNamePattern="nuevo"` → **TODOS PASAN**
 - [ ] Commit: `feat(frontend): add NuevoComponent`
 
-### Fase 4: Verificación final
+### Fase 4: Cierre obligatorio (lo ejecuta el agente, nunca se delega a la persona)
 
-- [ ] Ejecutar suite completa: `pytest tests/ -q` → exit code 0
-- [ ] Verificar servicio: `docker compose ps` → todos running
-- [ ] Ejecutar `/opsx-verify` → sin hallazgos bloqueantes
+Cada tarea de esta fase deja su reporte en `changes/<cambio>/reports/AAAA-MM-DD-<paso>.md` con los comandos ejecutados, la salida resumida
+y el resultado. Una tarea se marca `[x]` solo con su reporte escrito y su resultado en verde; un comando que falló o no corrió la deja abierta.
+
+- [ ] Pruebas enfocadas y suite completa (`pytest tests/ -q` → exit 0), con el estado de la base de pruebas antes y después: ninguna
+      prueba deja datos (`rules/common/test-isolation.md`) → `reports/…-pruebas.md`
+- [ ] Comprobación del servicio levantado en local o en un ambiente desechable: cada endpoint que cambió, con su caso de éxito y sus
+      errores (400/401/403/404/409), deshaciendo lo que cree → `reports/…-servicio.md`
+- [ ] Pruebas de interfaz (Playwright) si el cambio toca pantallas → `reports/…-e2e.md`
+- [ ] `python verifiers/run.py` (incluye `spec_traceability` y `observability_min`) → `reports/…-verificadores.md`
+- [ ] `/adversarial` en una sesión distinta → veredicto APTO o APTO CON OBSERVACIONES → `reports/…-revision-adversaria.md`
+- [ ] Documentación técnica actualizada (README del módulo, OpenAPI, ADR si cambió una decisión)
+- [ ] `/opsx-verify` → sin hallazgos bloqueantes
 - [ ] Commit final: `chore: verify NuevoFeature ready for review`
 
 ---

@@ -76,7 +76,8 @@ Si el proyecto tiene una metodología propia, gana la del proyecto.
 
 **Ritmo con agentes:** planea por ciclos cortos (cada tarea se planea, implementa y revisa en horas, con MR pequeños) en lugar de un
 bloque largo de implementación con revisión al final; mide lo terminado y revisado. Los roles se solapan: involucra a QA y a desarrollo
-desde los requerimientos (skill `metodologia-entrega`, «Dentro de la construcción»).
+desde los requerimientos (skill `metodologia-entrega`, «Dentro de la construcción»). Antes de cerrar un cambio, pide `/demo` para verlo
+funcionar contra sus criterios y `/adversarial` para una revisión independiente.
 
 **Al iniciar:** confirma que el framework está distribuido y `AGENTS.md` tiene la sección «Proyecto» llena; registra si el contrato
 permite cargar el código del cliente a herramientas de IA (si lo prohíbe, el agente no lo lee ni lo envía); define que todo Merge Request
@@ -105,6 +106,10 @@ lo revisa alguien distinto del autor y que el CI debe estar en verde para fusion
 
 **Carga:** `rules/common/delivery-process.md` (diseño de casos, reporte de hallazgos, pruebas de aceptación), `bdd-spec-driven-development`
 y `bdd-frontend-playwright`, `frontend-heuristicas-usabilidad` y `prevencion-hallazgos-seguridad-calidad` (sección 9: comprobaciones en ejecución).
+
+**Catálogo primero:** arma el catálogo completo de escenarios (matriz de restricciones, diez categorías, capa y política de dobles) antes
+de priorizar: `bdd-spec-driven-development/references/catalogo-escenarios.md`. Para ver una funcionalidad funcionando contra sus criterios,
+pide `/demo <requisito>`.
 
 **Desde los requerimientos:** escribe los casos de aceptación mientras se especifica, no cuando ya está construido; cada caso cita el ID
 del requisito (`@RF-01`) para que el verificador `spec_traceability` encuentre la prueba. Durante la implementación revisa cada MR

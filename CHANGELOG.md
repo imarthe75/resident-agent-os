@@ -2,6 +2,18 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.17.0
+Ideas tomadas de los repositorios públicos `lidr-specboot` y `ai-engineering` de LIDR (licencia MIT); el texto y las reglas son propios.
+- **Revisión adversaria** (`agents/adversarial-reviewer.md`, `/adversarial`): especificación primero, diff completo, cómo falla cada criterio,
+  volver a correr la evidencia citada, mutantes sobrevivientes (con herramienta o a mano) y discrepancias spec↔código como hallazgos.
+- **Ciclo de convergencia** (`delegacion-subagentes` §5b, `/team`, `contexts/orquestacion.md`): revisión por una instancia nueva en cada
+  vuelta y detención cuando el mismo bloqueo se repite sin cambios; trabajo en paralelo en worktrees.
+- **Cierre obligatorio con reporte por paso** (`changes/TEMPLATE-tasks.md`) y **carril rápido** con compuerta de tamaño (`/opsx-propose`).
+- **Catálogo de escenarios de QA** (`bdd-spec-driven-development/references/catalogo-escenarios.md`) y comando **`/demo`**.
+- **Excusas que no cierran una tarea** (`verification-before-completion`).
+- **Observabilidad**: vida y preparación separadas, 503 para dependencias caídas, cuatro señales por petición, umbrales de alerta fijos y
+  fallos de producción convertidos en pruebas. Regla nueva **`ai-features.md`** para funciones construidas con modelos de IA.
+
 ## 2.16.0
 - **Observabilidad desde el diseño** (`rules/common/observability.md`): la spec dice qué señal demuestra cada requisito en producción
   (sección nueva en `changes/TEMPLATE-spec.md` y en `/opsx-verify`); todo backend con health check e id de correlación (verificador

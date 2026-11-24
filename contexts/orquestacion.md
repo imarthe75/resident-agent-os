@@ -10,6 +10,10 @@ riesgo. En Claude Code un subagente no puede lanzar otros subagentes: la orquest
 3. **Paralelo solo lo independiente**, como máximo 3–4 a la vez; en serie lo dependiente.
 4. **Compuertas:** todo código pasa por `code-reviewer` y `security-reviewer`; un NO APTO se corrige y se vuelve a revisar. Las compuertas
    no sustituyen la revisión de una persona distinta del autor ni el CI.
+4b. **Convergencia:** antes de cerrar una tarea, `adversarial-reviewer` en una instancia nueva por vuelta; el principal lo lanza y le
+   devuelve el veredicto al implementador. Si el mismo bloqueo se repite sin cambios, se detiene y escala (`delegacion-subagentes` §5b).
+4c. **Paralelo con aislamiento:** tareas independientes en ramas y worktrees propios (skill `using-git-worktrees`); sin commit, push ni
+   limpieza de worktrees salvo que la persona lo pida.
 5. **Estado real:** `git diff`, pruebas ejecutadas y su salida. El reporte de un subagente no es evidencia.
 6. **Reintentos:** dos fallas en lo mismo → otro enfoque u otro agente; si sigue atascado, escala con un resumen.
 7. **Privacidad:** ni el principal ni los subagentes instalan o consultan nada externo (`rules/common/privacidad-y-herramientas.md`);

@@ -22,6 +22,12 @@ Inicia un cambio formal generando los artefactos de planificación necesarios an
 3. Si algo bloquea, hace como máximo 5 preguntas, juntas en un solo mensaje; lo demás lo decide y lo anota en `spec.md` como supuesto.
 4. Espera aprobación antes de entrar a `/opsx-apply`
 
+## Carril rápido (cambios pequeños)
+Un cambio pequeño también deja rastro, pero más corto. Aplica solo si edita **como máximo 5 archivos** (sin contar los de `changes/`) y
+**no toca** migraciones, esquema de base de datos, contratos de API, autenticación ni autorización. Entonces se crea solo `spec.md` con el
+requisito en EARS, los criterios de aceptación, los archivos a tocar y la prueba que lo demuestra; el resto del flujo (pruebas, revisión,
+`/opsx-verify`) no cambia. Si no cumple la compuerta, se dice por qué y se sigue el flujo completo; seis archivos «pequeños» no son cinco.
+
 ## Estructura generada
 
 ```

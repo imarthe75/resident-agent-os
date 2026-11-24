@@ -39,6 +39,7 @@ y diseño adelantado (formatos, longitudes o mensajes dentro del requerimiento).
   reutilizan, no se reescriben; las longitudes se concilian con quien diseña la base de datos. Las dudas se resuelven por escrito.
 
 ## Pruebas y aceptación
+- El catálogo de casos se arma completo antes de priorizar (skill `bdd-spec-driven-development`, `references/catalogo-escenarios.md`).
 - Primero lo crítico para el negocio; cada alterno y cada regla con su caso; cada caso con el usuario de su actor, nunca con un
   administrador que todo lo puede; no se prueba lo que no está listo (sin revisión, sin pruebas en verde o sin desplegar).
 - Un hallazgo reproducible lleva pasos, datos, usuario y evidencia. Lo que parece error puede ser una regla intencional del cliente.

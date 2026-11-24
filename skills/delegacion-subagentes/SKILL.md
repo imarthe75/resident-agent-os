@@ -60,6 +60,17 @@ devuelve solo un resumen con la ruta. En el flujo `/opsx-propose` la carpeta es 
    OBSERVACIONES / NO APTO) y la skill `verification-before-completion`.
 4. Si el subagente dice «hecho» y el criterio no pasa, no está hecho.
 
+## 5b. Ciclo de convergencia (implementar → revisión independiente → verificar)
+Para una tarea con criterios de aceptación escritos:
+1. El implementador termina y entrega el diff con la salida de sus pruebas.
+2. Una **instancia nueva** de `adversarial-reviewer` (nunca la que implementó ni la de la vuelta anterior) revisa. Un subagente
+   normalmente no puede lanzar otro: lo lanza quien coordina y le devuelve el veredicto al implementador.
+3. NO APTO: se corrige en la misma rama (primero la especificación si la corrección la cambia) y se repite el paso 2.
+4. APTO o APTO CON OBSERVACIONES: se corre la verificación final (pruebas, verificadores, criterios de la especificación).
+5. **Salida:** todas las tareas marcadas y ningún P0/P1 abierto. Una tarea de pruebas se marca solo si esas pruebas corrieron y pasaron.
+6. **Estancamiento:** si una vuelta reporta los mismos P0/P1 que la anterior y no cambió código, pruebas ni especificación, se detiene y
+   se escala con ese bloqueo; no se marcan tareas para forzar la salida.
+
 ## 6. Reintentos y escalamiento
 - Si un subagente falla **dos veces** en lo mismo, se cambia de enfoque (otro encargo, otra división de la tarea u otro agente).
 - Si sigue atascado, se escala a una persona con: qué se pidió, qué se obtuvo, qué falló y qué decisión hace falta. No se reportan los

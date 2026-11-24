@@ -80,6 +80,16 @@ docker compose logs --tail=20 [servicio]
 
 ---
 
+## Excusas que no cierran una tarea
+| Excusa | Realidad |
+|---|---|
+| «Es un cambio de una línea, no hace falta correr nada» | Una línea rompe igual: se corre la prueba enfocada y la suite |
+| «Las pruebas pasaron en mi sesión anterior» | Se corren otra vez sobre el estado actual; la salida de antes no es evidencia |
+| «El subagente dijo que funciona» | Su reporte no es evidencia: se lee el diff y se ejecuta el criterio |
+| «La prueba falla pero no es por mi cambio» | Se demuestra (misma falla en la rama destino) o se corrige; no se marca como hecho |
+| «Marco la tarea de pruebas y las corro después» | Una tarea de pruebas se marca solo cuando corrieron y pasaron |
+| «Ajusto la prueba para que pase» | Una aserción se cambia solo si la especificación cambió; si no, se corrige el código |
+
 ## Estado y formato de la entrega (ver `rules/common/honesty.md`)
 
 Toda entrega declara `COMPLETADO` / `PARCIAL` (con % real) / `FALLIDO`, y trae: matriz de veracidad (requisito · estado real · evidencia), la **salida real** de las pruebas y la deuda pendiente. Lo probado solo con mocks se declara «VALIDADO ÚNICAMENTE CON MOCKS EN AISLAMIENTO (0 % EN PRODUCCIÓN)». Antes de entregar corre también `python verifiers/run.py` y lee el `git diff` real.

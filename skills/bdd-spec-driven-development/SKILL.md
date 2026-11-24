@@ -152,6 +152,11 @@ Con estos datos generaré:
 3. El reporte de brechas de implementación.
 ```
 
+## Catálogo de escenarios
+Antes de escribir los `.feature`, arma el catálogo con la matriz de restricciones, las diez categorías (camino feliz, vacíos, formato,
+límites, reglas, errores del servidor, autorización, estado, regresión y accesibilidad), la capa de cada caso y su política de dobles:
+[`references/catalogo-escenarios.md`](references/catalogo-escenarios.md).
+
 ## Documentación y trazabilidad
 - Cada escenario cita el requisito (`RF-xxx`) que prueba; un requisito sin escenario es un hueco de trazabilidad (`rules/common/delivery-process.md`).
 - Etiquetas para que un ejecutor de pruebas funcionales identifique y trace cada escenario: id del caso (`@CI-59` o `@id:<x>`),
