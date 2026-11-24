@@ -53,6 +53,7 @@ Un comodín (`SCA-CVE-*`) agrupa reglas cuyo sufijo varía.
 | `JPA-EAGER-FETCH`, `JPA-QUERY-IN-LOOP`, `ORM-N-PLUS-ONE-QUERY` | Consultas en cascada, lentitud | `LAZY` + `JOIN FETCH` o proyección donde se necesite; `findAllById`/`IN` por lote | backend-persistencia-jpa |
 | `REPOSITORY-FINDALL-UNPAGINATED` | Listados sin límite | `Pageable` con tamaño máximo | backend-endpoint-paginado |
 | `JPA-OBJECT-ARRAY-RESULT` (inf.) | Resultados sin tipo | Proyección con interfaz o `record` | backend-persistencia-jpa |
+| `JPA-SQLRESTRICTION-SOFT-DELETE` (inf.) | Los borrados quedan invisibles: no se detecta un duplicado borrado ni se puede restablecer sin `SELECT *` nativo | Filtrar `borrado = false` en una `Specification`; consultar por id incluyendo borrados solo en eliminar y restablecer | backend-persistencia-jpa |
 | `SEQUENTIAL-FOLIO-FROM-MAX` (MEDIA) | Folios duplicados por carrera | Secuencia de BD, `SELECT … FOR UPDATE` o `UPDATE … RETURNING`, más `UNIQUE` | backend-integridad-negocio |
 | `AUDIT-LOG-MUTATION-ENDPOINT` (MEDIA) | La bitácora se puede editar o borrar | Bitácora de solo consulta y solo inserción | backend-seguridad |
 | `STD-STRIDE-MISSING-AUDIT-LOG` | Cambios sin rastro | Registrar usuario, acción, recurso y fecha (sin contraseñas ni tokens), de preferencia en un interceptor central | backend-seguridad |
@@ -177,6 +178,7 @@ trampas de teclado exigen revisión humana. No los des por cumplidos solo porque
 | `SQL-TIMESTAMP-WITHOUT-TIMEZONE` (inf.) | `timestamptz` | postgres-audit |
 | `SQL-JSON-NOT-JSONB` (inf.) | `jsonb` | postgres-audit |
 | `SQL-FLOAT-FOR-MONEY` (inf.) | Montos en `numeric(p,s)` | postgres-audit |
+| `SQL-SOFT-DELETE-NO-CHECK` (inf.) | `CONSTRAINT chk_activo_borrado CHECK (NOT (activo = true AND borrado = true))` en toda tabla con `activo` y `borrado`; único parcial `WHERE activo = true AND borrado = false` | database-liquibase-postgresql |
 | `SQL-TABLE-WITHOUT-AUDIT-COLUMNS` (inf.) | Columnas de auditoría del estándar de base de datos y `auditoria.asignar_triggers('<esquema>.<tabla>')` | postgres-audit |
 | `DB-AUTH-TRUST` (CRÍTICA), `DB-AUTH-MD5`, `DB-AUTH-CLEARTEXT-PASSWORD` | `scram-sha-256` en `pg_hba.conf` para toda conexión | postgres-audit |
 | `DB-NO-TLS-ENCRYPTION`, `DB-TLS-BELOW-BASELINE` | TLS obligatorio (`ssl_min_protocol_version = 'TLSv1.3'`) | postgres-audit |

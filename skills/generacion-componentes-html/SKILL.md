@@ -429,6 +429,12 @@ Las tablas son el componente más complejo. Deben seguir esta configuración sie
 - **`min-width` de celdas**: `200px` por defecto; **`100px`** en la columna de Acciones.
 - **Alineación de `<td>`**: izquierda por defecto (no se declara); **importes/cantidades a la derecha** (`text-align: right`); **Acciones al centro** (`text-align: center`).
 - **Columna Acciones**: la cabecera NO lleva `pSortableColumn`; los botones van dentro de `<div class="flex items-center justify-center gap-2">`.
+- **Carga inicial**: con `[lazy]="true"` la primera carga la hace `(onLazyLoad)`; el componente no busca también en `ngOnInit()`.
+- **Paginador**: `paginatorDropdownAppendTo="body"`, `[rowsPerPageOptions]="[10, 20, 50]"` y
+  `currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"`.
+- **Acciones estándar por fila** (cada una con `*appIfPermiso`): cambiar estatus (`<p-toggleswitch>`, `_ACTIVAR`), consultar (`pi-eye`,
+  `_CONSULTAR`, diálogo de solo lectura sin asteriscos ni botón Guardar), editar (`pi-pencil`, `_EDITAR`), eliminar (`pi-trash`, `_ELIMINAR`,
+  con confirmación). Restablecer no es botón de la fila: se ofrece ante el 409 de registro borrado (`generacion-componentes-ts` §6).
 - **Botones de acción**: SIEMPRE `class="p-button-rounded p-button-text p-button-primary"`, con `pTooltip="Descripción"` (obligatorio) y **`tooltipPosition="top"`**. (`p-button-primary` = color de marca; **no** usar `p-button-info`, que es otro color.)
 
 ---

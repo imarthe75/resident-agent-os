@@ -51,15 +51,16 @@ const checks = {
     return result(onlyHealth && swaggerOff, `actuator=[${exposure.trim()}] swaggerApagado=${swaggerOff}`);
   },
   // backend-modulo-crud
-  entityHasVersionAndSoftDeleteFilter(output) {
+  entityHasVersionAndVisibleSoftDelete(output) {
     const c = code(output);
     const version = /@Version\b/.test(c);
-    const filter = /@SQLRestriction\(\s*"[^"]*borrado\s*=\s*false/.test(c) || /@Where\(\s*clause\s*=\s*"[^"]*borrado\s*=\s*false/.test(c);
-    return result(version && filter, `@Version=${version} filtroBorrado=${filter}`);
+    const borrado = /\bborrado\b/.test(c);
+    const hidden = /@(SQLRestriction|Where)\s*\([^)]*borrado/.test(c);
+    return result(version && borrado && !hidden, `@Version=${version} borrado=${borrado} ocultoConRestriccion=${hidden}`);
   },
   crudPermissionSuffixes(output) {
     const c = code(output);
-    const missing = ["_LEER", "_CREAR", "_EDITAR", "_ELIMINAR"].filter((s) => !new RegExp(`'[A-Z0-9_]+${s}'`).test(c));
+    const missing = ["_CONSULTAR", "_CREAR", "_EDITAR", "_ELIMINAR"].filter((s) => !new RegExp(`'[A-Z0-9_]+${s}'`).test(c));
     return result(missing.length === 0, missing.length ? `faltan ${missing.join(", ")}` : "los cuatro permisos");
   },
   listingIsPostPaginated(output) {

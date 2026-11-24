@@ -17,7 +17,8 @@ Aplica las reglas de `backend-base-spring`.
 - entidad, DTO de filtros, DTO de respuesta, campos filtrables, campos ordenables, permiso de lectura.
 
 ## Salida
-- `POST /entidades/listar` en el controller, con `@PreAuthorize(..._LEER)` y `@Valid @RequestBody EntidadFiltroRequest`.
+- `POST /api/<recurso>/search` en el controller, con `@PreAuthorize(..._CONSULTAR)` y `@Valid @RequestBody Filtrar<Entidad>Request`
+  (filtros opcionales + `textoLibre` + `@NotNull @Valid PaginadoRequestDTO paginado`; p. ej. `page`, `rows`, `sortBy`, `sortDir`).
 - `listarPaginado(filtro)` en el servicio.
 - `EntidadSpecifications.filterBy(filtro, alcanceUsuario)`.
 - Repository con `JpaSpecificationExecutor`.
@@ -28,7 +29,8 @@ Aplica las reglas de `backend-base-spring`.
 - **Orden por lista blanca:** `sortBy` se valida contra un `enum` o `Set` de campos permitidos; nunca se pasa texto del cliente a
   `Sort.by(...)` ni a una consulta.
 - **Alcance:** la Specification siempre agrega el filtro de lo que el usuario puede ver (unidad, dueño) y `borrado = false`.
-- Filtros null-safe; texto normalizado (trim, vacío→null) y búsqueda parcial con `lower(...) like lower(:valor)` parametrizado.
+- Filtros null-safe (`cb.conjunction()` cuando no hay valor); texto normalizado (trim, vacío→null) y búsqueda parcial con
+  `lower(...) like lower(:valor)` parametrizado, **escapando `%` y `_`** del texto del usuario (una utilidad única de escape).
 - El servicio construye `Pageable` y `Specification`; el repository usa `findAll(spec, pageable)`.
 - Nunca devolver `Page<Entity>`: mapear a DTO en servicio/mapper.
 - Relaciones que se muestran en la tabla: `@EntityGraph` o proyección, para no caer en N+1.

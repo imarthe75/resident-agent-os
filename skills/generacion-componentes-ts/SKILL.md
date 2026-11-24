@@ -225,6 +225,8 @@ export class MiComponenteComponent {
 ## 5. Ciclo de Vida del Componente
 
 1. **`ngOnInit()`:** Único lugar para lógica de inicialización. Implementar siempre la interfaz `OnInit`. No llamar peticiones en el constructor.
+   Con una tabla `[lazy]="true"`, PrimeNG dispara `(onLazyLoad)` al mostrarse: **no** llames la búsqueda en `ngOnInit()` (se pediría dos veces;
+   regla `ANGULAR-LAZYLOAD-PLUS-INIT-LOAD`). En `ngOnInit()` solo se configura la suscripción del buscador global con `debounceTime`.
 2. **`ngOnChanges()`:** Se debe usar **únicamente** cuando la lógica de renderizado depende de que cambien los `@Input()`.
 3. **`ngAfterViewInit()`:** Usarse **solo** si es estrictamente necesario interactuar con el DOM directamente o si se depende de `@ViewChild` inicializados. **Prohibido** modificar variables estáticas (datos vinculados al template) aquí dentro sin `setTimeout` (causaría `ExpressionChangedAfterItHasBeenCheckedError`).
 4. **`ngOnDestroy()`:** Con el uso de `takeUntilDestroyed()`, rara vez se necesita. Solo implementar si hay limpiezas nativas de JS (ej.: `clearInterval`, listeners nativos del DOM).
@@ -257,6 +259,16 @@ this.miServicio.operacion(payload).subscribe({
 > - ❌ `severity: 'success'` — **Nunca**. El éxito se refleja en el cambio de estado de la UI.
 > - ❌ `severity: 'error'` en el componente — **No**. El `errorInterceptor` global lo maneja.
 > - ✅ Solo actualizar estado local en el callback `error:` del componente.
+
+**Excepción: registro duplicado que está borrado (HTTP 409 con `error.error?.data`).** Al crear o editar, el backend responde 409 y en `data`
+el id del registro borrado lógicamente; el interceptor no muestra el toast para ese caso. El Smart Component:
+1. ofrece restablecerlo con `ConfirmationService` **solo si el usuario tiene el permiso `<MODULO>_REESTABLECER`** (si no, explica que ya
+   existe un registro eliminado con esos datos y que lo restablezca alguien con ese permiso);
+2. al aceptar llama `servicio.reestablecer(id)` (`POST /{id}/reestablecer`) y recarga la tabla.
+Un 409 sin `data` es un duplicado activo y lo maneja el interceptor como cualquier error.
+
+**Cambio de estatus con `<p-toggleswitch>`:** confirmar con `ConfirmationService`, llamar `cambiarEstado(id)` (`PATCH /{id}/activo`) y recargar
+la tabla en `finalize()`, para que el interruptor vuelva a su valor real si el usuario cancela o la petición falla.
 
 ---
 

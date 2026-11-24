@@ -30,7 +30,7 @@ springdoc-openapi 3, Lombok. Cambios de Spring Boot 4 en `java-springboot`.
 
 ### Autorización (obligatoria en cada endpoint)
 - `@EnableMethodSecurity` activo y **todo** método público de controller lleva `@PreAuthorize` con un permiso o rol explícito:
-  `@PreAuthorize("hasAuthority(T(com.ejemplo.app.util.Permisos).CATALOGO_LEER)")`.
+  `@PreAuthorize("hasAuthority(T(com.ejemplo.app.util.Permisos).CATALOGO_CONSULTAR)")`.
 - Los nombres de permiso salen de una clase de constantes, no de literales repetidos.
 - Un endpoint público por diseño se declara así (`permitAll` en la `SecurityFilterChain` + comentario con el motivo). Nunca se deja
   sin anotación «porque ya está autenticado».
@@ -112,18 +112,18 @@ public class RecursoController {
 public class RecursoService {
 
     private final RecursoRepository repository;
-    private final RecursoMapper mapper;
     private final UsuarioContexto usuario;   // usuario autenticado (proveedor OIDC)
 
     @Transactional
     public RecursoResponse actualizar(UUID id, RecursoUpdateRequest request) {
         Recurso recurso = repository.findById(id)
-            .orElseThrow(() -> new GenericErrorException(Constant.MESSAGE_RECURSO_NO_EXISTE, Constant.CODE_RESPONSE_NOT_FOUND));
+            .filter(r -> !r.isBorrado())                             // un borrado no se edita: 404
+            .orElseThrow(() -> new GenericErrorException(ErrorConstants.NO_ENCONTRADO, Constant.CODE_RESPONSE_NOT_FOUND));
         if (!usuario.puedeEditar(recurso.getUnidadId())) {          // propiedad del recurso
             throw new AccessDeniedException(Constant.MESSAGE_SIN_PERMISO);
         }
-        mapper.actualizar(request, recurso);                         // no copia id ni auditoría
-        return mapper.toResponse(repository.save(recurso));          // @Version detecta edición concurrente
+        recurso.setNombre(request.nombre().trim());                  // solo campos editables; nunca id, auditoría ni borrado
+        return RecursoResponse.fromRecurso(repository.save(recurso)); // record con método estático de conversión
     }
 }
 ```

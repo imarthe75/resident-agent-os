@@ -57,7 +57,12 @@ public abstract class EntidadBase {
 
 ## 3. Borrado lógico
 - Nunca se borra físicamente un registro de negocio. `borrado = true` (y `activo = false`).
-- `@SQLRestriction("borrado = false")` en la entidad para que `findById`/`findAll` no devuelvan borrados.
+- **No** ocultar los borrados con `@SQLRestriction`/`@Where`: el borrado tiene que poder encontrarse para detectar un duplicado borrado y para
+  restablecerlo; con la restricción solo queda el SQL nativo `SELECT *` (regla `JPA-SQLRESTRICTION-SOFT-DELETE`).
+- `borrado = false` se filtra en la `Specification` (`borradoEqual(false)`) de toda búsqueda y listado.
+- `obtener(id)` (usado por consultar, editar y cambiar estatus) responde 404 si el registro está borrado; solo `eliminar` y `restablecer`
+  consultan por id incluyendo borrados (eliminar uno ya borrado → 409; restablecer uno no borrado → 400).
+- La base impide el estado imposible con `chk_activo_borrado` (`database-liquibase-postgresql`); restablecer deja `borrado = false` y `activo = true`.
 - Antes de borrar, validar dependientes activos (`backend-integridad-negocio`).
 
 ## 4. Relaciones (entidades planas)
@@ -92,7 +97,7 @@ private ContenedorDto informacionAdicional;
   (`@TransactionalEventListener(phase = AFTER_COMMIT)`).
 
 ## Checklist
-- [ ] Entidad extiende la base; `@Version` en `row_version`; `@SQLRestriction("borrado = false")`.
+- [ ] Entidad extiende la base; `@Version` en `row_version`; filtro `borrado = false` en la `Specification` (sin `@SQLRestriction`).
 - [ ] Columnas y tipos coinciden con la migración (`OffsetDateTime`/`timestamptz`, `UUID`/`uuid`, `jsonb`).
 - [ ] Relaciones LAZY explícitas; sin N+1 en listados; sin `Object[]`.
 - [ ] Prueba de integración de conflicto de versión (dos actualizaciones con el mismo `rowVersion` → la segunda da 409).
@@ -104,5 +109,5 @@ Identificadores de regla en escáneres que los detectan: `JPA-ENTITY-MISSING-VER
 - Plantillas y ejemplos: skill `documentacion-codigo-y-api`.
 
 ## Reglas del escáner que esta skill evita
-`JPA-ENTITY-MISSING-VERSION`, `JPA-EAGER-FETCH`, `JPA-QUERY-IN-LOOP`, `JPA-MULTI-WRITE-NO-TRANSACTIONAL`.
+`JPA-ENTITY-MISSING-VERSION`, `JPA-EAGER-FETCH`, `JPA-QUERY-IN-LOOP`, `JPA-MULTI-WRITE-NO-TRANSACTIONAL`, `JPA-SQLRESTRICTION-SOFT-DELETE`.
 Corrección de cada una y el resto del catálogo: skill `prevencion-hallazgos-seguridad-calidad`.

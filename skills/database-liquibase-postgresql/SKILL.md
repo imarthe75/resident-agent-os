@@ -183,6 +183,14 @@ Preferred audit columns:
 - `usuario_creacion` text
 - `usuario_modificacion` text
 
+Soft delete consistency:
+- Every table with `activo` and `borrado` carries `CONSTRAINT chk_activo_borrado CHECK (NOT (activo = true AND borrado = true))`, created
+  idempotently (check `pg_constraint` first, like the other constraints). A soft delete sets `activo = false` and `borrado = true` together.
+- A business-unique column uses a **partial** unique index so a deleted row does not block a new one and can still be restored:
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_<tabla>_nombre ON public.<tabla> (nombre) WHERE activo = true AND borrado = false;`
+- N:M tables `rel_<a>_<b>`: FKs to both sides with an index each, `borrado`, and `uq_rel_<a>_<b> (<col_a>, <col_b>) WHERE borrado = false`.
+- Scanner rule: `SQL-SOFT-DELETE-NO-CHECK`.
+
 Compatibility note:
 
 - If project already uses legacy audit column names (for example `fccreacion`, `fcmodificacion`, `dsusuariocreacion` or `dsusuariomodifica`), preserve the existing convention and do not mix styles in the same table.

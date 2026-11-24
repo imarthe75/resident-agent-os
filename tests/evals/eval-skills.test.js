@@ -25,12 +25,12 @@ const CASES = {
     "management.endpoints.web.exposure.include=health,info\nspringdoc.api-docs.enabled=false\nspringdoc.swagger-ui.enabled=false",
     "management.endpoints.web.exposure.include=*\nspringdoc.swagger-ui.path=/swagger-ui.html",
   ],
-  entityHasVersionAndSoftDeleteFilter: [
-    '@Entity\n@SQLRestriction("borrado = false")\npublic class Proveedor { @Version private Long rowVersion; }',
-    "@Entity\npublic class Proveedor { @Version private Long rowVersion; }",
+  entityHasVersionAndVisibleSoftDelete: [
+    "@Entity\npublic class Proveedor { @Version private Long rowVersion; private boolean borrado; }",
+    '@Entity\n@SQLRestriction("borrado = false")\npublic class Proveedor { @Version private Long rowVersion; private boolean borrado; }',
   ],
   crudPermissionSuffixes: [
-    "hasAuthority('PROVEEDORES_LEER') hasAuthority('PROVEEDORES_CREAR') hasAuthority('PROVEEDORES_EDITAR') hasAuthority('PROVEEDORES_ELIMINAR')",
+    "hasAuthority('PROVEEDORES_CONSULTAR') hasAuthority('PROVEEDORES_CREAR') hasAuthority('PROVEEDORES_EDITAR') hasAuthority('PROVEEDORES_ELIMINAR')",
     "hasAuthority('PROVEEDORES_READ') hasAuthority('PROVEEDORES_WRITE')",
   ],
   listingIsPostPaginated: [
