@@ -33,6 +33,7 @@ resident-agent-framework/
 ├── agents/                     # Personas de sub-agentes
 │   ├── architect.md
 │   ├── code-reviewer.md
+│   ├── debugger.md             # Causa raíz + prueba de regresión
 │   ├── planner.md
 │   └── security-reviewer.md
 │
@@ -52,10 +53,15 @@ resident-agent-framework/
 │   ├── opsx-verify.md          # /opsx-verify — validar vs spec
 │   ├── ponytail-review.md      # /ponytail-review — auditar diff
 │   ├── ponytail-audit.md       # /ponytail-audit — escanear repo
-│   └── ponytail-debt.md        # /ponytail-debt — ledger de deuda
+│   ├── ponytail-debt.md        # /ponytail-debt — ledger de deuda
+│   ├── team.md                 # /team — orquestar subagentes
+│   ├── review.md               # /review — revisión de código (solo lectura)
+│   ├── audit.md                # /audit — revisión de seguridad (solo lectura)
+│   └── debug.md                # /debug — depuración con prueba de regresión
 │
 ├── contexts/                   # Cargadores de contexto
 │   ├── dev.md                  # Contexto de desarrollo
+│   ├── orquestacion.md         # Agente principal que reparte en subagentes
 │   ├── research.md             # Contexto de investigación
 │   └── review.md               # Contexto de revisión
 │
@@ -85,6 +91,7 @@ resident-agent-framework/
 │   │   ├── coding-style.md
 │   │   ├── database-style.md
 │   │   ├── context-diet.md     # Leer menos al contexto
+│   │   ├── privacidad-y-herramientas.md  # Asistentes aprobados; nada de terceros sin autorización
 │   │   ├── efficiency.md       # Escalera de eficiencia (7 peldaños)
 │   │   ├── git-workflow.md
 │   │   ├── security.md
@@ -271,6 +278,11 @@ Al terminar cada sesión:
 - **Formato Agent Skills verificado** (`tests/test_skill_descriptions.py`): YAML estricto, `name` igual a la carpeta; se corrigieron 8 skills
   cuyo encabezado era YAML inválido. Guía para escribir skills en `skills/README.md`.
 - **Gemini CLI**: `templates/.gemini/settings.json` para que lea `AGENTS.md`; las skills se comparten en `.agents/skills/`.
+- **Orquestación**: `contexts/orquestacion.md` y comandos `/team`, `/review`, `/audit`, `/debug`; subagente `debugger`; escala de
+  esfuerzo y requisito de origen en `delegacion-subagentes`.
+- **Privacidad y herramientas** (`rules/common/privacidad-y-herramientas.md`): solo asistentes aprobados, nada de skills, plugins, MCP
+  o scripts de terceros sin autorización, dependencias solo por Merge Request.
+- **Specs en EARS** y convergencia contra la salida real de las pruebas en `/opsx-propose` y `/opsx-verify`.
 
 ## Novedades 2.3
 

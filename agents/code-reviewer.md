@@ -40,12 +40,16 @@ Una fila por hallazgo, ordenadas de mayor a menor severidad:
 |---|---|---|---|
 
 Severidad: **P0** crítico (explotable sin autenticación, pérdida o fuga de datos) · **P1** alto · **P2** medio · **P3** bajo · **P4**
-informativo. Cada P0–P2 justifica por qué es explotable o por qué falla en la práctica; sin esa justificación no es P0–P2.
+informativo (plazos de corrección sugeridos: 24 h / 7 días / 30 días / 90 días). Cada P0–P2 justifica por qué es explotable o por qué
+falla en la práctica; sin esa justificación no es P0–P2. Es P1 cualquier dependencia, skill, plugin o script externo no autorizado y
+cualquier envío de información del proyecto fuera de la organización (`rules/common/privacidad-y-herramientas.md`).
 
 Cierra con **un** veredicto:
 - **NO APTO** — hay algún P0 o P1 nuevo en el cambio.
 - **APTO CON OBSERVACIONES** — hay algún P2; se puede fusionar con un ticket que lo corrija.
 - **APTO** — solo P3/P4 o nada.
+
+El veredicto ayuda a decidir; la aprobación del Merge Request la da una persona distinta del autor.
 
 Lo que no pudiste verificar (pruebas que no corrieron, escáner sin correr sobre la rama) va en una línea «No verificado: …»; no lo
 conviertas en «sin hallazgos».

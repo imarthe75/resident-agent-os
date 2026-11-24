@@ -7,9 +7,12 @@
 
 ## Requisitos funcionales
 
-| ID | Requisito | Criterio de aceptación |
+Cada requisito en formato EARS, observable desde fuera y sin tecnología: «CUANDO <evento>, EL SISTEMA DEBERÁ <respuesta>»,
+«MIENTRAS <estado>, EL SISTEMA DEBERÁ…», «SI <condición no deseada>, ENTONCES EL SISTEMA DEBERÁ…».
+
+| ID | Requisito (EARS) | Criterio de aceptación (y prueba) |
 |----|-----------|------------------------|
-| RF-01 | [Qué debe hacer] | [Cómo verificarlo] |
+| RF-01 | CUANDO [evento], EL SISTEMA DEBERÁ [respuesta] | [Cómo verificarlo] |
 | RF-02 | ... | ... |
 
 ## Requisitos no funcionales

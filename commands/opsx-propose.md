@@ -16,8 +16,11 @@ Inicia un cambio formal generando los artefactos de planificación necesarios an
 2. Genera los 3 artefactos en secuencia (o todos a la vez con `--ff`):
    - `proposal.md` — el **por qué**: problema, contexto, decisión
    - `spec.md` — el **qué exactamente**: requisitos, restricciones, criterios de aceptación
+     (requisitos funcionales en formato EARS: «CUANDO <evento>, EL SISTEMA DEBERÁ <respuesta>», «MIENTRAS <estado>…»,
+     «SI <condición no deseada>, ENTONCES…»; observables desde fuera y sin tecnología)
    - `tasks.md` — el **cómo**: checklist ordenado de implementación
-3. Espera aprobación antes de entrar a `/opsx-apply`
+3. Si algo bloquea, hace como máximo 5 preguntas, juntas en un solo mensaje; lo demás lo decide y lo anota en `spec.md` como supuesto.
+4. Espera aprobación antes de entrar a `/opsx-apply`
 
 ## Estructura generada
 

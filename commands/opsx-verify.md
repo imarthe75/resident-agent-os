@@ -14,6 +14,10 @@ Valida que la implementación cumple con lo especificado en `spec.md` antes de a
 
 Lee `changes/<cambio>/spec.md` y valida cada requisito en tres dimensiones:
 
+Cada criterio se verifica **contra el código y la salida real de las pruebas** (no contra el reporte de quien implementó). Lo que no se
+pudo verificar se declara «no verificado»; nunca se marca como cumplido. Si el código contradice la spec, se corrige primero la spec (con
+la persona si cambia el alcance) y después el código.
+
 ### 1. Completitud
 ¿Todos los requisitos del spec están implementados?
 
