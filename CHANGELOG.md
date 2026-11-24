@@ -2,6 +2,9 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.9.1
+- **Guía técnica de implementación de un componente** (`skills/manuales-usuario/references/guia-tecnica-componente.md`): estructura y reglas para la documentación técnica dirigida a desarrolladores, con la misma evidencia `archivo:línea`.
+
 ## 2.9
 - **Manuales de usuario** (`skills/manuales-usuario`): reglas contrastadas contra el código, capturas reproducibles y `.docx` determinista con hoja de validación; identidad configurable en `references/marca.json`.
 - README y guía por rol como versión vigente; historial movido a este archivo.

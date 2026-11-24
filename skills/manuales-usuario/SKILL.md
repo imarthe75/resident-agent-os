@@ -1,6 +1,6 @@
 ---
 name: manuales-usuario
-description: "Genera manuales de usuario de un módulo con imagen homogénea garantizada. La IA no escribe el .docx: primero pide las reglas de negocio en .md y las contrasta contra el código real (back y front) con evidencia archivo:línea; después toma las capturas con un guion reproducible (Playwright) y produce un payload.json que render.js valida y convierte en .docx más una hoja de validación. Úsala cuando se pida crear, regenerar, actualizar o revisar un manual de usuario, guía de uso o documentación para el usuario final de un módulo, o cuando se quiera saber si un manual dice lo que el sistema hace de verdad."
+description: "Genera manuales de usuario de un módulo con imagen homogénea garantizada. La IA no escribe el .docx: primero pide las reglas de negocio en .md y las contrasta contra el código real (back y front) con evidencia archivo:línea; después toma las capturas con un guion reproducible (Playwright) y produce un payload.json que render.js valida y convierte en .docx más una hoja de validación. Úsala cuando se pida crear, regenerar, actualizar o revisar un manual de usuario, guía de uso o documentación para el usuario final de un módulo, o cuando se quiera saber si un manual dice lo que el sistema hace de verdad. También guía la redacción de la guía técnica de implementación de un componente para desarrolladores (references/guia-tecnica-componente.md)."
 ---
 
 # Manuales de usuario de módulo · v1.0
@@ -101,6 +101,7 @@ Entrega el `.docx` y la hoja de validación. Reporta en 5 líneas o menos: tarea
 | Documentación técnica de entrega y runbook de despliegue | El generador de entregables del proyecto, si existe; si no, documentos versionados en `docs/` |
 | Documentación del código y del API (OpenAPI, Javadoc/TSDoc, `COMMENT ON`, README de módulo) | `documentacion-codigo-y-api` y `generacion-documentacion` |
 | Manual de usuario de un módulo | Esta skill |
+| Guía técnica de implementación de un componente o módulo (para desarrolladores) | Esta skill, con `references/guia-tecnica-componente.md` (Markdown versionado, misma evidencia `archivo:línea`) |
 
 Los tres comparten reglas: describen el sistema real (nada inventado), se redactan como versión original (`reglas-globales`:
 la versión inicial es 1.0 y el control de versiones solo se llena cuando hay una versión posterior real) y pasan la prueba de lectura de
