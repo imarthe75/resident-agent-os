@@ -159,11 +159,10 @@ historia de métricas suficiente (varios ciclos/proyectos) antes de ser viable.
 ### 4.1 Análisis Causal y Resolución (CAR)
 **Exige:** cuando algo falla, se investiga la causa raíz sistemáticamente y se
 previene su recurrencia — no solo se corrige el síntoma.
-**Con las herramientas actuales:** esta misma sesión es un ejemplo real de la
-práctica: el bug de `SmartLLMRouter` (LLM personalizado por tema roto) no solo se
-corrigió, se documentó la causa raíz (mismatch de firma de constructor) y se agregó
-verificación reproducible (construcción real dentro del contenedor). **Formalizar
-este patrón como práctica estándar**, no dejarlo implícito.
+**Con las herramientas actuales:** un fallo se cierra con tres piezas: la
+corrección, la causa raíz documentada (p. ej. un desajuste de firma de constructor) y
+una verificación reproducible (construcción real dentro del contenedor). **Este
+patrón es la práctica estándar**, no algo implícito.
 **Checklist:**
 - [ ] Los incidentes/bugs significativos se documentan con causa raíz, no solo "se arregló".
 - [ ] Existe un mecanismo para detectar si el mismo tipo de causa raíz se repite en otro proyecto de la organización.

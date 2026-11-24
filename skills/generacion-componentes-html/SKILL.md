@@ -24,7 +24,7 @@ Este documento define la estructura visual, patrones de componentes y clases CSS
 
 ## 2. Convenciones de Layout (Tailwind CSS)
 
-El proyecto usa **Tailwind CSS** (con `tailwindcss-primeui`) para layout y espaciado. **PrimeFlex y Bootstrap fueron retirados del proyecto**; sus clases ya no renderizan nada.
+El proyecto usa **Tailwind CSS** (con `tailwindcss-primeui`) para layout y espaciado. **El proyecto no incluye PrimeFlex ni Bootstrap**: sus clases no renderizan nada.
 
 > ⛔ **PROHIBIDO usar clases de PrimeFlex / Bootstrap.** Son la causa #1 de estilos que "no se aplican". Usa siempre el equivalente de Tailwind. Referencia oficial: https://tailwindcss.com/docs (en especial [Flexbox & Grid](https://tailwindcss.com/docs/flex)).
 

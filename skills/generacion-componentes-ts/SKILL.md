@@ -184,7 +184,7 @@ guardar(): void {
 
 ## 4. Manejo de Suscripciones: `takeUntilDestroyed()`
 
-El manejo incorrecto de suscripciones causa fugas de memoria críticas. A partir de Angular 20, **ya no es necesario** crear manualmente un `Subject`, ni implementar `ngOnDestroy()` con `.next() / .complete()`.
+El manejo incorrecto de suscripciones causa fugas de memoria críticas. En Angular 20+ no se crea un `Subject` ni se implementa `ngOnDestroy()` con `.next() / .complete()`: se usa `takeUntilDestroyed()`.
 
 **Regla estricta:** Toda suscripción a un `Observable` que no finalice inmediatamente (como una petición HTTP o escuchar un evento del usuario) **debe** llevar `.pipe(takeUntilDestroyed())`.
 

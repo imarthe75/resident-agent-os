@@ -9,7 +9,7 @@ description: Guía canónica para generar pruebas unitarias completas para servi
 
 Este documento define el estándar de pruebas unitarias para los servicios Angular. Las pruebas generadas deben verificar el comportamiento real de cada método HTTP: éxito, errores esperados y construcción correcta de la request.
 
-> **Contexto del proyecto:** Los archivos `.service.spec.ts` existentes son scaffolds vacíos generados por Angular CLI. Esta spec establece el estándar a seguir para escribir pruebas reales a partir de ahora.
+> **Contexto del proyecto:** Los archivos `.service.spec.ts` existentes son scaffolds vacíos generados por Angular CLI. Esta skill establece el estándar para escribir pruebas reales.
 
 ---
 
@@ -70,7 +70,7 @@ describe('NombreServicioService', () => {
   });
 ```
 
-> **Nota:** Los feature services inyectan `ApiService`, no `HttpClient`. Por eso se mockea `ApiService` con `jasmine.createSpyObj`. Ya no se usa `HttpClientTestingModule` ni `HttpTestingController`. Se verifica que el método correcto de `ApiService` fue llamado con el endpoint y parámetros adecuados.
+> **Nota:** Los feature services inyectan `ApiService`, no `HttpClient`. Por eso se mockea `ApiService` con `jasmine.createSpyObj`. No se usan `HttpClientTestingModule` ni `HttpTestingController`. Se verifica que el método correcto de `ApiService` fue llamado con el endpoint y parámetros adecuados.
 
 ---
 

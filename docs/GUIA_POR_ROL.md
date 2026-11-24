@@ -14,7 +14,9 @@ análisis posterior arroja el mínimo de hallazgos. No hace falta tener el escá
 2. Copia `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` a la raíz del repositorio y llena la sección «Proyecto»: qué es,
    stack y versiones, cómo se levanta y se prueba, servicios externos (sin credenciales).
 3. Si el proyecto ya tenía `AGENTS.md`/`CLAUDE.md`, conserva lo propio y añade las secciones del framework; gana la regla más estricta.
-4. Haz commit en una rama y fusiónalo por Merge Request revisado, como cualquier cambio.
+4. Para Claude Code, copia `agents/*.md` a `.claude/agents/` (subagentes) y `commands/*.md` a `.claude/commands/` (comandos `/team`,
+   `/review`, `/audit`, `/debug`, `/opsx-*`). Para Gemini CLI, copia `templates/.gemini/settings.json` a la raíz y las skills a `.agents/skills/`.
+5. Haz commit en una rama y fusiónalo por Merge Request revisado, como cualquier cambio.
 
 Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes para este proyecto?». Debe responder con las de `AGENTS.md`.
 
@@ -28,13 +30,16 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 **Qué skill según lo que vas a hacer**
 | Tarea | Skills |
 |---|---|
+| Catálogo o módulo completo (BD, backend y pantalla) | `modulo-crud-estandar` |
 | Módulo o endpoint Spring Boot | `backend-base-spring`, `backend-modulo-crud` o `backend-endpoint-paginado`, `backend-soporte-api`, `backend-persistencia-jpa`, `backend-seguridad` |
 | Pantalla Angular | `primeng21-expert`, `generacion-componentes-ts`/`-html`, `generacion-servicios`, `frontend-auth-oidc`, `frontend-heuristicas-usabilidad` |
 | Migración o modelo de datos | `database-liquibase-postgresql`, `postgres-audit` |
 | Proyecto nuevo, Dockerfile, pipeline | `java-springboot`, `backend-pruebas-unitarias` (versiones vigentes con `scripts/latest_versions.py`) |
 | Documentar | `documentacion-codigo-y-api`, `generacion-documentacion` |
-| Algo falla | `systematic-debugging` |
+| Algo falla | `systematic-debugging` (comando `/debug`: subagente depurador con prueba de regresión) |
+| Funcionalidad no trivial o requisitos ambiguos | `/opsx-propose` → `/opsx-apply` → `/opsx-verify` (spec con requisitos EARS y convergencia contra pruebas) |
 | Cambio grande | `blueprint` o `writing-plans` antes de tocar código |
+| Repartir el trabajo entre varios agentes | `delegacion-subagentes` (comando `/team`) |
 
 **Flujo de un cambio**
 1. **Parte de un requisito** (ticket o caso de uso). Sin requisito no hay trazabilidad.
@@ -43,7 +48,8 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 4. **Código y documentación juntos:** `@Operation`/`@ApiResponses` con ejemplos en cada endpoint y Javadoc en los servicios; TSDoc en
    servicios y componentes; `COMMENT ON` en cada tabla y columna nueva; README del módulo y ADR si tomaste una decisión de arquitectura.
 5. **Antes del Merge Request:** lista de chequeo de `prevencion-hallazgos-seguridad-calidad`, pruebas ejecutadas y, si tienes escáner,
-   córrelo sobre tus cambios. Pide revisión a los subagentes `code-reviewer` o `security-reviewer`.
+   córrelo sobre tus cambios. Pide revisión con `/review` y `/audit` (subagentes
+   `code-reviewer` y `security-reviewer`, solo lectura): hallazgos P0–P4 y veredicto APTO / APTO CON OBSERVACIONES / NO APTO.
 6. **Merge Request** con descripción, requisito ligado, salida real de las pruebas y revisor distinto del autor. CI en verde.
 
 **Pídeselo así al agente (ejemplos)**
@@ -52,7 +58,8 @@ Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes par
 - «El reporte de seguridad marca `AUTHZ-NO-METHOD-AUTHZ` y `JPA-ENTITY-MISSING-VERSION` en estos archivos: corrígelos con su prueba.»
 
 **No negociable:** ninguna credencial en código, configuración, pruebas ni chat (si llegó a git, se rota); nada de datos simulados,
-`TODO` ni funciones vacías en el código de la aplicación; entrega con estado honesto (COMPLETADO / PARCIAL / FALLIDO) y salida real de pruebas.
+`TODO` ni funciones vacías en el código de la aplicación; ni skills, plugins o scripts de terceros sin autorización ni código del
+proyecto en servicios de la web (`rules/common/privacidad-y-herramientas.md`); entrega con estado honesto (COMPLETADO / PARCIAL / FALLIDO) y salida real de pruebas.
 
 ---
 
@@ -113,6 +120,10 @@ aplicación: eso es tuyo. Las pruebas de carga o de fuerza bruta no se hacen con
 **Reportar un hallazgo:** reproducible (pasos, datos de prueba, usuario y rol, evidencia sin datos reales de personas); confirma antes que
 no sea una regla intencional del cliente; al revalidar, prueba la corrección y lo que la rodea, y si falla reabre el **mismo** defecto.
 
+**Calidad de las pruebas automatizadas** (skill `pruebas-mutacion`): la cobertura no dice si una prueba comprueba algo. El mutation
+testing (PIT, Stryker) altera el código a propósito; cada mutante que sobrevive es una aserción que falta. Pide el puntaje y la lista de
+sobrevivientes del MR, sobre todo cuando las pruebas las escribió un agente.
+
 **Pruebas de aceptación:** el usuario ejecuta y registra. Si contradice un criterio aprobado es **defecto**; si pide algo que ningún
 criterio cubre es **cambio**.
 
@@ -121,7 +132,7 @@ criterio cubre es **cambio**.
 ## 5. Seguridad
 **Carga:** `triage-findings` y `prevencion-hallazgos-seguridad-calidad`. La clasificación (vulnerabilidad / falso positivo / riesgo
 aceptado) es del analista; un falso positivo se decide por repositorio y archivo, nunca como regla general; nunca se reproducen secretos en
-un informe; quien corrige no valida su propio cierre.
+un informe; quien corrige no valida su propio cierre. Para revisar un cambio: `/audit` (subagente `security-reviewer`, solo lectura).
 
 ---
 
@@ -129,4 +140,6 @@ un informe; quien corrige no valida su propio cierre.
 - **¿Necesito un escáner?** No. Las skills dicen cómo escribir el código; si el proyecto tiene uno, `preflight` consulta los hallazgos
   abiertos antes de editar.
 - **¿Qué hago si una regla choca con lo que pide el cliente?** Gana la más estricta y se registra la decisión (ADR o control de cambios).
+- **¿Puedo instalar una skill, plugin o servidor MCP que encontré en internet?** No sin autorización escrita: se adapta la idea dentro
+  del repositorio y entra por Merge Request (`rules/common/privacidad-y-herramientas.md`).
 - **¿El agente puede firmar o aprobar algo?** No. Propone; una persona revisa, decide y firma.

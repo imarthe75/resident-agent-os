@@ -200,6 +200,15 @@ lessons = db_mem.search_lessons(query_embedding, limit=3)
 /opsx-archive --with-lesson    → cerrar y persistir lección en memory.lessons
 ```
 
+### Workflow con subagentes
+
+```
+/team "misión"      → el agente principal reparte en subagentes (contexts/orquestacion.md)
+/review             → revisión de código, solo lectura, veredicto APTO / APTO CON OBSERVACIONES / NO APTO
+/audit              → revisión de seguridad, solo lectura, mismo veredicto
+/debug "fallo"      → causa raíz + cambio mínimo + prueba de regresión
+```
+
 ### Workflow de debugging
 
 ```
@@ -267,49 +276,35 @@ Al terminar cada sesión:
 
 ---
 
-## Novedades 2.8
-- **Mutation testing** (`skills/pruebas-mutacion`, `templates/ci/mutation-testing.gitlab-ci.yml`): PIT y Stryker solo sobre lo que cambia el MR,
-  umbral que solo sube.
-- **Delegación a subagentes** (`skills/delegacion-subagentes`): encargo completo, entrega por archivo, límite de reintentos y verificación.
-- **Revisores de solo lectura con veredicto único** (`agents/`): APTO / APTO CON OBSERVACIONES / NO APTO con severidad P0–P4; los cuatro
-  agentes tienen encabezado para usarse como subagentes de Claude Code.
-- **Especificación viva** y preguntas acotadas (máximo 5) en `bdd-spec-driven-development`, `writing-plans` y `agents/planner.md`.
-- **Prueba de lectura** de documentos con un agente sin contexto (`documentacion-codigo-y-api`).
-- **Formato Agent Skills verificado** (`tests/test_skill_descriptions.py`): YAML estricto, `name` igual a la carpeta; se corrigieron 8 skills
-  cuyo encabezado era YAML inválido. Guía para escribir skills en `skills/README.md`.
-- **Gemini CLI**: `templates/.gemini/settings.json` para que lea `AGENTS.md`; las skills se comparten en `.agents/skills/`.
-- **Orquestación**: `contexts/orquestacion.md` y comandos `/team`, `/review`, `/audit`, `/debug`; subagente `debugger`; escala de
-  esfuerzo y requisito de origen en `delegacion-subagentes`.
-- **Privacidad y herramientas** (`rules/common/privacidad-y-herramientas.md`): solo asistentes aprobados, nada de skills, plugins, MCP
-  o scripts de terceros sin autorización, dependencias solo por Merge Request.
-- **Specs en EARS** y convergencia contra la salida real de las pruebas en `/opsx-propose` y `/opsx-verify`.
-
-## Novedades 2.3
-
-- **Guía por rol** (`docs/GUIA_POR_ROL.md`): instalación y uso del framework para desarrolladores, líderes de proyecto/PM, testers/QA y seguridad.
-- **Skill `prevencion-hallazgos-seguridad-calidad`**: prácticas obligatorias, lista de chequeo de entrega y catálogo de reglas de un escáner de
-  seguridad (identificadores estables) con cómo escribir el código para no provocarlas y la skill de detalle. No requiere tener el escáner.
-- Las skills que generan código o configuración indican qué reglas evitan; las que generan endpoints, servicios o migraciones exigen
-  documentación en el mismo cambio (OpenAPI con `@Operation`/`@ApiResponses`, Javadoc/TSDoc, `COMMENT ON`).
-
-## Novedades 2.1 (ADR-0003)
+## Componentes
 
 | Pieza | Para qué | Dónde |
 |---|---|---|
-| Caché exacta + semántica opt-in | claves sha256 estables, índice acotado con expiración; lo semántico ya no se usa por omisión | `memory/semantic_cache.py` |
+| Caché exacta + semántica opcional | claves sha256 estables, índice acotado con expiración; la caché semántica está apagada por omisión | `memory/semantic_cache.py` |
 | Memoria sin vectores inventados + nivel de evidencia | se niega a guardar sin embedding real; `CIERTO/PROBABLE/HIPOTESIS` | `memory/long_term_memory.py`, `sql/agent_memory.sql`, `memory/lesson_check.py` |
 | Motor de heurísticas que no traga errores | valida operadores al cargar; las reglas guarda fallan cerradas | `agent/heuristic_engine.py` |
-| Contrato de spec real | id exacto + estado propio `APROBADO` | `agent/specs.py` |
+| Contrato de spec real | id exacto + estado propio `APROBADO`; requisitos en EARS y convergencia contra la salida real de las pruebas | `agent/specs.py`, `commands/opsx-*.md`, `changes/TEMPLATE-spec.md` |
 | Decisiones tipadas | preguntas cerradas + probabilidad; el código decide con umbrales | `agent/decisions.py`, `.agent/decisions.json` |
 | Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO` | `verifiers/` |
 | Validación humana y compuertas | la IA no firma; cierra alguien distinto | `agent/human_validation.py`, `agent/gates.py`, `.agent/gates/` |
 | Perfil del proyecto | qué reglas aplican (p. ej. accesibilidad solo con interfaz) | `.agent/PROFILE.json`, `agent/profile.py` |
 | Preflight con escáner opcional | hallazgos abiertos de los archivos que vas a tocar | `agent/preflight_client.py`, `skills/preflight/` |
+| Prevención de hallazgos | catálogo de reglas de un escáner de seguridad con cómo escribir el código para no provocarlas; cada skill que genera código indica qué reglas evita y qué documentación exige (OpenAPI, Javadoc/TSDoc, `COMMENT ON`) | `skills/prevencion-hallazgos-seguridad-calidad/` |
 | Reglas Java, Angular y PostgreSQL | cómo escribir el código para no generar el hallazgo | `rules/java/`, `rules/angular/`, `rules/postgres/` |
+| Privacidad y herramientas | solo asistentes aprobados; nada de skills, plugins, MCP o scripts de terceros sin autorización; dependencias por Merge Request | `rules/common/privacidad-y-herramientas.md` |
+| Subagentes de solo lectura con veredicto único | revisión P0–P4 con APTO / APTO CON OBSERVACIONES / NO APTO; depurador con prueba de regresión; encabezado de subagente de Claude Code | `agents/` |
+| Orquestación y delegación | escala de esfuerzo, encargo completo, entrega por archivo, límite de reintentos y verificación | `contexts/orquestacion.md`, `skills/delegacion-subagentes/`, comandos `/team`, `/review`, `/audit`, `/debug` |
+| Mutation testing | PIT y Stryker solo sobre lo que cambia el MR, umbral que solo sube | `skills/pruebas-mutacion/`, `templates/ci/mutation-testing.gitlab-ci.yml` |
+| Especificación viva y prueba de lectura | máximo 5 preguntas; la spec se corrige antes que el código; un agente sin contexto prueba cada documento | `bdd-spec-driven-development`, `writing-plans`, `documentacion-codigo-y-api` |
+| Formato Agent Skills verificado | YAML estricto, `name` igual a la carpeta, descripción ≤ 1024 caracteres; guía para escribir skills | `tests/test_skill_descriptions.py`, `skills/README.md` |
+| Gemini CLI | lee `AGENTS.md` como contexto y comparte las skills en `.agents/skills/` | `templates/.gemini/settings.json` |
 | Hooks en formato Claude Code | el de sintaxis bloquea (exit 2) | `.claude/settings.json`, `scripts/hooks/` |
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
 | Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
+| Guía por rol | instalación y uso para desarrolladores, líderes de proyecto/PM, testers/QA y seguridad | `docs/GUIA_POR_ROL.md` |
+
+El historial por versión está en `CHANGELOG.md`.
 
 Pruebas: `python -m pytest tests -q`. Las 6 pruebas de la caché solo corren si nombras un Valkey **de pruebas** en `ROS_TEST_VALKEY_HOST` (usan la base 15 y borran solo lo suyo); sin esa variable se saltan y lo dicen. Nunca apuntes esa variable a un servicio real. Para correrlas sin red ni variables heredadas: `scripts/sandboxed-tests.sh` (requiere `srt`, bubblewrap y socat; ver ADR-0004 C1). Regresión de skills con un modelo gratuito: `node scripts/eval-skills.js --base origin/main` (ver ADR-0004 C2).
 Qué NO está verificado: ver «Estado de implementación» en `DECISIONS/0003-decisiones-tipadas-verificacion-y-gobierno.md`.

@@ -15,7 +15,7 @@ Complementa `test-driven-development` (ciclo rojo-verde) y `bdd-spec-driven-deve
 | Repositorio / consultas | `@DataJpaTest` + **Testcontainers PostgreSQL** (`@ServiceConnection`), migraciones Liquibase aplicadas | `@Query` nativas, Specifications, `@SQLRestriction`, índices únicos, `@Version` |
 | Integración completa | `@SpringBootTest` + `@AutoConfigureMockMvc` + Testcontainers | Flujos críticos de punta a punta, triggers de auditoría (`postgres-audit`) |
 
-- Spring Boot 4: `@MockitoBean`/`@MockitoSpyBean` (no `@MockBean`); `@SpringBootTest` ya no trae MockMvc: añadir `@AutoConfigureMockMvc`.
+- Spring Boot 4: `@MockitoBean`/`@MockitoSpyBean` (no `@MockBean`); `@SpringBootTest` no configura MockMvc: añadir `@AutoConfigureMockMvc`.
 - No usar H2 para probar consultas: el dialecto difiere y oculta errores de PostgreSQL (`uuidv7()`, `jsonb`, triggers).
 
 ## 1b. Base y aislamiento (clase base y perfil de pruebas)
