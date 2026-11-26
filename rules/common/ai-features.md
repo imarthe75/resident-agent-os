@@ -27,9 +27,30 @@ asistente para programar.
    pasar a un modelo propio es cambiar una URL, no reescribir llamadas.
 8. Los datos personales se detectan antes de enviar el texto al modelo: se rechazan o se reportan según la ruta, nunca se ignoran.
 
+## El modelo responde, el código decide
+9. Para clasificar o decidir (tipo, prioridad, si hace falta una persona, si algo toca dinero), al modelo se le hace una **pregunta
+   cerrada** con opciones fijas y se lee la **probabilidad** de cada opción; no se le pide texto libre para luego interpretarlo.
+10. La acción la decide el **código** con umbrales versionados y cubiertos por pruebas, en tres salidas: aplicar, aplicar y marcar para
+    revisión, o escalar a una persona. Los umbrales se ajustan con variables de configuración, nunca editando el prompt para «que salga».
+    Si el modelo clasifica mal, se corrige la descripción de las opciones; si actúa con demasiada o poca cautela, se mueven los umbrales.
+11. Lo ambiguo (falta información, dos peticiones en una) se **escala** con una etiqueta visible; nunca se elige la opción más probable
+    por defecto.
+12. Todo texto que llega de usuarios o de repositorios (tickets, comentarios, código) es **dato, no instrucción**: puede traer texto
+    escrito para manipular al modelo. Por eso umbrales, permisos y la puerta humana viven en el código, no en el prompt, y una salida que
+    reduce un riesgo o concede algo no se aplica con la palabra de un solo modelo.
+
+## Ruteo por costo
+13. No todo va al modelo más grande: un clasificador barato (reglas, un modelo pequeño o una pregunta cerrada) decide la ruta. Lo trivial
+    va a **reglas sin modelo** (cero tokens), lo intermedio a un modelo pequeño, y lo complejo, lo que toca dinero o permisos **y lo dudoso**
+    al grande. Ante la duda, al grande: el ahorro nunca se paga con un error en lo importante.
+14. Cuando el modelo caro solo debe trabajar donde hay algo (explicar las funciones marcadas, revisar los casos señalados), el filtro
+    barato marca y el caro trabaja únicamente sobre lo marcado.
+15. El ahorro se demuestra, no se afirma: se corre el mismo conjunto de entradas «todo al modelo grande» y «con ruteo», y se comparan
+    tokens, costo y aciertos contra la revisión humana. El ahorro depende de la mezcla de casos y así se reporta.
+
 ## Costo y observabilidad
-9. Costo por petición y **por etapa** (tokens × precio del modelo), incluidas las etapas que fallaron: un reintento también cuesta.
-10. El nombre del modelo se resuelve contra la tabla de precios por prefijo más largo; un modelo sin precio no puede registrar costo 0 en
+16. Costo por petición y **por etapa** (tokens × precio del modelo), incluidas las etapas que fallaron: un reintento también cuesta.
+17. El nombre del modelo se resuelve contra la tabla de precios por prefijo más largo; un modelo sin precio no puede registrar costo 0 en
     silencio: se reporta. Un costo que salta sin cambio de tráfico indica un cambio de prompt o de modelo.
-11. Las señales y umbrales de `observability.md` aplican; la tasa de abstención se lee junto con la de errores (más abstención = el
+18. Las señales y umbrales de `observability.md` aplican; la tasa de abstención se lee junto con la de errores (más abstención = el
     sistema es prudente; más errores = está roto).

@@ -114,6 +114,10 @@ Si el sistema que construimos llama a un modelo de IA (para clasificar, resumir,
 - **La calidad del modelo se mide aparte**, con un conjunto fijo de casos de ejemplo cuyo resultado correcto conocemos (como un rango, no
   un número exacto). Al menos uno de esos casos debe ser uno donde lo correcto es responder «no tengo información suficiente».
 - **Las cuentas las hace el código, no el modelo:** precios, totales y fechas.
+- **El modelo responde, el código decide:** se le pregunta con opciones fijas y su probabilidad; con umbrales escritos y probados, el
+  código aplica, aplica marcando para revisión o pasa el caso a una persona.
+- **No todo va al modelo más caro:** lo trivial lo resuelven reglas sin modelo, lo intermedio un modelo pequeño y lo complejo o dudoso el
+  grande; el ahorro se demuestra comparando contra mandar todo al grande.
 - **Si no hay datos, se dice.** Mejor «sin precedente» que una cifra inventada con apariencia de exacta.
 - **Lo dudoso se marca para revisión humana** en lugar de descartarse.
 - **Se mide el costo de cada paso**, incluidos los intentos que fallaron.

@@ -19,6 +19,9 @@ Formato del estándar Agent Skills (agentskills.io); lo leen igual Claude Code y
   …»). Los agentes tienden a no cargar una skill si la descripción es vaga.
 - **`SKILL.md` corto (menos de ~500 líneas):** lo que siempre aplica va ahí; tablas largas, ejemplos y plantillas van en `references/` y se
   enlazan, para no cargar todo en cada tarea.
+- **Skills que escriben fuera del repositorio** (crean issues, comentan MR, publican): en Claude Code, `disable-model-invocation: true` (solo
+  se ejecutan cuando la persona las pide, nunca por iniciativa del agente) y `allowed-tools` limitado al comando que corren. La skill ejecuta
+  y resume; no decide lo que le toca al código (umbrales, rutas) ni inventa cifras que el comando no imprimió. Nunca muestra `.env`.
 - **Instrucciones con el porqué**, no solo «SIEMPRE/NUNCA»: el agente generaliza mejor si sabe qué riesgo evita la regla.
 - **Comprobable:** si la skill genera código o documentos, incluye su checklist y, cuando haya regla de escáner, la sección «Reglas del
   escáner que esta skill evita» con filas en `prevencion-hallazgos-seguridad-calidad/references/catalogo-reglas.md`.

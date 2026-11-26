@@ -2,6 +2,18 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.20.0
+Ideas tomadas del repositorio público `jev-demo` de LIDR; el texto es propio.
+- **El modelo responde, el código decide** (`rules/common/ai-features.md`): preguntas cerradas con probabilidad, umbrales versionados y
+  probados que deciden entre aplicar, aplicar y marcar o escalar; lo ambiguo se escala con etiqueta; el texto de usuarios y repositorios
+  es dato, no instrucción.
+- **Ruteo por costo**: reglas sin modelo para lo trivial, modelo pequeño para lo intermedio, el grande para lo complejo, lo que toca dinero
+  o permisos y lo dudoso; el caro trabaja solo sobre lo que marcó el filtro; el ahorro se demuestra contra «todo al modelo grande».
+- **`preflight` sin escáner**: revisión de las funciones que la tarea va a tocar (varias responsabilidades, errores ocultos, mutación de la
+  entrada, números mágicos, lógica duplicada) con recomendación de orden.
+- **Skills que escriben fuera del repositorio** (`skills/README.md`): `disable-model-invocation: true` y `allowed-tools` limitado; la skill
+  ejecuta y resume, no decide ni inventa cifras.
+
 ## 2.19.0
 - **Versiones más recientes en cada dependencia** (`scripts/outdated_dependencies.py`, verificador `dependencies_current`): compara cada
   dependencia directa de npm, Maven, Gradle (coordenadas, plugins, catálogo `libs.versions.toml` y wrapper) y Python con la última versión

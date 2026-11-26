@@ -26,6 +26,18 @@ GET {PREFLIGHT_URL}/api/preflight?asset=<activo>&paths=ruta/a.java,ruta/b.ts
    - Un hallazgo `CRITICAL`/`HIGH` en un archivo que vas a tocar es parte de la tarea: menciónalo al usuario antes de editar.
 4. No corrijas hallazgos que la tarea no pidió; repórtalos.
 
+## Sin escáner (o además de él): revisar las funciones que vas a tocar
+Antes de empezar, recorre las funciones de los archivos que la tarea va a modificar y marca las que ya tienen alguno de estos defectos:
+- **Varias responsabilidades** en una sola función.
+- **Oculta errores**: `catch` vacío o que devuelve un valor por omisión sin registrar nada.
+- **Muta la entrada**: modifica un parámetro que recibió en lugar de devolver uno nuevo.
+- **Números mágicos**: constantes sin nombre que deciden comportamiento (montos, límites, tiempos).
+- **Lógica duplicada** con otra función.
+
+Presenta una tabla corta (función, archivo, defecto, severidad) y una recomendación de orden: qué conviene corregir **antes** de la tarea
+porque la tarea lo va a tocar o lo va a empeorar, y qué puede esperar. Si una marca parece falso positivo, dilo. Las funciones sin marca no
+necesitan más análisis. Corregir lo marcado es otro cambio (o una tarea previa), no algo que se mezcla en silencio con la tarea.
+
 Esta skill solo lee. No modifica hallazgos ni el escáner.
 
 Qué significa cada regla abierta y cómo corregirla: skill `prevencion-hallazgos-seguridad-calidad`.

@@ -307,7 +307,7 @@ Al terminar cada sesión:
 | Cierre con evidencia y carril rápido | tareas de cierre que ejecuta el agente con un reporte por paso; cambios de hasta 5 archivos sin BD ni contrato con una spec corta | `changes/TEMPLATE-tasks.md`, `commands/opsx-propose.md` |
 | Catálogo de escenarios de QA | matriz de restricciones, diez categorías de casos, capa de prueba y política de dobles | `skills/bdd-spec-driven-development/references/catalogo-escenarios.md` |
 | Demostración | la funcionalidad ejecutada contra sus criterios de aceptación, no un resumen | `commands/demo.md` |
-| Funciones con IA | CI sin llamadas al modelo, evaluación aparte con golden set y abstención, costo por etapa, umbrales de alerta fijos | `rules/common/ai-features.md`, `rules/common/observability.md` |
+| Funciones con IA | CI sin llamadas al modelo, evaluación aparte con golden set y abstención; el modelo responde preguntas cerradas y el código decide con umbrales probados; ruteo por costo demostrado contra «todo al modelo grande»; costo por etapa | `rules/common/ai-features.md`, `rules/common/observability.md` |
 | Validación humana y compuertas | la IA no firma; cierra alguien distinto | `agent/human_validation.py`, `agent/gates.py`, `.agent/gates/` |
 | Perfil del proyecto | qué reglas aplican (p. ej. accesibilidad solo con interfaz) | `.agent/PROFILE.json`, `agent/profile.py` |
 | Preflight con escáner opcional | hallazgos abiertos de los archivos que vas a tocar | `agent/preflight_client.py`, `skills/preflight/` |
