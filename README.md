@@ -159,12 +159,19 @@ cat .agent/HEURISTICS.md
 ### 4. Crear un proyecto nuevo con las versiones vigentes
 
 Las versiones de Angular, Java, Spring Boot, Node, Python, PostgreSQL, Valkey… **no se escriben de memoria**: se resuelven en el momento desde fuentes
-oficiales y se fijan en un lock (ver `commands/new-project.md`).
+oficiales y se fijan en un lock (ver `commands/new-project.md`). Lo mismo para cada dependencia directa del proyecto: la última versión estable que
+sea compatible con las demás.
 
 ```bash
-python scripts/latest_versions.py --write versions.lock.json   # política en .agent/versions-policy.json (latest / lts por herramienta)
-python verifiers/run.py --path <proyecto> --only versions_current   # avisa si un proyecto se quedó atrás
+python scripts/latest_versions.py --write versions.lock.json      # plataformas; política en .agent/versions-policy.json
+python scripts/outdated_dependencies.py --path <proyecto> --strict  # cada dependencia de npm, Maven, Gradle y Python; debe terminar en 0
+python verifiers/run.py --path <proyecto> --only versions_current,dependencies_current   # avisa si un proyecto se quedó atrás
 ```
+
+`outdated_dependencies.py` consulta los registros oficiales (npm, Maven Central, portal de plugins de Gradle, PyPI). En npm propone la versión más nueva
+que respeta los rangos de *peer dependencies* (p. ej. la TypeScript más nueva que acepta el compilador de Angular) y, si una no se puede subir, dice
+qué la bloquea; marca las versiones que el registro declara obsoletas. En Maven, Gradle y Python no hay datos de compatibilidad: la compilación y
+las pruebas deciden, y lo que no funcione se registra como excepción.
 
 ### 5. Usar la memoria
 
@@ -285,7 +292,7 @@ Al terminar cada sesión:
 | Motor de heurísticas que no traga errores | valida operadores al cargar; las reglas guarda fallan cerradas | `agent/heuristic_engine.py` |
 | Contrato de spec real | id exacto + estado propio `APROBADO`; requisitos en EARS y convergencia contra la salida real de las pruebas | `agent/specs.py`, `commands/opsx-*.md`, `changes/TEMPLATE-spec.md` |
 | Decisiones tipadas | preguntas cerradas + probabilidad; el código decide con umbrales | `agent/decisions.py`, `.agent/decisions.json` |
-| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO`: PK uuid, auditoría, autorización de endpoints y webhooks fail-closed (FastAPI, Spring, NestJS, Express; rutas públicas declaradas en `.agent/public-routes.txt`), errores silenciados (Python, Java, Kotlin, TypeScript, JavaScript), versiones vigentes (npm, Maven, Gradle, imágenes), stubs, pruebas aisladas, volúmenes en `./data`, trazabilidad requisito ↔ prueba y observabilidad mínima (health check e id de correlación) | `verifiers/` |
+| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO`: PK uuid, auditoría, autorización de endpoints y webhooks fail-closed (FastAPI, Spring, NestJS, Express; rutas públicas declaradas en `.agent/public-routes.txt`), errores silenciados (Python, Java, Kotlin, TypeScript, JavaScript), versiones vigentes de plataformas (npm, Maven, Gradle, imágenes) y de cada dependencia directa, stubs, pruebas aisladas, volúmenes en `./data`, trazabilidad requisito ↔ prueba y observabilidad mínima (health check e id de correlación) | `verifiers/` |
 | Observabilidad desde el diseño | cada requisito con la señal que lo demuestra en producción; health check, id de correlación y logs estructurados | `rules/common/observability.md`, `changes/TEMPLATE-spec.md` |
 | Ritmo con agentes | ciclos cortos por tarea (planear, implementar y revisar en horas), MR pequeños y roles que se solapan | `skills/metodologia-entrega/`, `rules/common/delivery-process.md` |
 | Revisión adversaria y convergencia | subagente que parte de que algo falla, vuelve a correr la evidencia citada y busca mutantes sobrevivientes; ciclo implementar → revisión por una instancia nueva → verificar, que se detiene si el bloqueo se repite sin cambios | `agents/adversarial-reviewer.md`, `commands/adversarial.md`, `skills/delegacion-subagentes/` |
@@ -307,9 +314,14 @@ Al terminar cada sesión:
 | Gemini CLI | lee `AGENTS.md` como contexto y comparte las skills en `.agents/skills/` | `templates/.gemini/settings.json` |
 | Hooks en formato Claude Code | el de sintaxis bloquea (exit 2) | `.claude/settings.json`, `scripts/hooks/` |
 | Distribución con detección de deriva | `--check` lista repos desviados | `scripts/distribute_framework.py`, `VERSION` |
-| Versiones vigentes al crear un proyecto | se resuelven en el momento desde fuentes oficiales y se fijan en un lock; `versions_current` avisa del atraso | `scripts/latest_versions.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
+| Versiones vigentes al crear un proyecto | plataformas resueltas en el momento desde fuentes oficiales y fijadas en un lock; cada dependencia directa en la última versión estable compatible (rangos de *peer dependencies* en npm), con lo que la bloquea y las obsoletas marcadas; `versions_current` y `dependencies_current` avisan del atraso | `scripts/latest_versions.py`, `scripts/outdated_dependencies.py`, `.agent/versions-policy.json`, `commands/new-project.md` |
 | Biblioteca de prompts versionada | dueño, origen y conjunto de evaluación declarados | `prompts/`, `scripts/check_prompts.py` |
 | Metodología de entrega | etapas 0–5 más soporte con 21 plantillas Markdown de entregables (verificador y generador `.docx` con la identidad de la organización), roles, compuertas de cierre, adaptación por proyecto, control de cambios y trazabilidad a CMMI V3.0 | `skills/metodologia-entrega/` |
+| Desarrollo dirigido por especificación | propuesta, spec EARS con criterios verificables, tareas con requisito de origen, convergencia contra la salida real de las pruebas y carril rápido | `skills/sdd/`, `commands/opsx-*.md`, `changes/` |
+| Reglas de negocio | catálogo por módulo con identificador estable y origen (explícita / inferida / propuesta), qué detecta el escáner y qué revisar antes de cerrar | `skills/reglas-negocio/`, `rules/common/business-rules.md` |
+| Evidencia para entregables | qué dato medido va en cada entregable, cómo consultarlo sin inflar cifras y qué límites declarar | `skills/evidencia-entregables/` |
+| Trabajo con el escáner | qué revisar antes de cambiar código, criterio de aceptación de un MR, cómo leer severidad y plazos, cuándo no se corrige | `rules/common/scanner.md` |
+| Instalación guiada | el agente instala el framework en un proyecto sin pisar lo existente, reporta conflictos, versiones atrasadas y línea base; una capa de organización va encima | `INSTALAR.md` |
 | Auditoría sin escáner | catálogo de reglas, método de detección, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas (Solventado / Persiste / Nuevo / Reaparecido / No re-verificado) | `skills/auditoria-codigo/` |
 | Consolidación de auditorías | lee SARIF (Semgrep, CodeQL, Trivy, Checkov…) y el `hallazgos.json` de `auditoria-codigo`; triage por causa raíz con catálogo del analista, libro con plan de trabajo en horas, matriz con SLA en dos tiempos, responsables y firmas, y verificación de cierre entre corridas | `skills/consolidacion-auditorias-seguridad/` |
 | Evidencia forense | bitácora de acciones de negocio con cifrado, cadena de hashes y firmas HMAC (Spring Boot) y su pantalla de consulta y verificación (Angular + PrimeNG) | `skills/secure-forensic-audit/`, `skills/secure-forensic-audit-ui/` |

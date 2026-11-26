@@ -13,7 +13,7 @@ SKIP_DIRS = {".git", "node_modules", "target", "build", "dist", "__pycache__", "
 class Result:
     verifier: str
     status: str
-    method: str                      # "static" (decided from the text) or "heuristic" (a pattern that can miss cases)
+    method: str                      # "static" (decided from the text), "heuristic" (a pattern that can miss cases) or "network" (official registries)
     detail: List[str] = field(default_factory=list)
     checked: int = 0                 # how many items were actually examined (0 + CUMPLE would be a lie, so it is NO_EVALUADO)
 
@@ -564,8 +564,37 @@ def observability_min(root: Path) -> Result:
     return Result("observability_min", NO_CUMPLE if bad else CUMPLE, "static", bad, len(found))
 
 
+# ----------------------------------------------------------------------------- dependencies_current
+def dependencies_current(root: Path, rows=None) -> Result:
+    """Every direct dependency (npm, Maven, Gradle and its plugins/catalog/wrapper, Python) is on the newest stable release that is compatible
+    with the rest of the manifest (scripts/outdated_dependencies.py, which queries the official registries). NO_CUMPLE when one is a MAJOR or
+    MINOR behind or the installed version is marked obsolete in its registry; a patch lag is listed but does not fail. Offline or private
+    registries are NO_EVALUADO for those packages, never assumed current. `rows` lets a test inject the analysis."""
+    if rows is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("outdated_dependencies", _FRAMEWORK_ROOT / "scripts" / "outdated_dependencies.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        rows = mod.analyze(root)
+    if not rows:
+        return Result("dependencies_current", NO_EVALUADO, "static", ["no se encontró ningún manifiesto de dependencias"], 0)
+    resolved = [r for r in rows if not r.get("unresolved")]
+    bad = [f"{r['file']}: {r['name']} {r['current']} -> {r['target']}" + (" (obsoleta en el registro)" if r.get("deprecated") else "")
+           + (f" — {r['note']}" if r.get("note") else "")
+           for r in resolved if r.get("deprecated") or r.get("lag") in ("major", "minor")]
+    unresolved = [f"{r['file']}: {r['name']} sin resolver ({r['unresolved']})" for r in rows if r.get("unresolved")]
+    patch = sum(1 for r in resolved if r.get("lag") == "patch")
+    detail = bad + ([f"{patch} dependencias con solo un parche de atraso (no hacen fallar)"] if patch else []) + unresolved
+    if bad:
+        return Result("dependencies_current", NO_CUMPLE, "network", detail, len(resolved))
+    if not resolved:
+        return Result("dependencies_current", NO_EVALUADO, "network", detail, 0)
+    return Result("dependencies_current", CUMPLE, "network", detail, len(resolved))
+
+
 REGISTRY: Dict[str, Callable[..., Result]] = {"pk_uuid": pk_uuid, "compose_volumes": compose_volumes, "audit_triggers": audit_triggers,
                                               "endpoints_auth": endpoints_auth, "versions_current": versions_current,
+                                              "dependencies_current": dependencies_current,
                                               "no_stubs": no_stubs, "tests_isolated": tests_isolated, "no_silent_except": no_silent_except,
                                               "webhooks_fail_closed": webhooks_fail_closed,
                                               "spec_traceability": spec_traceability,

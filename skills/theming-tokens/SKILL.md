@@ -54,6 +54,9 @@ igual, pero el tema **no se entrega** así: se corrige el color o se documenta l
 5. **Modo oscuro por selector de clase**, el mismo en el preset y en `tema.css`; se prueba con el selector puesto antes de entregar.
 6. **Una marca, un JSON.** Varias marcas = varios JSON y varios presets; nunca se mezclan colores de dos marcas en un archivo.
 
+Cómo encaja el preset en la aplicación (varios presets, configurador, tokens semánticos, personalización avanzada):
+`references/arquitectura-temas.md`.
+
 ## 4. Verificar antes de entregar
 - [ ] `generar_tema.mjs` sale con 0 y `contraste.md` sin «NO CUMPLE».
 - [ ] Búsqueda de literales: `grep -rnE "#[0-9a-fA-F]{6}|bg-\[#|style=\"[^\"]*color" src/app` sin resultados nuevos.

@@ -2,6 +2,19 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.19.0
+- **Versiones más recientes en cada dependencia** (`scripts/outdated_dependencies.py`, verificador `dependencies_current`): compara cada
+  dependencia directa de npm, Maven, Gradle (coordenadas, plugins, catálogo `libs.versions.toml` y wrapper) y Python con la última versión
+  estable de su registro oficial. En npm propone la más nueva que instala junto con las demás (rangos de *peer dependencies*, con las
+  plataformas primero y lo demás adaptándose), dice qué bloquea a la que no se puede subir y marca las versiones obsoletas. `/new-project`
+  exige `--strict` en 0, compilar y probar con esas versiones; `INSTALAR.md` reporta lo atrasado de un proyecto existente. Probado contra
+  dos frontends Angular y un backend Spring Boot reales (29, 27 y 15 dependencias atrasadas; eslint 9 obsoleto y bloqueado por
+  `eslint-plugin-import`).
+- **Equivalentes genéricos que faltaban:** skills `sdd` (desarrollo dirigido por especificación con el flujo `/opsx-*`), `reglas-negocio`
+  (catálogo por módulo con origen y plantilla) y `evidencia-entregables` (dato medido por entregable y límites); regla
+  `rules/common/scanner.md` (trabajo con el escáner); `theming-tokens/references/arquitectura-temas.md` (varios presets, configurador,
+  tokens semánticos, personalización avanzada); `INSTALAR.md` (instalación guiada) y `docs/PRACTICAS.md` (prácticas en lenguaje llano).
+
 ## 2.18.0
 - **Consolidación de auditorías de seguridad** (`skills/consolidacion-auditorias-seguridad/`): de varias fuentes (auditoría manual, análisis de
   segundo nivel, escáneres) a un informe con dictamen, un libro de triage por causa raíz (vulnerabilidad / falso positivo / calidad) con plan de

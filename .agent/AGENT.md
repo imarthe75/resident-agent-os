@@ -7,7 +7,11 @@ Este documento define la ley y directrices operativas que rigen a toda instancia
 1. **Versiones vigentes (Mandato de Actualización):**
    - Al **generar un proyecto nuevo** (o añadir una tecnología), las versiones de Angular, Java, Spring Boot, Node, Python, PostgreSQL, Valkey y demás NO se toman de la memoria del modelo, de ejemplos ni de este repositorio: se resuelven en ese momento con `python scripts/latest_versions.py --write versions.lock.json` (fuentes oficiales; canal `latest` o `lts` por herramienta en `.agent/versions-policy.json`) y se fijan **exactas** en los manifiestos (`package.json`, `pom.xml`, `Dockerfile`, `docker-compose.yml`). Nunca la etiqueta `latest`.
    - Si una versión no se pudo resolver (sin red, fuente caída), se dice y se pregunta; no se inventa ni se reutiliza una antigua.
-   - Un proyecto existente se revisa con `python verifiers/run.py --only versions_current`; quedarse atrás es un `NO_CUMPLE` visible, no un olvido silencioso.
+   - Además de las plataformas, **cada dependencia directa** del proyecto va en su última versión estable compatible:
+     `python scripts/outdated_dependencies.py --path <proyecto> --strict` debe terminar en 0 al crear el proyecto; luego se compila y se prueba, y
+     lo que no funcione en la última versión se registra como excepción en el spec.
+   - Un proyecto existente se revisa con `python verifiers/run.py --only versions_current,dependencies_current`; quedarse atrás o usar una
+     versión obsoleta es un `NO_CUMPLE` visible, no un olvido silencioso.
    - Al cambiar la política o las versiones del propio framework, propagar con `scripts/distribute_framework.py` (y `--check` para ver qué repos se desviaron).
 
 2. **Calidad verificable (estándares de desarrollo):**

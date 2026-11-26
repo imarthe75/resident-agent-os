@@ -9,6 +9,11 @@ análisis posterior arroja el mínimo de hallazgos. No hace falta tener el escá
 ---
 
 ## 1. Instalación en un proyecto (una vez; la hace el líder técnico)
+La forma guiada: abre el agente en la raíz del proyecto y pídele «Lee `<ruta del framework>/INSTALAR.md` y síguelo». Copia sin pisar lo
+existente, reporta conflictos, dependencias atrasadas y la línea base de los verificadores. Para un proyecto nuevo: `/new-project`, que deja
+plataformas y paquetes en su última versión estable compatible. Si tu organización tiene una capa propia sobre el framework, se instala
+después y reemplaza a las piezas genéricas que sustituye. A mano:
+
 1. Distribuye el framework: `python scripts/distribute_framework.py --target /ruta/al/repo` (o `--parent` para varios repositorios).
    `--check` informa después qué repositorios se desviaron de la versión del framework.
 2. Copia `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` a la raíz del repositorio y llena la sección «Proyecto»: qué es,
@@ -71,7 +76,8 @@ proyecto en servicios de la web (`rules/common/privacidad-y-herramientas.md`); e
 Usa el framework para que el trabajo del equipo y de los agentes deje **evidencia verificable**.
 
 **Carga:** `metodologia-entrega` (etapas, entregables, compuertas de cierre, adaptación y control de cambios), `cumplimiento-cmmi-iso` (qué evidencia CMMI / ISO 27001 produce el trabajo diario), `triage-findings` (cómo leer un reporte de
-seguridad) y las reglas `rules/common/delivery-process.md` (requerimientos, diseño, pruebas y soporte) y `rules/common/business-rules.md`.
+seguridad) y las reglas `rules/common/delivery-process.md` (requerimientos, diseño, pruebas y soporte), `rules/common/business-rules.md`, `reglas-negocio`
+(catálogo de reglas por módulo) y `evidencia-entregables` (qué dato medido va en cada entregable y qué límites declarar).
 Si el proyecto tiene una metodología propia, gana la del proyecto.
 
 **Ritmo con agentes:** planea por ciclos cortos (cada tarea se planea, implementa y revisa en horas, con MR pequeños) en lugar de un
@@ -150,7 +156,8 @@ criterio cubre es **cambio**.
 (mismas reglas, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas). Para consolidar varias fuentes
 (auditoría manual, análisis de segundo nivel y SARIF de los escáneres) en un informe, un libro de triage con plan de trabajo y una matriz de
 seguimiento con SLA y firmas: `consolidacion-auditorias-seguridad`. Si el sistema debe probar quién hizo qué con valor legal:
-`secure-forensic-audit` y `secure-forensic-audit-ui`. La clasificación (vulnerabilidad / falso positivo / riesgo
+`secure-forensic-audit` y `secure-forensic-audit-ui`. Cómo trabajar con el escáner (antes de cambiar código, criterio de un MR,
+cuándo un hallazgo no se corrige): `rules/common/scanner.md`. La clasificación (vulnerabilidad / falso positivo / riesgo
 aceptado) es del analista; un falso positivo se decide por repositorio y archivo, nunca como regla general; nunca se reproducen secretos en
 un informe; quien corrige no valida su propio cierre. Para revisar un cambio: `/audit` (subagente `security-reviewer`, solo lectura).
 
