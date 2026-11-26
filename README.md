@@ -250,6 +250,14 @@ python scripts/distribute_framework.py --target /ruta/al/nuevo-proyecto
 
 Copia `.agent/`, `agents/`, `rules/`, `skills/`, `commands/`, `contexts/`, `hooks/`, `verifiers/`, `prompts/` y `templates/` (lista completa en `ITEMS` del script) al proyecto destino.
 
+Instalación guiada por el agente (sin pisar lo existente, con reporte de conflictos, dependencias atrasadas y línea base): `INSTALAR.md`.
+
+**Capas de organización.** El framework es genérico a propósito: cada skill, regla y comando cubre una función completa sin datos de
+ninguna organización. Una organización que necesita su propia personalidad (su metodología, su plantilla base, su escáner, su catálogo de
+reglas de negocio) arma una capa encima que **especializa** piezas del framework: renombra una skill genérica a la suya, reemplaza un
+archivo o agrega una sección al final, y declara para cada pieza propia cuál pieza genérica cubre. Un proyecto de esa organización instala
+la capa; cualquier otro, solo el framework. Las mejoras genéricas se hacen aquí primero y la capa las recibe al subir de versión.
+
 **Claude Code y Gemini CLI con las mismas skills.** El formato `SKILL.md` es el mismo en ambos: copia `skills/` a `.claude/skills/` (Claude
 Code) y a `.agents/skills/` (Gemini CLI, que también lee `.gemini/skills/`). Copia `agents/*.md` a `.claude/agents/` para usarlos como
 subagentes de Claude Code. Para que Gemini CLI lea `AGENTS.md` (por omisión solo lee `GEMINI.md`), copia
