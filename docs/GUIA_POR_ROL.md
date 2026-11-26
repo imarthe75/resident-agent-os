@@ -147,7 +147,10 @@ criterio cubre es **cambio**.
 
 ## 5. Seguridad
 **Carga:** `triage-findings`, `prevencion-hallazgos-seguridad-calidad` y, para auditar un proyecto sin escáner, `auditoria-codigo`
-(mismas reglas, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas). La clasificación (vulnerabilidad / falso positivo / riesgo
+(mismas reglas, evidencia Cierto/Probable/Hipótesis, matriz con plazos y comparativo entre corridas). Para consolidar varias fuentes
+(auditoría manual, análisis de segundo nivel y SARIF de los escáneres) en un informe, un libro de triage con plan de trabajo y una matriz de
+seguimiento con SLA y firmas: `consolidacion-auditorias-seguridad`. Si el sistema debe probar quién hizo qué con valor legal:
+`secure-forensic-audit` y `secure-forensic-audit-ui`. La clasificación (vulnerabilidad / falso positivo / riesgo
 aceptado) es del analista; un falso positivo se decide por repositorio y archivo, nunca como regla general; nunca se reproducen secretos en
 un informe; quien corrige no valida su propio cierre. Para revisar un cambio: `/audit` (subagente `security-reviewer`, solo lectura).
 

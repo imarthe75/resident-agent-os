@@ -2,6 +2,17 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 2.18.0
+- **Consolidación de auditorías de seguridad** (`skills/consolidacion-auditorias-seguridad/`): de varias fuentes (auditoría manual, análisis de
+  segundo nivel, escáneres) a un informe con dictamen, un libro de triage por causa raíz (vulnerabilidad / falso positivo / calidad) con plan de
+  trabajo en horas y una matriz de seguimiento con SLA en dos tiempos, responsables y firmas. Entrada normalizada
+  (`references/formato-hallazgos.md`) con dos lectores: `parse_sarif.py` (cualquier SARIF 2.1.0; severidad CVSS, CWE y paquete/versiones de
+  dependencias) y `parse_hallazgos.py` (el `hallazgos.json` de `auditoria-codigo`). `comparar_corridas.py` verifica el cierre entre dos corridas.
+  Probado con SARIF real de Semgrep y Trivy.
+- **Evidencia forense** (`skills/secure-forensic-audit/`, `skills/secure-forensic-audit-ui/`): bitácora de acciones de negocio con cifrado,
+  cadena de hashes y firmas HMAC en Spring Boot, y su pantalla de consulta y verificación en Angular + PrimeNG; complementa (no sustituye) la
+  auditoría de cambios de datos de `postgres-audit`.
+
 ## 2.17.0
 Ideas tomadas de los repositorios públicos `lidr-specboot` y `ai-engineering` de LIDR (licencia MIT); el texto y las reglas son propios.
 - **Revisión adversaria** (`agents/adversarial-reviewer.md`, `/adversarial`): especificación primero, diff completo, cómo falla cada criterio,
