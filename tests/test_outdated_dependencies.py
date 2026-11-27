@@ -19,6 +19,7 @@ NPM = {
         "21.0.2": {"peerDependencies": {"@angular/core": "^21.0.0"}}, "22.0.0": {"peerDependencies": {"@angular/core": "^22.0.0"}}}},
     "eslint": {"dist-tags": {"latest": "10.0.0"}, "versions": {"9.1.0": {"deprecated": "no longer supported"}, "10.0.0": {}}},
     "eslint-plugin-old": {"dist-tags": {"latest": "2.0.0"}, "versions": {"2.0.0": {"peerDependencies": {"eslint": "^8 || ^9"}}}},
+    "typescript-eslint": {"dist-tags": {"latest": "8.56.0"}, "versions": {"8.56.0": {"peerDependencies": {"typescript": ">=4.8.4 <6.1.0"}}}},
 }
 MAVEN = {"org/springdoc/springdoc-openapi-starter-webmvc-ui": ["3.0.2", "3.2.1", "4.0.0-M1"],
          "org/apache/poi/poi-ooxml": ["5.4.0", "6.0.0"], "org/hibernate/orm/hibernate-core": ["7.1.0.Final", "7.2.3.Final", "8.0.0.CR1"]}
@@ -111,3 +112,26 @@ def test_exit_codes_and_verifier(tmp_path):
     assert checks.dependencies_current(tmp_path, rows=rows).status == checks.CUMPLE
     off = [dict(rows[0], unresolved="URLError: sin red", lag=None)]
     assert checks.dependencies_current(tmp_path, rows=off).status == checks.NO_EVALUADO
+
+
+def test_npm_targets_respect_transitive_policy_constraints(tmp_path):
+    # With transitive typescript-eslint in package-lock.json, typescript stays at 6.0.3 (not 7.0.1)
+    with_lock = tmp_path / "with-lock"
+    rows = project(with_lock, {
+        "package.json": json.dumps({"devDependencies": {"typescript": "^6.0.3"}}),
+        "package-lock.json": json.dumps({
+            "lockfileVersion": 3,
+            "packages": {"node_modules/eslint-config-next/node_modules/typescript-eslint": {"version": "8.56.0"}},
+        }),
+    })
+    ts = rows[("npm", "typescript")]
+    assert ts["target"] == "6.0.3" and ts["latest"] == "7.0.1" and ts["lag"] is None
+    assert "typescript-eslint 8.56.0 (transitiva)" in ts["note"]
+
+    # Without typescript-eslint in lockfile, typescript proposes 7.0.1 normally
+    without_lock = tmp_path / "without-lock"
+    rows_free = project(without_lock, {
+        "package.json": json.dumps({"devDependencies": {"typescript": "^6.0.3"}}),
+    })
+    ts_free = rows_free[("npm", "typescript")]
+    assert ts_free["target"] == "7.0.1" and ts_free["lag"] == "major"

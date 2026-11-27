@@ -346,8 +346,56 @@ def wrapper_version(f: Path) -> Optional[str]:
 
 
 # ----------------------------------------------------------------------------- analysis
-def _blockers(n: str, v: str, target: Dict[str, str], deps: Dict[str, str], info: Dict[str, dict]) -> List[str]:
-    """Why version v of n is not compatible: its own peers and the other packages' peer ranges on n."""
+def _load_policy_npm_constraints(root: Path) -> List[Tuple[str, str]]:
+    """Read `(package, partner)` pairs declared as `channel: compatible` in `.agent/versions-policy.json`."""
+    candidates = [root / ".agent" / "versions-policy.json", Path(__file__).resolve().parents[1] / ".agent" / "versions-policy.json"]
+    for cfg in candidates:
+        if not cfg.is_file():
+            continue
+        try:
+            doc = json.loads(cfg.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logging.getLogger(__name__).warning("Failed reading %s: %s", cfg, exc, exc_info=True)
+            continue
+        pairs: List[Tuple[str, str]] = []
+        for entry in (doc.get("tools") or {}).values():
+            if isinstance(entry, dict) and entry.get("source") == "npm" and entry.get("channel") == "compatible":
+                pkg, partner = entry.get("package"), entry.get("with")
+                if isinstance(pkg, str) and isinstance(partner, str):
+                    pairs.append((pkg, partner))
+        return pairs
+    return []
+
+
+def _lockfile_has_package(pkg_json: Path, pkg_name: str) -> bool:
+    """Return True if a sibling `package-lock.json` contains `pkg_name` (including as a transitive dependency)."""
+    lock = pkg_json.with_name("package-lock.json")
+    if not lock.is_file():
+        return False
+    try:
+        doc = json.loads(lock.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logging.getLogger(__name__).warning("Failed reading %s: %s", lock, exc, exc_info=True)
+        return False
+    packages = doc.get("packages") or {}
+    if isinstance(packages, dict):
+        suffix = f"node_modules/{pkg_name}"
+        for key in packages:
+            if key == suffix or key.endswith("/" + suffix):
+                return True
+    deps = doc.get("dependencies") or {}
+    return isinstance(deps, dict) and pkg_name in deps
+
+
+def _blockers(
+    n: str,
+    v: str,
+    target: Dict[str, str],
+    deps: Dict[str, str],
+    info: Dict[str, dict],
+    extra_constraints: Optional[Dict[str, List[Tuple[str, str, str]]]] = None,
+) -> List[str]:
+    """Why version v of n is not compatible: its own peers, other packages' peer ranges, and transitive policy constraints."""
     out = []
     peers, meta = info[n]["versions"].get(v, ({}, {}))
     for q, r in peers.items():
@@ -358,13 +406,22 @@ def _blockers(n: str, v: str, target: Dict[str, str], deps: Dict[str, str], info
             r = info[o]["versions"].get(target[o], ({}, {}))[0].get(n)
             if r and not satisfies(v, r):
                 out.append(f"{o} {target[o]} acepta {n} {r}")
+    for partner, pv, r in (extra_constraints or {}).get(n, ()):
+        if not satisfies(v, r):
+            out.append(f"{partner} {pv} (transitiva) acepta {n} {r}")
     return out
 
 
 ANCHORS = re.compile(r"^(@angular/|@angular-devkit/|@nestjs/|react$|react-dom$|next$|vue$|@vue/|svelte$|@sveltejs/kit$)")
 
 
-def _compatible(n: str, v: str, fixed: Dict[str, str], info: Dict[str, dict]) -> bool:
+def _compatible(
+    n: str,
+    v: str,
+    fixed: Dict[str, str],
+    info: Dict[str, dict],
+    extra_constraints: Optional[Dict[str, List[Tuple[str, str, str]]]] = None,
+) -> bool:
     peers, meta = info[n]["versions"][v]
     for q, r in peers.items():
         if q in fixed and not (meta.get(q) or {}).get("optional") and not satisfies(fixed[q], r):
@@ -374,19 +431,32 @@ def _compatible(n: str, v: str, fixed: Dict[str, str], info: Dict[str, dict]) ->
             r = info[o]["versions"][ov][0].get(n)
             if r and not (info[o]["versions"][ov][1].get(n) or {}).get("optional") and not satisfies(v, r):
                 return False
+    for _partner, _pv, r in (extra_constraints or {}).get(n, ()):
+        if not satisfies(v, r):
+            return False
     return True
 
 
-def _newest(n: str, floor: Optional[str], fixed: Dict[str, str], info: Dict[str, dict]) -> Optional[str]:
+def _newest(
+    n: str,
+    floor: Optional[str],
+    fixed: Dict[str, str],
+    info: Dict[str, dict],
+    extra_constraints: Optional[Dict[str, List[Tuple[str, str, str]]]] = None,
+) -> Optional[str]:
     for v in sorted(info[n]["versions"], key=vkey, reverse=True):
         if floor and vkey(v) < vkey(floor):
             return None
-        if _compatible(n, v, fixed, info):
+        if _compatible(n, v, fixed, info, extra_constraints):
             return v
     return None
 
 
-def _npm_targets(deps: Dict[str, str], info: Dict[str, dict]) -> Dict[str, Tuple[Optional[str], str]]:
+def _npm_targets(
+    deps: Dict[str, str],
+    info: Dict[str, dict],
+    extra_constraints: Optional[Dict[str, List[Tuple[str, str, str]]]] = None,
+) -> Dict[str, Tuple[Optional[str], str]]:
     """Newest stable versions that install together. Platforms (Angular, React, NestJS, Vue...) are fixed first at their newest release, then
     the packages others declare as a peer, then the rest, each at the newest version compatible with what is already fixed. When a package has
     no compatible version, it keeps its current one and whatever blocks it steps back, so the proposal never breaks the peer ranges."""
@@ -397,21 +467,21 @@ def _npm_targets(deps: Dict[str, str], info: Dict[str, dict]) -> Dict[str, Tuple
     fixed: Dict[str, str] = {}
     notes: Dict[str, str] = {}
     for n in order:
-        v = _newest(n, current[n], fixed, info)
+        v = _newest(n, current[n], fixed, info, extra_constraints)
         if v is None:
             fixed[n] = current[n]
             blockers = [b for b in list(fixed) if b != n and current[n] in info[n]["versions"]
                         and not _compatible(n, current[n], {b: fixed[b]}, info)]
             for b in blockers:
                 rest = {k: x for k, x in fixed.items() if k != b}
-                fixed[b] = _newest(b, current[b], rest, info) or current[b]
+                fixed[b] = _newest(b, current[b], rest, info, extra_constraints) or current[b]
                 notes[b] = f"se limita a {fixed[b]} porque {n} no tiene una versión compatible con una más nueva"
         else:
             fixed[n] = v
     for _ in range(6):  # raise anything the step-backs made room for
         moved = False
         for n in order:
-            v = _newest(n, current[n], {k: x for k, x in fixed.items() if k != n}, info)
+            v = _newest(n, current[n], {k: x for k, x in fixed.items() if k != n}, info, extra_constraints)
             if v and vkey(v) > vkey(fixed[n]):
                 fixed[n], moved = v, True
         if not moved:
@@ -424,7 +494,7 @@ def _npm_targets(deps: Dict[str, str], info: Dict[str, dict]) -> Dict[str, Tuple
         latest = info[n]["latest"]
         note = notes.get(n, "")
         if latest and latest in info[n]["versions"] and vkey(fixed[n]) < vkey(latest):
-            why = "; ".join(_blockers(n, latest, fixed, deps, info)) or "incompatible con las demás dependencias"
+            why = "; ".join(_blockers(n, latest, fixed, deps, info, extra_constraints)) or "incompatible con las demás dependencias"
             note = (note + "; " if note else "") + f"la última ({latest}) no es compatible: {why}"
         dep_note = info[n].get("deprecated", {}).get(current[n])
         if dep_note:
@@ -436,6 +506,7 @@ def _npm_targets(deps: Dict[str, str], info: Dict[str, dict]) -> Dict[str, Tuple
 def analyze(root: Path, lookup: Optional[Lookup] = None, workers: int = 8) -> List[dict]:
     lookup = lookup or Lookup()
     rows: List[dict] = []
+    policy_npm_pairs = _load_policy_npm_constraints(root)
 
     def row(eco, f, name, current, latest, target, note="", error=None, deprecated=False):
         rows.append(dict(ecosystem=eco, file=str(f.relative_to(root)), name=name, current=current, latest=latest, target=target,
@@ -451,7 +522,17 @@ def analyze(root: Path, lookup: Optional[Lookup] = None, workers: int = 8) -> Li
             deps = {n: s for n, s in deps.items() if min_version(s)}
             res = dict(zip(deps, pool.map(lookup.npm, deps)))
             info = {n: r[0] for n, r in res.items() if r[0]}
-            targets = _npm_targets(deps, info)
+            extra_constraints: Dict[str, List[Tuple[str, str, str]]] = {}
+            for pkg, partner in policy_npm_pairs:
+                if pkg in deps and partner not in deps and _lockfile_has_package(f, partner):
+                    pinfo, _ = lookup.npm(partner)
+                    if pinfo and pinfo["versions"]:
+                        pv = pinfo["latest"] if pinfo.get("latest") in pinfo["versions"] else max(pinfo["versions"], key=vkey)
+                        peers, meta = pinfo["versions"].get(pv, ({}, {}))
+                        rng = peers.get(pkg)
+                        if rng and not (meta.get(pkg) or {}).get("optional"):
+                            extra_constraints.setdefault(pkg, []).append((partner, pv, rng))
+            targets = _npm_targets(deps, info, extra_constraints)
             for n, spec in deps.items():
                 if not info.get(n):
                     row("npm", f, n, min_version(spec), None, None, error=res[n][1])

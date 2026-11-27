@@ -14,7 +14,7 @@ Genera un proyecto nuevo **con las versiones vigentes de cada tecnología**, res
    - Si alguna herramienta sale **NO RESUELTA**, detente y díselo al usuario; no uses una versión de memoria.
 2. **Spec primero.** Crea el spec del proyecto en `.agent/SPECS.md` (no hay código sin spec aprobado).
 3. **Generar los manifiestos con EXACTAMENTE las versiones del lock** (`package.json`, `pom.xml`/`build.gradle`, `Dockerfile`, `docker-compose.yml`).
-   - Imágenes con etiqueta fija (`node:24-alpine`, `pgvector/pgvector:pg18`); nunca `latest`.
+   - Imágenes con etiqueta fija (`node:26-alpine`, `pgvector/pgvector:pg19`); nunca `latest`.
    - Java: el canal `compatible` de la política (la más nueva que Spring Boot soporta y que no esté fuera de soporte); la herramienta imprime la razón si una Java más nueva se descarta.
 4. **Todas las dependencias al día, no solo las plataformas:** `python scripts/outdated_dependencies.py --path <proyecto> --strict` compara
    cada dependencia directa (npm, Maven, Gradle con sus plugins, catálogo y wrapper, Python) con la última versión estable publicada hoy y,

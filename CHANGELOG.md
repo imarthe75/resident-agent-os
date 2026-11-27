@@ -2,6 +2,10 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.4 (2026-11-27)
+- **Infraestructura al día (`docker-compose.yml`, `commands/new-project.md`):** actualización a `pgvector/pgvector:pg19` (PostgreSQL 19.0 + `uuidv7()` nativo + pgvector 0.8.7) y `valkey/valkey:9.2`, verificada contra `sql/agent_memory.sql` (idempotente) y `tests/test_pgvector_integration.py`. Quienes migren un volumen previo `./data/postgres` de PostgreSQL 18 requieren respaldo y restauración (`pg_dump`/`pg_restore`).
+- **Compatibilidad transitiva por política en `scripts/outdated_dependencies.py`:** al analizar `package.json`, consulta los pares `channel: compatible` de `.agent/versions-policy.json` (p. ej. `typescript` con `typescript-eslint`) cuando el paquete restrictivo aparece en el `package-lock.json` hermano (como dependencia transitiva de `eslint-config-next`), evitando falsos positivos en `verifiers/run.py --only dependencies_current` hasta que el ecosistema amplíe su soporte.
+
 ## 1.0.3 (2026-11-27)
 - **Ruteo de modelos agnóstico a proveedor** (`.agent/model-routing.json`, `agent/model_routing.py`, `ros route`, herramienta MCP `ros_resolve_model`): niveles semánticos `fast`, `balanced` y `reasoning` con mapeo configurable por proveedor (`claude`, `antigravity`, `gemini`, `codex`, `cursor`, `copilot`, `opencode`, `ollama`, `generic`), promoción automática por tipo de tarea sin degradar revisores de seguridad/adversarios, y overrides por entorno (`ROS_MODEL_<TIER>`, `ROS_MODEL_<PROVIDER>_<TIER>`).
 - **Subagente `agents/general-purpose.md` y mejoras en `delegacion-subagentes`:** 7.º subagente canónico en nivel `fast` por defecto con regla de auto-escalado honesto; la skill añade el campo `Modelo / Nivel` en el encargo, reduce el límite paralelo a `2–3` y compacta el ciclo de convergencia §5b.

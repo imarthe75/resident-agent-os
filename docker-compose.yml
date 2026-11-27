@@ -4,7 +4,7 @@
 # Variables obligatorias en .env (sin valores por omisión): POSTGRES_PASSWORD.
 services:
   agent-cache:
-    image: valkey/valkey:9.1
+    image: valkey/valkey:9.2
     container_name: agent-cache
     ports:
       - "127.0.0.1:6379:6379"
@@ -18,7 +18,7 @@ services:
           memory: 512M
 
   agent-db:
-    image: pgvector/pgvector:pg18
+    image: pgvector/pgvector:pg19
     container_name: agent-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
