@@ -3,6 +3,8 @@
 Para instalar el framework en un repositorio, abre el agente en la raíz del proyecto, con esta carpeta a la mano, y pídele:
 «Lee `<ruta del framework>/INSTALAR.md` y síguelo para instalarlo en este proyecto».
 
+> Para el manual completo orientado a personas (prompts listos para Claude/Gemini/Antigravity/Codex/Cursor, conexión MCP, arranque del frontend `resident-ui` y compatibilidad Linux/macOS/Windows), consulta [`docs/MANUAL_INSTALACION_Y_USO.md`](docs/MANUAL_INSTALACION_Y_USO.md).
+
 - **Proyecto nuevo:** usa `/new-project` (`commands/new-project.md`). Las plataformas y cada dependencia salen en su última versión estable
   compatible, resueltas ese día: `scripts/latest_versions.py` y `scripts/outdated_dependencies.py --strict`, que debe terminar en 0.
 - **Proyecto existente:** sigue los pasos de abajo.

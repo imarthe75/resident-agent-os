@@ -4,6 +4,8 @@ Framework de referencia para inicializar un **Agente Residente Soberano** con me
 
 > **Atribución:** Este proyecto integra y adapta las mejores prácticas de [affaan-m/ECC](https://github.com/affaan-m/ECC), [obra/superpowers](https://github.com/obra/superpowers), [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) y [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — todos bajo Licencia MIT. También toma ideas (no código) de [JayPokale/Chisle](https://github.com/JayPokale/Chisle) (MIT) y [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0): recorte de salidas de herramientas, dieta de contexto y método de depuración/verificación. La implementación es propia.
 
+> **Manual completo de instalación, prompts por asistente (Claude, Gemini, Antigravity, Codex, Cursor, Copilot, OpenCode), arranque del frontend (`resident-ui`) y compatibilidad Linux/macOS/Windows:** [`docs/MANUAL_INSTALACION_Y_USO.md`](docs/MANUAL_INSTALACION_Y_USO.md).
+
 ---
 
 ## Qué es

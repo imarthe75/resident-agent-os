@@ -6,6 +6,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
+| [docs/MANUAL_INSTALACION_Y_USO.md](docs/MANUAL_INSTALACION_Y_USO.md) | End-to-end install, prompts per AI host, `resident-ui` startup & Linux/macOS/Windows matrix | Everyone |
 | [RESIDENT_AGENT_OS_QUICKSTART.md](RESIDENT_AGENT_OS_QUICKSTART.md) | Usage guide with code examples | Developers |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, diagrams, data flows | Architects, Developers |
 | [.agent/AGENT.md](.agent/AGENT.md) | Golden laws & operational mandates | Everyone |

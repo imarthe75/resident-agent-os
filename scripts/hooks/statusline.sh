@@ -8,7 +8,17 @@ TELEMETRY_FILE="${ROS_TELEMETRY_PATH:-$AGENT_DIR/telemetry/events.jsonl}"
 PROJECT_ID="${ROS_PROJECT_ID:-$(basename "$(cd "$(dirname "$AGENT_DIR")" 2>/dev/null && pwd || pwd)")}"
 AGENT_HOST="${ROS_AGENT_HOST:-generic}"
 
-python3 - "$TELEMETRY_FILE" "$PROJECT_ID" "$AGENT_HOST" <<'PY'
+PYTHON_BIN="python3"
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  if command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  else
+    echo "[ROS | $PROJECT_ID | $AGENT_HOST | python not found]"
+    exit 0
+  fi
+fi
+
+"$PYTHON_BIN" - "$TELEMETRY_FILE" "$PROJECT_ID" "$AGENT_HOST" <<'PY'
 import json
 import sys
 from pathlib import Path
