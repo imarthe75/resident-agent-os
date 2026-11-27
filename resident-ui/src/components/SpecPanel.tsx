@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAgentStore } from "@/store/agentStore";
 
 export default function SpecPanel() {
@@ -8,10 +8,13 @@ export default function SpecPanel() {
   const [draft, setDraft] = useState(specsMarkdown);
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
+  // Cuando SPECS.md cambia en el servidor, el borrador se reinicia durante el render (patrón de React para
+  // derivar estado de una prop), no en un efecto: evita un render extra con el borrador viejo.
+  const [source, setSource] = useState(specsMarkdown);
+  if (specsMarkdown !== source) {
+    setSource(specsMarkdown);
     setDraft(specsMarkdown);
-  }, [specsMarkdown]);
+  }
 
   const handleSave = async () => {
     setSaving(true);

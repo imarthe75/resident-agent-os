@@ -2,7 +2,7 @@
 
 > **Local-first, provider-agnostic Agentic OS & control plane for cognitive coding assistants: unified CLI (`ros`), zero-dependency stdio MCP server, deterministic verifiers, multi-host hooks, Hub-and-Spoke memory, and real-time observability UI.**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](VERSION)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Node.js 18+](https://img.shields.io/badge/node-18%2B-339933.svg)](https://nodejs.org/)
 [![PostgreSQL 18 + pgvector](https://img.shields.io/badge/postgresql-18%20%2B%20pgvector-336791.svg)](sql/agent_memory.sql)

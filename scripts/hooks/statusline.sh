@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compact terminal statusline for Resident Agent OS v1.0.0 (Claude Code statusLine or any shell prompt).
+# Compact terminal statusline for Resident Agent OS (Claude Code statusLine or any shell prompt).
 # Reads .agent/telemetry/events.jsonl (or $ROS_TELEMETRY_PATH) without third-party dependencies.
 set -euo pipefail
 
@@ -48,5 +48,5 @@ if path.is_file():
 
 err_pct = (errors / events * 100.0) if events else 0.0
 saved_fmt = f"{tokens_saved / 1000:.1f}k" if tokens_saved >= 1000 else str(tokens_saved)
-print(f"[ROS v1.0.0 | {project_id} | {agent_host} | phase:{last_phase} | saved:{saved_fmt} tok | err:{err_pct:.1f}% | ${cost_usd:.3f}]")
+print(f"[ROS | {project_id} | {agent_host} | phase:{last_phase} | saved:{saved_fmt} tok | err:{err_pct:.1f}% | ${cost_usd:.3f}]")
 PY

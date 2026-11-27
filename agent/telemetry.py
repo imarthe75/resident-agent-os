@@ -18,6 +18,8 @@ import os
 import re
 import sys
 import uuid
+
+from agent.version import __version__
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -211,7 +213,7 @@ def build_otlp_log_payload(record: dict[str, Any]) -> dict[str, Any]:
                 },
                 "scopeLogs": [
                     {
-                        "scope": {"name": "resident-agent-os.telemetry", "version": "1.0.0"},
+                        "scope": {"name": "resident-agent-os.telemetry", "version": __version__},
                         "logRecords": [
                             {
                                 "timeUnixNano": now_ns,

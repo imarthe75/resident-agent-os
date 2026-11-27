@@ -37,7 +37,9 @@ from verifiers.checks import NO_CUMPLE, REGISTRY  # noqa: E402
 logger = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "resident-agent-os", "version": "1.0.0"}
+from agent.version import __version__  # noqa: E402
+
+SERVER_INFO = {"name": "resident-agent-os", "version": __version__}
 DEFAULT_MAX_CHARS = 12000
 
 

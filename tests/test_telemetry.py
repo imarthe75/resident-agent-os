@@ -198,7 +198,7 @@ class TestTelemetry(unittest.TestCase):
         statusline_sh = Path(__file__).resolve().parents[1] / "scripts" / "hooks" / "statusline.sh"
         env = {**os.environ, "ROS_TELEMETRY_PATH": str(writer.path), "AGENT_DIR": str(self.agent_dir)}
         proc = subprocess.run(["bash", str(statusline_sh)], capture_output=True, text=True, check=True, env=env)
-        self.assertIn("[ROS v1.0.0 | proj-st |", proc.stdout)
+        self.assertIn("[ROS | proj-st |", proc.stdout)
         self.assertIn("saved:2.0k tok", proc.stdout)
 
         if shutil.which("node") or os.getenv("ROS_NODE_BIN"):

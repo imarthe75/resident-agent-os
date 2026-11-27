@@ -2,6 +2,14 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.1 (2026-11-27)
+La serie 1.x sucede a la 2.x: 1.0.0 es la línea base del framework y es **más nueva** que 2.20.0 (las herramientas del kit fijan la etiqueta
+exacta; ninguna compara números de versión).
+- Versión en una sola fuente (`agent/version.py`, con prueba de que coincide con `VERSION` y `pyproject.toml`); el servidor MCP, la
+  telemetría y la barra de estado ya no llevan la versión escrita a mano.
+- Barra de estado registrada en `.claude/settings.json` (`statusLine`); `INSTALAR.md` la incluye al combinar la configuración.
+- `resident-ui`: el borrador de `SpecPanel` se reinicia durante el render y no en un efecto (el lint fallaba); la imagen instala con `npm ci`.
+
 ## 1.0.0 (2026-11-26) — Baseline Agentic OS / MCP / Framework
 Primera línea base consolidada `1.0.0` (parte de la serie previa `2.x` incorporando Agentic OS, servidor MCP agnóstico de proveedor, arquitectura Hub-and-Spoke, telemetría real e ideas de Chisle v3.13 y Alibaba Open Code Review):
 - **Plantilla CI de MR en GitLab** (`templates/ci/mr-review.gitlab-ci.yml`): `resource_group` por MR, `interruptible: true`, `ros review-prepare` y verificadores deterministas.
