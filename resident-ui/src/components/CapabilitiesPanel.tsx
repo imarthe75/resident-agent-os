@@ -81,47 +81,47 @@ export default function CapabilitiesPanel() {
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 pb-3">
-        <button
-          type="button"
-          onClick={() => setTab("skills")}
-          className={`px-3.5 py-2 rounded-lg text-xs font-mono font-semibold inline-flex items-center gap-2 cursor-pointer ${
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition ${
             tab === "skills" ? "bg-green-600 text-white" : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
           }`}
         >
-          <span>Skills ({data?.counts.skills ?? 0})</span>
+          <button type="button" onClick={() => setTab("skills")} className="cursor-pointer">
+            Skills ({data?.counts.skills ?? 0})
+          </button>
           <HelpTooltip
             title="¿Qué son las Skills?"
             text="Manuales especializados que el agente carga cuando trabaja en una tecnología o tarea concreta (seguridad, PostgreSQL, Spring, Angular, pruebas). Leídas de .agents/skills/ o skills/."
           />
-        </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setTab("commands")}
-          className={`px-3.5 py-2 rounded-lg text-xs font-mono font-semibold inline-flex items-center gap-2 cursor-pointer ${
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition ${
             tab === "commands" ? "bg-green-600 text-white" : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
           }`}
         >
-          <span>Comandos Slash ({data?.counts.commands ?? 0})</span>
+          <button type="button" onClick={() => setTab("commands")} className="cursor-pointer">
+            Comandos Slash ({data?.counts.commands ?? 0})
+          </button>
           <HelpTooltip
             title="¿Qué son los Comandos Slash?"
             text="Atajos de flujo completo definidos en commands/*.md (como /review, /audit, /adversarial o /demo) que le indican al agente exactamente qué pasos seguir."
           />
-        </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setTab("path_rules")}
-          className={`px-3.5 py-2 rounded-lg text-xs font-mono font-semibold inline-flex items-center gap-2 cursor-pointer ${
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono font-semibold transition ${
             tab === "path_rules" ? "bg-green-600 text-white" : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
           }`}
         >
-          <span>Reglas por Ruta ({data?.counts.path_rules ?? 0})</span>
+          <button type="button" onClick={() => setTab("path_rules")} className="cursor-pointer">
+            Reglas por Ruta ({data?.counts.path_rules ?? 0})
+          </button>
           <HelpTooltip
             title="¿Qué son las Reglas por Ruta?"
             text="Reglas definidas en .agent/path-rules.json que se activan automáticamente solo cuando tocas ciertos archivos o carpetas (por ejemplo, migraciones SQL o controladores de API)."
           />
-        </button>
+        </div>
 
         {data?.skills_source && tab === "skills" && (
           <span className="ml-auto text-[11px] font-mono text-zinc-400">

@@ -28,6 +28,7 @@ export default function HelpTooltip({
   const id = useId();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; side: "top" | "bottom" } | null>(null);
 
   const updatePosition = () => {
@@ -56,7 +57,10 @@ export default function HelpTooltip({
     if (!open) return;
     updatePosition();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setPinned(false);
+        setOpen(false);
+      }
     };
     const onScrollOrResize = () => updatePosition();
     window.addEventListener("keydown", onKey);
@@ -83,14 +87,25 @@ export default function HelpTooltip({
         aria-label={ariaLabel || `Ayuda sobre ${title}`}
         aria-describedby={open ? id : undefined}
         onMouseEnter={handleOpen}
-        onMouseLeave={() => setOpen(false)}
+        onMouseLeave={() => {
+          if (!pinned) setOpen(false);
+        }}
         onFocus={handleOpen}
-        onBlur={() => setOpen(false)}
+        onBlur={() => {
+          setPinned(false);
+          setOpen(false);
+        }}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (open) setOpen(false);
-          else handleOpen();
+          if (pinned) {
+            setPinned(false);
+            setOpen(false);
+          } else {
+            updatePosition();
+            setPinned(true);
+            setOpen(true);
+          }
         }}
         className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-zinc-600 bg-zinc-900 text-[10px] font-bold text-zinc-200 hover:border-green-400 hover:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 focus:ring-offset-zinc-950 transition cursor-help shrink-0"
       >

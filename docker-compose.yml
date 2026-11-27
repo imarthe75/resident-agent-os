@@ -45,18 +45,9 @@ services:
     volumes:
       - ./resident-ui:/app
       - /app/node_modules
+      - .:/workspace:ro
       - ./.agent:/workspace/.agent
       - ./data:/workspace/data
-      - ./rules:/workspace/rules:ro
-      - ./changes:/workspace/changes:ro
-      - ./DECISIONS:/workspace/DECISIONS:ro
-      - ./verifiers:/workspace/verifiers:ro
-      - ./scripts:/workspace/scripts:ro
-      - ./agent:/workspace/agent:ro
-      - ./agents:/workspace/agents:ro
-      - ./commands:/workspace/commands:ro
-      - ./skills:/workspace/skills:ro
-      - ./.claude:/workspace/.claude:ro
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1

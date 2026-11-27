@@ -73,7 +73,7 @@ export default function EditorPanel() {
               key={f}
               type="button"
               onClick={() => setSelected(f)}
-              className={`text-left px-2.5 py-1.5 rounded text-xs font-mono truncate cursor-pointer ${
+              className={`shrink-0 text-left px-2.5 py-1.5 rounded text-xs font-mono truncate cursor-pointer ${
                 selected === f ? "bg-green-600 text-white font-semibold" : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
               }`}
               title={f}

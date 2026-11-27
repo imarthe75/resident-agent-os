@@ -2,6 +2,13 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.7 (2026-11-27)
+- **Auditoría completa de verificadores dentro de Docker (`docker-compose.yml`):** monta la raíz del repositorio en solo lectura (`./:/workspace:ro`) junto con `./.agent:/workspace/.agent` y `./data:/workspace/data` en lectura/escritura, permitiendo que `POST /api/verifiers` dentro de `resident-ui` evalúe el 100% del repositorio (`8 CUMPLE, 0 NO_CUMPLE, 3 NO_EVALUADO` en modo offline) manteniendo `/app` aislado de Turbopack y `/api/files` restringido por lista blanca estricta (HTTP 404 para `.env`, `docker-compose.yml`, etc.).
+- **Suite E2E real en Chromium (`resident-ui/tests/e2e-browser.mjs`) y correcciones detectadas en navegador real:**
+  - `HelpTooltip.tsx`: fijado al hacer clic tras hover (`pinned`), evitando cierre accidental al pulsar `?`.
+  - `CapabilitiesPanel.tsx`: eliminada anidación `<button>` dentro de `<button>` en las pestañas (cero errores de hidratación en React 19).
+  - `EditorPanel.tsx`: añadido `shrink-0` a los elementos del árbol de archivos para mantener altura legible y scroll fluido con 50+ archivos.
+
 ## 1.0.6 (2026-11-27)
 - **Correcciones técnicas y endurecimiento de `resident-ui` y `docker-compose.yml`:**
   - `.agent` y `data` montados fuera de `/app` (`/workspace/.agent` y `/workspace/data`) para evitar que Turbopack/Tailwind v4 escaneen volúmenes de BD (`os error 13`).

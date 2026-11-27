@@ -62,3 +62,13 @@ npm install   # ejecuta scripts/sync-monaco.mjs para enlazar /public/vs
 npm run dev
 # http://localhost:3000
 ```
+
+## Pruebas automatizadas (unitarias + E2E en navegador real)
+
+```bash
+# Pruebas unitarias de inspectores y telemetría
+npm test
+
+# Suite E2E real en Chromium (verifica 0 errores de consola/hidratación, 0 CDNs externos, Monaco local y tooltips)
+BASE_URL=http://127.0.0.1:3000 node tests/e2e-browser.mjs
+```
