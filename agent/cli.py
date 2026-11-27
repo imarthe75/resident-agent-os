@@ -262,6 +262,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_rev.add_argument("--to", dest="to_ref", default=None)
     p_rev.add_argument("--commit", default=None)
     p_rev.add_argument("--max-bundle-size", type=int, default=8)
+    p_rev.add_argument("--scan", action="store_true", help="Review whole files instead of a diff (no git history needed)")
+    p_rev.add_argument("--scan-path", action="append", default=[], help="Limit --scan to a directory or file (repeatable)")
+    p_rev.add_argument("--session", nargs="?", const="new", default=None,
+                       help="Open a resumable review session (optional id); resume it with `ros review-session resume <id>`")
+
+    p_ses = sub.add_parser("review-session", help="Resumable review sessions: list, resume, mark")
+    p_ses.add_argument("action", choices=["list", "resume", "mark"])
+    p_ses.add_argument("session_id", nargs="?")
+    p_ses.add_argument("bundle_id", nargs="?")
+    p_ses.add_argument("--status", choices=["pending", "done", "failed"])
+    p_ses.add_argument("--findings", type=int, default=None)
+    p_ses.add_argument("--note", default=None)
+    p_ses.add_argument("--path", default=".")
+    p_ses.add_argument("--json", action="store_true")
     p_rev.add_argument("--json", action="store_true")
 
     p_rel = sub.add_parser("relocate", help="Verify/relocate a finding's line number against the real file")
@@ -276,6 +290,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_mem.add_argument("--json", action="store_true")
 
     sub.add_parser("mcp", help="Start the local provider-agnostic MCP server over stdio")
+    p_px = sub.add_parser("mcp-proxy", help="Wrap any MCP server and bound its tool output (ros mcp-proxy -- <command>)")
+    p_px.add_argument("server", nargs=argparse.REMAINDER)
 
     args = ap.parse_args(argv)
     if not args.command:
@@ -357,7 +373,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             to_ref=args.to_ref,
             commit=args.commit,
             max_bundle_size=args.max_bundle_size,
+            scan=args.scan,
+            scan_paths=args.scan_path or None,
         )
+        if args.session:
+            from agent import review_session
+            rep["session"] = review_session.create(Path(args.path), rep, None if args.session == "new" else args.session)["session_id"]
         if args.json:
             print(json.dumps(rep, ensure_ascii=False, indent=2))
         else:
@@ -367,7 +388,39 @@ def main(argv: Optional[list[str]] = None) -> int:
                 print(f"  [{b['bundle_id']}] ({b['scope']}): {', '.join(b['files'])}")
             for g in rep["rule_groups"]:
                 print(f"  regla {g['id']} [{g['severity']}] -> {len(g['files'])} archivo(s)")
+            if rep.get("session"):
+                print(f"  sesión {rep['session']}: marca cada lote con `ros review-session mark {rep['session']} <lote> --status done`")
         return 0
+
+    if args.command == "review-session":
+        from agent import review_session
+        root = Path(args.path)
+        if args.action == "list":
+            rep = {"sessions": review_session.list_sessions(root)}
+        elif not args.session_id:
+            print("falta el id de la sesión", file=sys.stderr)
+            return 2
+        elif args.action == "resume":
+            rep = review_session.resume(root, args.session_id)
+        else:
+            if not args.bundle_id or not args.status:
+                print("mark necesita <lote> y --status", file=sys.stderr)
+                return 2
+            rep = review_session.mark(root, args.session_id, args.bundle_id, args.status, args.findings, args.note)
+        if args.json or args.action == "mark":
+            print(json.dumps(rep, ensure_ascii=False, indent=2))
+        elif args.action == "list":
+            for s in rep["sessions"]:
+                print(f"  {s['session_id']}  {s.get('mode')}  {s.get('done', 0)}/{s.get('total', 0)} lotes  {s.get('updated_at')}")
+        else:
+            print(f"sesión {rep['session_id']}: {rep['done']}/{rep['total']} lotes revisados; pendientes: "
+                  + (", ".join(b["bundle_id"] for b in rep["pending"]) or "ninguno")
+                  + (f"; reabiertos por cambios: {', '.join(rep['reopened'])}" if rep["reopened"] else ""))
+        return 0
+
+    if args.command == "mcp-proxy":
+        from agent.mcp_proxy import main as proxy_main
+        return proxy_main(args.server)
 
     if args.command == "relocate":
         rep = relocate_finding(args.file, args.line, args.snippet)

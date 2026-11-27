@@ -33,7 +33,10 @@ incumplida y corrección propuesta.
    la seguridad ni la accesibilidad (`rules/common/efficiency.md`, `/ponytail-review`).
 
 ## Antes de aprobar
-1. Corre `python -m agent review-prepare` (o `ros review-prepare`) para obtener la lista determinista de archivos revisables, exclusiones, lotes (bundles) y reglas por ruta (`.agent/path-rules.json`); no selecciones archivos «a ojo» en MRs grandes.
+1. Corre `python -m agent review-prepare` (o `ros review-prepare`) para obtener la lista determinista de archivos revisables, exclusiones, lotes (bundles) y reglas por ruta (`.agent/path-rules.json`); no selecciones archivos «a ojo» en MRs grandes. Para revisar
+   archivos completos (sin diff, p. ej. un módulo heredado) usa `--scan [--scan-path <dir>]`. En una revisión de muchos lotes abre una
+   sesión (`--session`), marca cada lote al terminarlo (`ros review-session mark <id> <lote> --status done`) y, si se corta, retómala con
+   `ros review-session resume <id>`: solo quedan los lotes pendientes y los que cambiaron desde que se revisaron.
 2. Corre `python verifiers/run.py` y, si el proyecto tiene escáner, consulta sus hallazgos sobre los archivos tocados (skill `preflight`).
 3. Verifica que el archivo y la línea de cada hallazgo coincidan exactamente con el archivo real (usa `ros_relocate_finding` si usas MCP) para evitar *position drift*.
 Un hallazgo nuevo de severidad alta o crítica bloquea. La corrección de cada regla está en la skill `prevencion-hallazgos-seguridad-calidad`.

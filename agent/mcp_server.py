@@ -109,13 +109,38 @@ def _tool_verify(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_review_prepare(args: dict[str, Any]) -> dict[str, Any]:
-    return prepare_review(
-        Path(args.get("path") or ".").resolve(),
+    repo = Path(args.get("path") or ".").resolve()
+    scan_paths = args.get("scan_paths")
+    rep = prepare_review(
+        repo,
         from_ref=args.get("from_ref"),
         to_ref=args.get("to_ref"),
         commit=args.get("commit"),
         max_bundle_size=int(args.get("max_bundle_size") or 8),
+        scan=bool(args.get("scan")),
+        scan_paths=[p for p in scan_paths.split(",") if p.strip()] if isinstance(scan_paths, str) else None,
     )
+    if args.get("session"):
+        from agent import review_session
+        sid = None if args["session"] in (True, "new") else str(args["session"])
+        rep["session"] = review_session.create(repo, rep, sid)["session_id"]
+    return rep
+
+
+def _tool_review_session(args: dict[str, Any]) -> dict[str, Any]:
+    from agent import review_session
+
+    repo = Path(args.get("path") or ".").resolve()
+    action = args.get("action") or "list"
+    if action == "list":
+        return {"sessions": review_session.list_sessions(repo)}
+    sid = str(args.get("session_id") or "")
+    if action == "resume":
+        return review_session.resume(repo, sid)
+    if action == "mark":
+        return review_session.mark(repo, sid, str(args.get("bundle_id") or ""), str(args.get("status") or ""),
+                                   findings=args.get("findings"), note=args.get("note"))
+    raise ValueError(f"acción desconocida: {action} (list, resume, mark)")
 
 
 def _tool_relocate_finding(args: dict[str, Any]) -> dict[str, Any]:
@@ -194,9 +219,29 @@ TOOL_SPECS: list[dict[str, Any]] = [
                 "to_ref": {"type": "string", "description": "Target git ref (default: HEAD)"},
                 "commit": {"type": "string", "description": "Single commit SHA (mutually exclusive with from_ref)"},
                 "max_bundle_size": {"type": "integer", "description": "Max files per review bundle (default: 8)"},
+                "scan": {"type": "boolean", "description": "Review whole files instead of a diff (no git history needed)"},
+                "scan_paths": {"type": "string", "description": "Comma-separated paths to scan (default: whole repository)"},
+                "session": {"type": "string", "description": "Open a resumable review session: 'new' or an id"},
             },
         },
         "handler": _tool_review_prepare,
+    },
+    {
+        "name": "ros_review_session",
+        "description": "Resumable review sessions: list them, see which bundles are still pending (a finished bundle whose files changed reopens), or mark a bundle done/failed.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Repository path"},
+                "action": {"type": "string", "enum": ["list", "resume", "mark"]},
+                "session_id": {"type": "string"},
+                "bundle_id": {"type": "string"},
+                "status": {"type": "string", "enum": ["pending", "done", "failed"]},
+                "findings": {"type": "integer", "description": "Findings reported for the bundle"},
+                "note": {"type": "string"},
+            },
+        },
+        "handler": _tool_review_session,
     },
     {
         "name": "ros_relocate_finding",

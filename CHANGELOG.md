@@ -2,6 +2,21 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.2 (2026-11-27)
+Lo que faltaba de las ideas de open-code-review (Apache-2.0) y Chisle (MIT); el código es propio.
+- **Revisión de archivos completos** (`ros review-prepare --scan [--scan-path <dir>]`, herramienta MCP `ros_review_prepare` con `scan`):
+  revisa archivos enteros sin diff ni historial, con las mismas exclusiones (secretos, binarios, generados, más de 512 KB) y rutas
+  limitadas al repositorio.
+- **Sesiones de revisión reanudables** (`--session`, `ros review-session list|resume|mark`, herramienta MCP `ros_review_session`): cada
+  lote guarda estado y huella del contenido; al reanudar quedan los pendientes y fallidos, y un lote terminado cuyos archivos cambiaron se
+  reabre. Escritura atómica en `.agent/reviews/`.
+- **Proxy MCP para servidores de terceros** (`ros mcp-proxy -- <servidor>`): acota el texto de los resultados de `tools/call` con el
+  mismo mecanismo del servidor propio (original completo en archivo `0600`); no toca herramientas de lectura o edición de archivos, las
+  respuestas con error ni ningún otro mensaje.
+- **Salida de comandos que fallan** (`scripts/hooks/run-filtered.js`, PreToolUse): pruebas, compilaciones e instalaciones corren a través
+  de un filtro que conserva errores y resúmenes y devuelve el mismo código de salida. Solo con `ROS_FILTER_FAILED=1` o en
+  `bypassPermissions`; nunca si una regla `deny`/`ask` nombra al programa, ni en comandos con tuberías, redirecciones o sustituciones.
+
 ## 1.0.1 (2026-11-27)
 La serie 1.x sucede a la 2.x: 1.0.0 es la línea base del framework y es **más nueva** que 2.20.0 (las herramientas del kit fijan la etiqueta
 exacta; ninguna compara números de versión).

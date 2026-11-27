@@ -6,6 +6,9 @@ Inspired by Alibaba Open Code Review's deterministic-engineering × agent hybrid
 - Groups related files into coherent review bundles (directory/module + paired tests) so large MRs never lose coverage.
 - Matches `.agent/path-rules.json` (glob patterns -> surgical rules) and `rules/<lang>/rules.md` grouped without repetition.
 - Relocates/verifies finding line numbers against real file contents to eliminate LLM position drift.
+- Full-file scan (`scan=True`): reviews whole files instead of a diff (no git history needed), with the same exclusions.
+- Resumable review sessions (`.agent/reviews/<id>.json`): each bundle has a status and a content fingerprint, so an interrupted
+  review resumes with the bundles still pending and re-opens a finished one whose files changed since.
 Works identically with any AI host (Claude Code, Gemini CLI, Antigravity, Codex, Cursor, Windsurf, Copilot, OpenCode).
 """
 
@@ -234,6 +237,72 @@ def collect_changed_files(
     return {"meta": meta, "reviewable": reviewable, "excluded": excluded}
 
 
+SCAN_MAX_BYTES = 512 * 1024
+
+
+def _is_binary(path: Path) -> bool:
+    try:
+        with open(path, "rb") as fh:
+            return b"\0" in fh.read(8192)
+    except OSError as e:
+        logger.warning("could not read %s: %s", path, e)
+        return True
+
+
+def _scan_candidates(repo: Path, paths: Optional[list[str]]) -> list[str]:
+    """Tracked + untracked-not-ignored files via git; without git, a filesystem walk (excluded directories are skipped later)."""
+    try:
+        out = _git(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", *(paths or [])])
+        return sorted({p for p in out.split("\0") if p})
+    except RuntimeError as e:
+        logger.info("full-file scan without git (%s): walking the directory", e)
+    found: list[str] = []
+    roots = [repo / p for p in (paths or ["."])]
+    for root in roots:
+        if root.is_file():
+            found.append(str(root.relative_to(repo)))
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIRS and not d.startswith(".git")]
+            for name in filenames:
+                found.append(str((Path(dirpath) / name).relative_to(repo)))
+    return sorted(set(found))
+
+
+def collect_scan_files(repo: Path, paths: Optional[list[str]] = None) -> dict[str, Any]:
+    """Whole files to review (no diff). Same exclusions as a diff review, plus binaries and files over SCAN_MAX_BYTES."""
+    repo = Path(repo).resolve()
+    for p in paths or []:
+        target = (repo / p).resolve()
+        if target != repo and repo not in target.parents:
+            raise ValueError(f"path outside the repository: {p}")
+    reviewable: list[dict[str, Any]] = []
+    excluded: list[dict[str, str]] = []
+    for rel in _scan_candidates(repo, paths):
+        full = repo / rel
+        reason = classify_exclusion(rel)
+        if not reason and full.is_symlink():
+            reason = "symlink"
+        if not reason and not full.is_file():
+            continue
+        if not reason and full.stat().st_size > SCAN_MAX_BYTES:
+            reason = "too_large_for_review"
+        if not reason and _is_binary(full):
+            reason = "binary_file"
+        if reason:
+            excluded.append({"path": rel, "reason": reason})
+            continue
+        try:
+            lines = full.read_text(encoding="utf-8", errors="replace").count("\n")
+        except OSError as e:
+            excluded.append({"path": rel, "reason": f"unreadable: {e}"})
+            continue
+        reviewable.append({"path": rel, "status": "scan", "added": lines, "deleted": 0,
+                           "language": EXT_TO_LANG.get(Path(rel).suffix.lower(), "other")})
+    meta = {"mode": "scan", "paths": paths or ["."], "from": None, "to": None, "commit": None, "merge_base": None}
+    return {"meta": meta, "reviewable": reviewable, "excluded": excluded}
+
+
 def bundle_files(reviewable: list[dict[str, Any]], max_bundle_size: int = 8) -> list[dict[str, Any]]:
     """Group related files into coherent review bundles (module/directory + paired tests) capped at `max_bundle_size`."""
     groups: dict[str, list[dict[str, Any]]] = {}
@@ -309,10 +378,15 @@ def prepare_review(
     to_ref: Optional[str] = None,
     commit: Optional[str] = None,
     max_bundle_size: int = 8,
+    scan: bool = False,
+    scan_paths: Optional[list[str]] = None,
 ) -> dict[str, Any]:
-    """Full deterministic review preparation payload (delegation mode for any AI host)."""
+    """Full deterministic review preparation payload (delegation mode for any AI host). `scan=True` reviews whole files."""
     repo = Path(repo).resolve()
-    collected = collect_changed_files(repo, from_ref=from_ref, to_ref=to_ref, commit=commit)
+    if scan and (from_ref or commit):
+        raise ValueError("scan reviews whole files: it cannot be combined with --from/--commit")
+    collected = (collect_scan_files(repo, scan_paths) if scan
+                 else collect_changed_files(repo, from_ref=from_ref, to_ref=to_ref, commit=commit))
     bundles = bundle_files(collected["reviewable"], max_bundle_size=max_bundle_size)
     rule_groups = match_rules(repo, collected["reviewable"])
     return {
