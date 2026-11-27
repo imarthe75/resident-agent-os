@@ -110,6 +110,7 @@ Desde la raíz de `resident-agent-os`:
 ```bash
 # Linux / macOS
 cd ~/tools/resident-agent-os
+mkdir -p data
 echo "POSTGRES_PASSWORD=pon_una_clave_local_segura" > .env
 docker compose up -d --build agent-cache agent-db resident-ui
 ```
@@ -153,14 +154,16 @@ Abre en tu navegador: **`http://localhost:3000`**
 
 | Ruta | Qué muestra |
 | :--- | :--- |
-| `/dashboard` | Estado vivo (`STATE.md`), traza de las 10 fases del bucle, **stream SSE en tiempo real** de `.agent/telemetry/events.jsonl`, las 4 señales de producción (latencia p95, tasa de error, costo, abstención), ahorro de tokens por hooks y alertas contra `.agent/thresholds.json`. |
+| `/dashboard` | Estado vivo (`STATE.md`), traza de las 11 fases del bucle, **stream SSE en tiempo real** con filtros y exportación JSONL, las 4 señales de producción, ahorro real de tokens por hooks e historial seleccionable de sesiones. |
 | `/fleet` | Estado multi-repositorio (deriva del framework, verificadores, dependencias y telemetría) generado con `ros fleet --roots /ruta/a/repos --out data/fleet-status.json`. |
-| `/memory` | Claves reales de Valkey (`SCAN`) y recuerdos/resúmenes en PostgreSQL filtrables por `?project=<project_id>`. |
-| `/specs` | Lectura y guardado atómico de `.agent/SPECS.md`. |
-| `/editor` | Explorador de solo lectura de `.agent/`, `rules/`, `changes/` y `DECISIONS/`. |
-| `/debug` | Sonda de salud (`/api/health/ready`), errores recientes y reglas heurísticas cargadas. |
+| `/gates` | Compuertas y verificadores (`verifiers/run.py`), ejecución controlada bajo demanda, rutas públicas justificadas (`.agent/public-routes.txt`), compuertas de etapa (`.agent/gates/*.yml`) y salud de dependencias (`.agent/versions-policy.json` + `data/outdated-dependencies.json`). |
+| `/capabilities` | Catálogo buscable de skills (`SKILL.md`), comandos slash (`commands/*.md`) y reglas activadas por ruta (`.agent/path-rules.json`). |
+| `/editor` | Explorador de solo lectura con Monaco Editor 100% local (`/vs`) para `.agent/`, `rules/`, `changes/` y `DECISIONS/`. |
+| `/specs` | Lectura y guardado atómico de `.agent/SPECS.md`, trazabilidad con `docs/specs/*/spec.md` y registro de decisiones técnicas (`.agent/decisions.json` + ADRs en `DECISIONS/`). |
+| `/memory` | Claves reales de Valkey (`SCAN`) y recuerdos/resúmenes en PostgreSQL filtrables por `project_id` global. |
+| `/debug` | Sonda de disponibilidad (`/api/health/ready`), diagnóstico del entorno (`ros doctor`, hosts de IA y deriva SSOT `.agents/` → `.claude/`), tabla de ruteo de subagentes/modelos, errores recientes y heurísticas. |
 
-**Seguridad (`hostguard`):** `resident-ui` valida la cabecera `Host` contra `localhost`, `127.0.0.1`, `[::1]` y `resident-ui` (responde `403` ante otros hosts para prevenir DNS-rebinding) y añade cabeceras CSP/`X-Frame-Options: DENY`. Si lo despliegas en una intranet, agrega el hostname en `ROS_UI_ALLOWED_HOSTS=mi-host.interno` detrás de un proxy con autenticación.
+**Seguridad (`hostguard`, CSP y activos 100% locales):** `resident-ui` valida la cabecera `Host` contra `localhost`, `127.0.0.1`, `[::1]` y `resident-ui` (responde `403` ante otros hosts para prevenir DNS-rebinding), añade cabeceras CSP (`'unsafe-eval'` solo en `NODE_ENV !== "production"`, prohibido en producción), monta `.agent` y `data` fuera de `/app` (`/workspace/.agent` y `/workspace/data`) para evitar que Turbopack/Tailwind v4 escaneen volúmenes de BD, y sirve Monaco Editor 100% en local desde `/vs` sin peticiones a CDNs externos. Si lo despliegas en una intranet, agrega el hostname en `ROS_UI_ALLOWED_HOSTS=mi-host.interno` detrás de un proxy con autenticación.
 
 ---
 

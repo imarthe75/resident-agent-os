@@ -2,6 +2,18 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.6 (2026-11-27)
+- **Correcciones técnicas y endurecimiento de `resident-ui` y `docker-compose.yml`:**
+  - `.agent` y `data` montados fuera de `/app` (`/workspace/.agent` y `/workspace/data`) para evitar que Turbopack/Tailwind v4 escaneen volúmenes de BD (`os error 13`).
+  - `allowedDevOrigins: ["127.0.0.1", "localhost"]` en `next.config.ts`, `lang="es"` + `suppressHydrationWarning` en `layout.tsx`, y `'unsafe-eval'` condicionado exclusivamente a desarrollo en `src/proxy.ts` (prohibido en producción) junto con `font-src 'self' data:` y `worker-src 'self' blob:`.
+  - Monaco Editor servido 100% en local desde `/vs` (`scripts/sync-monaco.mjs` multiplataforma + `Dockerfile`), sin peticiones a `cdn.jsdelivr.net`.
+- **Interfaz 100% en español, tooltips didácticos (`HelpTooltip.tsx`) y nuevos módulos reales en `resident-ui`:**
+  - Nueva pestaña **Compuertas y Verificadores (`/gates`)** (`/api/verifiers` + `/api/dependencies`) con ejecución segura de `verifiers/run.py`, rutas públicas autorizadas, compuertas de etapa y salud de dependencias.
+  - Nueva pestaña **Catálogo de Capacidades (`/capabilities`)** (`/api/capabilities`) con buscador en tiempo real de Skills, Comandos Slash y Reglas por Ruta.
+  - Ampliación de **Depuración y Reglas (`/debug`)** con diagnóstico `ros doctor` (`/api/doctor`), alerta de deriva SSOT `.claude/` y tabla de ruteo de subagentes/modelos (`/api/routing`).
+  - Ampliación de **Núcleo del Agente (`/dashboard`)** con ahorro real por hooks e historial de sesiones con límite ECC; **Especificaciones (`/specs`)** con trazabilidad de `docs/specs/` y sub-pestaña de **Decisiones Técnicas / ADRs** (`/api/decisions`).
+  - Mejoras transversales: selector global de `project_id` en `Topbar.tsx`, filtros/pausa/exportación JSONL en `Console.tsx`, guías interactivas de estado vacío con «Copiar comando» (`EmptyStateGuide.tsx`), y degradación limpia en `scripts/fleet_status.py` cuando `scripts/distribute_framework.py` no está presente en proyectos instalados.
+
 ## 1.0.5 (2026-11-27)
 - **Detección más precisa de imágenes en `verifiers/checks.py` (`versions_current`):** `valkey` ahora compara `(mayor, menor)` (detecta atrasos como `valkey:9.1` frente a `9.2.1`) y `pgvector` reconoce también etiquetas con prefijo de versión de extensión (`0.8.0-pg18`, `0.8.7-pg18-bookworm`), con pruebas unitarias en `tests/test_latest_versions.py`.
 - **Guía de instalación en proyectos existentes (`INSTALAR.md`):** mantiene la regla de no romper volúmenes sin aprobación, pero exige destacar al cierre cualquier plataforma o imagen atrasada (`postgres`/`pgvector`, `valkey`, `node`, `java`) y ofrecer explícitamente su migración controlada (con respaldo previo si ya hay datos).

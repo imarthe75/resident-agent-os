@@ -83,6 +83,23 @@ class TestFleetStatus(unittest.TestCase):
             0,
         )
 
+    def test_graceful_degradation_when_distribute_framework_missing(self):
+        orig_load = fleet._load_script
+        fleet._load_script = lambda name, rel: None if "distribute_framework" in rel else orig_load(name, rel)
+        try:
+            report = fleet.build_fleet_report(self.src, [self.parent / "repo-drift"])
+        finally:
+            fleet._load_script = orig_load
+
+        self.assertFalse(report["drift_available"])
+        self.assertEqual(report["totals"]["repos"], 1)
+        self.assertEqual(report["totals"]["drift_not_evaluated"], 1)
+        repo_row = report["repos"][0]
+        self.assertEqual(repo_row["drift_status"], "NO_EVALUADO")
+        self.assertIn("distribute_framework.py", repo_row["drift_reason"])
+        self.assertIn("no_stubs", repo_row["verifiers"]["failed_names"])
+        self.assertEqual(repo_row["telemetry"]["threshold_status"], "ALERTA")
+
 
 if __name__ == "__main__":
     unittest.main()

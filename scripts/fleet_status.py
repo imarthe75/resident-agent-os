@@ -41,24 +41,56 @@ NETWORK_VERIFIERS = {"dependencies_current", "versions_current"}
 
 
 def _load_script(name: str, rel_path: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / rel_path)
+    target = ROOT / rel_path
+    if not target.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location(name, target)
+    if spec is None or spec.loader is None:
+        return None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def find_targets_fallback(parent: Path, source: Path) -> list[Path]:
+    """Discover child git repositories under `parent` without requiring distribute_framework.py."""
+    parent = Path(parent).resolve()
+    source = Path(source).resolve()
+    if not parent.is_dir():
+        return []
+    found: list[Path] = []
+    for child in sorted(parent.iterdir()):
+        if not child.is_dir() or child.resolve() == source:
+            continue
+        if (child / ".git").exists():
+            found.append(child.resolve())
+    return found
 
 
 def inspect_repo(
     repo: Path,
     source: Path,
     dist_mod: Any,
-    src_files: dict[str, str],
+    src_files: dict[str, str] | None,
     *,
     with_network: bool = False,
     with_deps: bool = False,
     outdated_mod: Any = None,
 ) -> dict[str, Any]:
     """Inspect a single repository and return real measured drift, verifiers, deps, and telemetry."""
-    drift_info = dist_mod.check_target(source, repo, src_files)
+    if dist_mod is not None and src_files is not None:
+        drift_info = dist_mod.check_target(source, repo, src_files)
+        drift_flag = bool(drift_info["drift"])
+        drift_status = "DESVIADO" if drift_flag else "OK"
+        drift_reason: str | None = None
+        fw_ver, exp_ver = drift_info["version"][0], drift_info["version"][1]
+        missing_n, modified_n = len(drift_info["missing"]), len(drift_info["modified"])
+    else:
+        drift_flag = False
+        drift_status = NO_EVALUADO
+        drift_reason = "scripts/distribute_framework.py no está presente en este proyecto"
+        fw_ver, exp_ver = None, None
+        missing_n, modified_n = 0, 0
 
     selected = [name for name in REGISTRY if with_network or name not in NETWORK_VERIFIERS]
     v_results = [REGISTRY[name](repo) for name in selected]
@@ -83,11 +115,13 @@ def inspect_repo(
     return {
         "name": repo.name,
         "path": str(repo),
-        "drift": bool(drift_info["drift"]),
-        "framework_version": drift_info["version"][0],
-        "expected_version": drift_info["version"][1],
-        "missing_files": len(drift_info["missing"]),
-        "modified_files": len(drift_info["modified"]),
+        "drift": drift_flag,
+        "drift_status": drift_status,
+        "drift_reason": drift_reason,
+        "framework_version": fw_ver,
+        "expected_version": exp_ver,
+        "missing_files": missing_n,
+        "modified_files": modified_n,
         "verifiers": {
             "cumple": cumple,
             "no_cumple": no_cumple,
@@ -118,7 +152,7 @@ def build_fleet_report(
 ) -> dict[str, Any]:
     dist_mod = _load_script("distribute_framework_fleet", "scripts/distribute_framework.py")
     outdated_mod = _load_script("outdated_deps_fleet", "scripts/outdated_dependencies.py") if with_deps else None
-    src_files = dist_mod.generic_files(source)
+    src_files = dist_mod.generic_files(source) if dist_mod is not None else None
 
     repos = [
         inspect_repo(
@@ -136,6 +170,7 @@ def build_fleet_report(
     totals = {
         "repos": len(repos),
         "drifted": sum(1 for r in repos if r["drift"]),
+        "drift_not_evaluated": sum(1 for r in repos if r.get("drift_status") == NO_EVALUADO),
         "verifiers_cumple": sum(r["verifiers"]["cumple"] for r in repos),
         "verifiers_no_cumple": sum(r["verifiers"]["no_cumple"] for r in repos),
         "threshold_alerts": sum(1 for r in repos if r["telemetry"]["threshold_status"] == "ALERTA"),
@@ -147,6 +182,7 @@ def build_fleet_report(
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": str(source),
+        "drift_available": dist_mod is not None,
         "network_checks_enabled": with_network,
         "deps_checks_enabled": with_deps,
         "totals": totals,
@@ -188,7 +224,10 @@ def main(argv: list[str] | None = None) -> int:
     dist_mod = _load_script("distribute_framework_cli", "scripts/distribute_framework.py")
     targets = [Path(t).resolve() for t in args.target]
     if args.parent:
-        targets += dist_mod.find_targets(Path(args.parent).resolve(), source)
+        if dist_mod is not None:
+            targets += dist_mod.find_targets(Path(args.parent).resolve(), source)
+        else:
+            targets += find_targets_fallback(Path(args.parent).resolve(), source)
     if not targets:
         print("Nada que escanear: indica --parent o --target (o FRAMEWORK_TARGET_PARENT).", file=sys.stderr)
         return 2
@@ -207,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
             f"ahorro hooks: ~{t['tokens_saved_by_hooks_est']} tokens"
         )
         for r in report["repos"]:
-            drift_s = "DESVIADO" if r["drift"] else "al día"
+            drift_s = "N/E" if r.get("drift_status") == NO_EVALUADO else ("DESVIADO" if r["drift"] else "al día")
             v = r["verifiers"]
             tel = r["telemetry"]
             print(

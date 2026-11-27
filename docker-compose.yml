@@ -45,15 +45,23 @@ services:
     volumes:
       - ./resident-ui:/app
       - /app/node_modules
-      - ./.agent:/app/.agent
-      - ./data:/app/data
+      - ./.agent:/workspace/.agent
+      - ./data:/workspace/data
       - ./rules:/workspace/rules:ro
       - ./changes:/workspace/changes:ro
       - ./DECISIONS:/workspace/DECISIONS:ro
+      - ./verifiers:/workspace/verifiers:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./agent:/workspace/agent:ro
+      - ./agents:/workspace/agents:ro
+      - ./commands:/workspace/commands:ro
+      - ./skills:/workspace/skills:ro
+      - ./.claude:/workspace/.claude:ro
     environment:
       - NODE_ENV=development
-      - AGENT_DIR=/app/.agent
-      - DATA_DIR=/app/data
+      - NEXT_TELEMETRY_DISABLED=1
+      - AGENT_DIR=/workspace/.agent
+      - DATA_DIR=/workspace/data
       - WORKSPACE_ROOT=/workspace
       - VALKEY_HOST=agent-cache
       - VALKEY_PORT=6379

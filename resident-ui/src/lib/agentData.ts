@@ -82,9 +82,32 @@ export interface PostgresProbeResult {
   port: number;
   database: string;
   latency_ms: number | null;
+  projects: string[];
   memories: PostgresMemoryRow[];
   summaries: SessionSummaryRow[];
   error: string | null;
+}
+
+export interface HookSavingsRow {
+  hook: string;
+  events: number;
+  chars_saved: number;
+  tokens_saved_est: number;
+  tokens_raw_est: number;
+  tokens_filtered_est: number;
+}
+
+export interface SessionHistoryRow {
+  session_id: string;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_ms: number;
+  total_events: number;
+  failed_phases: string[];
+  retries: number;
+  ecc_limit_breached: boolean;
+  outcome: string;
+  phase_trace: PhaseTraceItem[];
 }
 
 const LOOP_PHASES = [
@@ -338,6 +361,102 @@ export function summarizeTelemetry(events: TelemetryEvent[], thresholds: Record<
     (ph) => phaseMap.get(ph) || { step: ph, status: "pending", duration_ms: null, outcome: null }
   );
 
+  // Desglose real de ahorro por hooks (compress-output.js, run-filtered.js, codebase-map.js, etc.)
+  const hookBuckets = new Map<string, HookSavingsRow>();
+  let totalRawTokens = 0;
+  let totalFilteredTokens = 0;
+  let hookEventCount = 0;
+  for (const ev of events) {
+    if (ev.source !== "hook" && !ev.chars_saved && !ev.tokens_saved_est) continue;
+    hookEventCount++;
+    const hookName = String(ev.event || ev.phase || "hook");
+    const detail = (ev.detail && typeof ev.detail === "object" ? ev.detail : {}) as Record<string, unknown>;
+    const savedChars = Math.max(0, Number(ev.chars_saved || 0));
+    const savedTok = Math.max(0, Number(ev.tokens_saved_est || Math.round(savedChars / 4)));
+    const rawChars = Number(detail.chars_raw ?? detail.chars_before ?? detail.raw_chars ?? 0);
+    const filteredChars = Number(detail.chars_after ?? detail.filtered_chars ?? 0);
+    const rawTok =
+      rawChars > 0
+        ? Math.round(rawChars / 4)
+        : filteredChars > 0
+          ? Math.round((filteredChars + savedChars) / 4)
+          : savedTok > 0
+            ? savedTok
+            : 0;
+    const filtTok =
+      filteredChars > 0 ? Math.round(filteredChars / 4) : Math.max(0, rawTok - savedTok);
+
+    totalRawTokens += rawTok;
+    totalFilteredTokens += filtTok;
+    const prev = hookBuckets.get(hookName) || {
+      hook: hookName,
+      events: 0,
+      chars_saved: 0,
+      tokens_saved_est: 0,
+      tokens_raw_est: 0,
+      tokens_filtered_est: 0,
+    };
+    prev.events += 1;
+    prev.chars_saved += savedChars;
+    prev.tokens_saved_est += savedTok;
+    prev.tokens_raw_est += rawTok;
+    prev.tokens_filtered_est += filtTok;
+    hookBuckets.set(hookName, prev);
+  }
+
+  // Historial por session_id desde events.jsonl
+  const bySession = new Map<string, TelemetryEvent[]>();
+  for (const ev of events) {
+    const sid = ev.session_id || "sin-sesion";
+    const arr = bySession.get(sid) || [];
+    arr.push(ev);
+    bySession.set(sid, arr);
+  }
+  const sessionsHistory: SessionHistoryRow[] = Array.from(bySession.entries())
+    .map(([sid, sEvents]) => {
+      const sPhaseMap = new Map<string, PhaseTraceItem>();
+      const failedSet = new Set<string>();
+      let dur = 0;
+      let maxRetries = 0;
+      let hasError = false;
+      for (const ev of sEvents) {
+        if (typeof ev.duration_ms === "number" && ev.duration_ms > 0) dur += ev.duration_ms;
+        if (typeof ev.retries === "number" && ev.retries > maxRetries) maxRetries = ev.retries;
+        const out = String(ev.outcome || "ok").toLowerCase();
+        if (out === "error" || out === "failed" || out === "syntax_error") {
+          hasError = true;
+          if (ev.phase) failedSet.add(ev.phase);
+        }
+        if (ev.source === "loop" && ev.phase) {
+          const st: PhaseTraceItem["status"] =
+            out === "error" || out === "failed" ? "failed" : out === "running" ? "running" : "done";
+          sPhaseMap.set(ev.phase, {
+            step: ev.phase,
+            status: st,
+            duration_ms: typeof ev.duration_ms === "number" ? ev.duration_ms : null,
+            outcome: out,
+            timestamp: ev.timestamp,
+          });
+        }
+      }
+      return {
+        session_id: sid,
+        started_at: sEvents[0]?.timestamp || null,
+        ended_at: sEvents[sEvents.length - 1]?.timestamp || null,
+        duration_ms: Number(dur.toFixed(2)),
+        total_events: sEvents.length,
+        failed_phases: Array.from(failedSet),
+        retries: maxRetries,
+        ecc_limit_breached: maxRetries >= 3,
+        outcome: hasError ? "con_errores" : "ok",
+        phase_trace: LOOP_PHASES.map(
+          (ph): PhaseTraceItem =>
+            sPhaseMap.get(ph) || { step: ph, status: "pending", duration_ms: null, outcome: null }
+        ),
+      };
+    })
+    .reverse();
+
   const summary = {
     total_events: events.length,
     sessions: sessions.size,
@@ -356,6 +475,16 @@ export function summarizeTelemetry(events: TelemetryEvent[], thresholds: Record<
     cost_per_run_usd: measuredRuns ? Number((costUsd / measuredRuns).toFixed(6)) : null,
     chars_saved_by_hooks: charsSaved,
     tokens_saved_by_hooks_est: tokensSavedEst,
+    hook_savings: {
+      available: hookEventCount > 0,
+      total_events: hookEventCount,
+      chars_saved: charsSaved,
+      tokens_saved_est: tokensSavedEst,
+      tokens_raw_est: totalRawTokens,
+      tokens_filtered_est: totalFilteredTokens,
+      by_hook: Array.from(hookBuckets.values()).sort((a, b) => b.tokens_saved_est - a.tokens_saved_est),
+    },
+    sessions_history: sessionsHistory,
     last_event_at: events.length ? events[events.length - 1].timestamp : null,
     phase_trace: phaseTrace,
   };
@@ -521,6 +650,7 @@ export async function probePostgres(includeRows = false, projectId?: string | nu
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: [],
       memories: [],
       summaries: [],
       error: err instanceof Error ? err.message : String(err),
@@ -534,6 +664,7 @@ export async function probePostgres(includeRows = false, projectId?: string | nu
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: [],
       memories: [],
       summaries: [],
       error: password ? null : "TCP reachable (POSTGRES_PASSWORD not configured for SQL queries)",
@@ -547,6 +678,7 @@ export async function probePostgres(includeRows = false, projectId?: string | nu
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: [],
       memories: [],
       summaries: [],
       error: "POSTGRES_PASSWORD not configured in resident-ui environment",
@@ -556,6 +688,13 @@ export async function probePostgres(includeRows = false, projectId?: string | nu
   const cleanProject = projectId && /^[A-Za-z0-9._-]+$/.test(projectId) ? projectId : "";
   const sql = `
 SELECT json_build_object(
+  'projects', COALESCE((
+    SELECT json_agg(project_id ORDER BY project_id) FROM (
+      SELECT DISTINCT project_id FROM memory.agent_memory WHERE project_id IS NOT NULL AND project_id <> ''
+      UNION
+      SELECT DISTINCT project_id FROM memory.session_summaries WHERE project_id IS NOT NULL AND project_id <> ''
+    ) p
+  ), '[]'::json),
   'memories', COALESCE((
     SELECT json_agg(t) FROM (
       SELECT id::text, project_id, session_id::text, content, memory_type, importance_score, evidence_level, fccreacion::text AS created_at
@@ -596,6 +735,7 @@ SELECT json_build_object(
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: [],
       memories: [],
       summaries: [],
       error: errMsg || "psql query failed",
@@ -610,6 +750,7 @@ SELECT json_build_object(
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
       memories: Array.isArray(parsed.memories) ? parsed.memories : [],
       summaries: Array.isArray(parsed.summaries) ? parsed.summaries : [],
       error: null,
@@ -621,6 +762,7 @@ SELECT json_build_object(
       port,
       database,
       latency_ms: Date.now() - t0,
+      projects: [],
       memories: [],
       summaries: [],
       error: err instanceof Error ? err.message : String(err),

@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import type {
   HeuristicRule,
+  HookSavingsRow,
   PhaseTraceItem,
   PostgresMemoryRow,
+  SessionHistoryRow,
   SessionSummaryRow,
   SpecEntry,
   TelemetryEvent,
@@ -33,6 +35,16 @@ export interface TelemetrySummary {
   cost_per_run_usd: number | null;
   chars_saved_by_hooks: number;
   tokens_saved_by_hooks_est: number;
+  hook_savings?: {
+    available: boolean;
+    total_events: number;
+    chars_saved: number;
+    tokens_saved_est: number;
+    tokens_raw_est: number;
+    tokens_filtered_est: number;
+    by_hook: HookSavingsRow[];
+  };
+  sessions_history?: SessionHistoryRow[];
   last_event_at: string | null;
   phase_trace: PhaseTraceItem[];
 }
@@ -84,6 +96,27 @@ export interface FleetReport {
   message?: string;
 }
 
+export interface ReadinessDependency {
+  ok: boolean;
+  path?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  latency_ms?: number | null;
+  error?: string | null;
+}
+
+export interface ReadinessProbe {
+  status: string;
+  service: string;
+  timestamp: string;
+  dependencies: {
+    agent_dir: ReadinessDependency;
+    valkey: ReadinessDependency;
+    postgres: ReadinessDependency;
+  };
+}
+
 export interface AgentStoreState {
   loading: boolean;
   error: string | null;
@@ -102,6 +135,9 @@ export interface AgentStoreState {
     valkey: ServiceStatus | null;
     postgres: ServiceStatus | null;
   };
+  readiness: ReadinessProbe | null;
+  memoryProject: string;
+  availableProjects: string[];
   valkeyKeys: Array<{ key: string; status: string }>;
   valkeyDbSize: number | null;
   memories: PostgresMemoryRow[];
@@ -110,11 +146,13 @@ export interface AgentStoreState {
   fleet: FleetReport | null;
 
   fetchState: () => Promise<void>;
-  fetchMemory: () => Promise<void>;
+  fetchMemory: (projectId?: string) => Promise<void>;
   fetchFleet: () => Promise<void>;
+  fetchReadiness: () => Promise<void>;
   refreshAll: () => Promise<void>;
   appendLiveEvent: (ev: TelemetryEvent) => void;
   setSseConnected: (connected: boolean) => void;
+  setMemoryProject: (project: string) => void;
   saveSpecsMarkdown: (markdown: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
@@ -133,6 +171,9 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   summary: null,
   evaluation: null,
   services: { valkey: null, postgres: null },
+  readiness: null,
+  memoryProject: "",
+  availableProjects: [],
   valkeyKeys: [],
   valkeyDbSize: null,
   memories: [],
@@ -170,14 +211,18 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     }
   },
 
-  fetchMemory: async () => {
+  fetchMemory: async (projectId?: string) => {
+    const project = projectId !== undefined ? projectId : get().memoryProject;
+    const trimmed = project.trim();
+    const qs = trimmed ? `?project=${encodeURIComponent(trimmed)}` : "";
     try {
-      const res = await fetch("/api/memory", { cache: "no-store" });
+      const res = await fetch(`/api/memory${qs}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       set({
         valkeyKeys: Array.isArray(data.valkey?.keys) ? data.valkey.keys : [],
         valkeyDbSize: typeof data.valkey?.dbsize === "number" ? data.valkey.dbsize : null,
+        availableProjects: Array.isArray(data.postgres?.projects) ? data.postgres.projects : get().availableProjects,
         memories: Array.isArray(data.postgres?.memories) ? data.postgres.memories : [],
         sessionSummaries: Array.isArray(data.postgres?.summaries) ? data.postgres.summaries : [],
         memoryError: {
@@ -189,6 +234,16 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
       const message = err instanceof Error ? err.message : String(err);
       console.error("[agentStore] fetchMemory failed:", err);
       set({ memoryError: { valkey: message, postgres: message } });
+    }
+  },
+
+  fetchReadiness: async () => {
+    try {
+      const res = await fetch("/api/health/ready", { cache: "no-store" });
+      const data = await res.json();
+      set({ readiness: data });
+    } catch (err) {
+      console.error("[agentStore] fetchReadiness failed:", err);
     }
   },
 
@@ -215,7 +270,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   },
 
   refreshAll: async () => {
-    await Promise.all([get().fetchState(), get().fetchMemory(), get().fetchFleet()]);
+    await Promise.all([get().fetchState(), get().fetchMemory(), get().fetchFleet(), get().fetchReadiness()]);
   },
 
   appendLiveEvent: (ev) =>
@@ -225,6 +280,8 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     })),
 
   setSseConnected: (sseConnected) => set({ sseConnected }),
+
+  setMemoryProject: (memoryProject) => set({ memoryProject }),
 
   saveSpecsMarkdown: async (markdown: string) => {
     try {

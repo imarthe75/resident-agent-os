@@ -36,16 +36,35 @@ export function isAllowedHost(hostHeader: string | null): boolean {
   return getAllowedHosts().has(norm);
 }
 
-const SECURITY_HEADERS: Record<string, string> = {
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "no-referrer",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
-};
+function buildCsp(): string {
+  const isDev = process.env.NODE_ENV !== "production";
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
+function getSecurityHeaders(): Record<string, string> {
+  return {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": buildCsp(),
+  };
+}
 
 export function proxy(request: NextRequest) {
+  const securityHeaders = getSecurityHeaders();
   const requestId =
     request.headers.get("x-request-id") ||
     request.headers.get("traceparent") ||
@@ -59,7 +78,7 @@ export function proxy(request: NextRequest) {
       { status: 403 }
     );
     denied.headers.set("x-request-id", requestId);
-    for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    for (const [k, v] of Object.entries(securityHeaders)) {
       denied.headers.set(k, v);
     }
     return denied;
@@ -70,7 +89,7 @@ export function proxy(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-request-id", requestId);
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+  for (const [k, v] of Object.entries(securityHeaders)) {
     response.headers.set(k, v);
   }
 

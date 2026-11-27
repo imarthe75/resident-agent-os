@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resident OS Dashboard",
-  description: "Cognitive Management Interface for Resident Agents",
+  title: "Panel de Resident Agent OS",
+  description: "Interfaz de observabilidad y control cognitivo para agentes residentes",
 };
 
 export default function RootLayout({
@@ -26,10 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full bg-zinc-950 text-white flex flex-col font-sans">
+      <body
+        suppressHydrationWarning
+        className="h-full bg-zinc-950 text-white flex flex-col font-sans"
+      >
         <Topbar />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
