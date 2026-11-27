@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "resident-agent-os"
-version = "1.0.2"
+version = "1.0.3"
 description = "Provider-agnostic Resident Agent OS: unified CLI (ros), local MCP server, Hub-and-Spoke memory, verifiers, and fleet observability."
 readme = "README.md"
 requires-python = ">=3.10"

@@ -18,15 +18,22 @@ Sigue estos pasos en orden. **No hagas commit, push ni instales dependencias**: 
 1. **Rama:** confirma que estás en una rama de trabajo, no en la principal; si no, pide a la persona que la cree, o créala con el nombre
    `chore/agent-os` si te lo autoriza.
 2. **Copiar sin sobrescribir:** copia a la raíz del proyecto `rules/`, `agents/`, `contexts/`, `verifiers/`, `templates/`, `scripts/hooks/`,
-   `scripts/latest_versions.py`, `scripts/outdated_dependencies.py`, `scripts/patch_validator.py`, `scripts/codebase-map.js` y
-   `.agent/versions-policy.json`; y `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` como `AGENTS.md` y `CLAUDE.md`. Si un
-   archivo ya existe, **no lo reemplaces**: anótalo como conflicto.
-3. **Skills, subagentes, comandos y hosts de IA (agnóstico de proveedor):** copia `skills/` a `.claude/skills/` y a `.agents/skills/` (estándar compartido por Claude Code, Gemini CLI, Antigravity, Codex y otros), `agents/*.md` a `.claude/agents/` y `commands/*.md` a `.claude/commands/`. Mismo criterio: lo existente no se pisa. Para conectar el servidor MCP local y generar la configuración del asistente que use el equipo (Claude, Gemini, Antigravity, Codex, Cursor, Copilot, OpenCode o genérico), corre `python3 -m agent init-host --host <host|all> --target . --dry-run` y aplica tras aprobación. Si el equipo usa servidores MCP de
-   terceros con salidas largas, envuélvelos con `python3 -m agent mcp-proxy -- <comando del servidor>` en la configuración del asistente:
-   acota el texto de sus resultados sin tocar las herramientas que leen o editan archivos.
-4. **Hooks y reglas por ruta:** si el proyecto no tiene `.claude/settings.json`, copia el del framework. Si ya existe, agrega solo las secciones `hooks` y `statusLine` (barra de estado con fase, ahorro y errores de `scripts/hooks/statusline.sh`), sin quitar nada, y muestra el resultado. El hook `run-filtered.js` (PreToolUse) no hace nada hasta que se activa con
+   `scripts/latest_versions.py`, `scripts/outdated_dependencies.py`, `scripts/patch_validator.py`, `scripts/codebase-map.js`,
+   `scripts/sync_agent_dirs.py` y `.agent/versions-policy.json`; y `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` como
+   `AGENTS.md` y `CLAUDE.md`. Si un archivo ya existe, **no lo reemplaces**: anótalo como conflicto.
+3. **Skills, subagentes, comandos y hosts de IA (SSOT + proyección automática, agnóstico de proveedor):** copia `skills/` **una sola vez** a
+   `.agents/skills/` (fuente única estándar leída nativamente por Antigravity, Gemini CLI, Codex, Cursor y OpenCode). No copies ni edites a
+   mano `.claude/skills/`, `.claude/agents/` ni `.claude/commands/`: sincronízalos desde las fuentes canónicas con
+   `python3 scripts/sync_agent_dirs.py --target .` (o `ros sync-hosts --target .`, que además inyecta `model:` en `.claude/agents/*.md`
+   según `.agent/model-routing.json` y detecta deriva con `--check`). Para conectar el servidor MCP local y generar la configuración del
+   asistente que use el equipo (Claude, Gemini, Antigravity, Codex, Cursor, Copilot, OpenCode o genérico), corre
+   `python3 -m agent init-host --host <host|all> --target . --dry-run` y aplica tras aprobación. Si el equipo usa servidores MCP de terceros
+   con salidas largas, envuélvelos con `python3 -m agent mcp-proxy -- <comando del servidor>` en la configuración del asistente: acota el
+   texto de sus resultados sin tocar las herramientas que leen o editan archivos.
+4. **Hooks, ruteo de modelos y reglas por ruta:** si el proyecto no tiene `.claude/settings.json`, copia el del framework. Si ya existe, agrega solo las secciones `hooks` y `statusLine` (barra de estado con fase, ahorro y errores de `scripts/hooks/statusline.sh`), sin quitar nada, y muestra el resultado. El hook `run-filtered.js` (PreToolUse) no hace nada hasta que se activa con
    `ROS_FILTER_FAILED=1` o el agente corre en modo `bypassPermissions`; activado en modo normal, agrega una regla `allow` para
-   `Bash(node *run-filtered.js*)` si no quieres que cada prueba pida permiso. Copia `.agent/thresholds.json` y `.agent/path-rules.json` solo si el proyecto aún no los tiene.
+   `Bash(node *run-filtered.js*)` si no quieres que cada prueba pida permiso. Copia `.agent/thresholds.json`, `.agent/path-rules.json` y
+   `.agent/model-routing.json` solo si el proyecto aún no los tiene.
 5. **Conflictos:** para cada archivo que ya existía, muestra las diferencias y propone cómo combinarlos: se conserva lo propio del proyecto
    y se agregan las reglas del framework; si dos reglas se contradicen, gana la más estricta. No combines sin que la persona lo apruebe.
 6. **Sección «Proyecto» de `AGENTS.md`:** llénala leyendo el repositorio (manifiestos `pom.xml`/`build.gradle`/`package.json`/

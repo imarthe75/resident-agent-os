@@ -43,8 +43,31 @@ class TestCliAndMcp(unittest.TestCase):
 
         list_resp = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
         tool_names = [t["name"] for t in list_resp["result"]["tools"]]
-        for expected in ("ros_doctor", "ros_verify", "ros_review_prepare", "ros_relocate_finding", "ros_check_thresholds", "ros_fleet_status", "ros_memory_status"):
+        for expected in (
+            "ros_doctor",
+            "ros_verify",
+            "ros_review_prepare",
+            "ros_relocate_finding",
+            "ros_check_thresholds",
+            "ros_fleet_status",
+            "ros_memory_status",
+            "ros_resolve_model",
+        ):
             self.assertIn(expected, tool_names)
+
+        route_resp = handle_request({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "ros_resolve_model",
+                "arguments": {"agent": "general-purpose", "task": "security", "provider": "claude"},
+            },
+        })
+        self.assertFalse(route_resp["result"]["isError"])
+        route_payload = json.loads(route_resp["result"]["content"][0]["text"])
+        self.assertEqual(route_payload["tier"], "reasoning")
+        self.assertEqual(route_payload["model"], "opus")
 
         # Real subprocess stdio JSON-RPC handshake via `python -m agent mcp`
         sample_file = self.repo / "demo.py"

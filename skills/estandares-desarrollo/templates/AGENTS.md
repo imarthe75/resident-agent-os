@@ -27,6 +27,15 @@
 9. **Entrega honesta:** antes de decir «listo», ejecutar pruebas y escáner y mostrar la salida real; lo no verificado se declara como tal.
    Estado: COMPLETADO / PARCIAL (con % real) / FALLIDO.
 
+## Mapa de carpetas (Fuente Única de Verdad)
+| Carpeta | Rol único | ¿Se edita a mano? |
+|---|---|---|
+| `.agent/` | Estado y políticas del proyecto (`STATE.md`, `SPECS.md`, `thresholds.json`, `path-rules.json`, `model-routing.json`, `telemetry/`) | Sí |
+| `rules/`, `contexts/`, `agents/`, `commands/`, `verifiers/`, `scripts/` | Capa canónica compartida por todos los asistentes (subagentes `agents/*.md` agnósticos a proveedor) | Sí |
+| `.agents/skills/` | Fuente única de skills (estándar Agent Skills: Antigravity, Gemini CLI, Codex, Cursor, OpenCode) | Sí |
+| `.claude/` | Proyección generada para Claude Code (`skills/`, `agents/` con `model:` inyectado, `commands/`) | **No** — sincronizar con `ros sync-hosts` (`--check` detecta deriva) |
+
 ## Skills
 Carga `reglas-globales` y `estandares-desarrollo` al empezar, y `prevencion-hallazgos-seguridad-calidad` antes de escribir o revisar código
 (cada regla del escáner con su corrección y la lista de chequeo de entrega); el resto según la tarea (ver la tabla de `estandares-desarrollo`).
+Al delegar a subagentes (`agents/general-purpose.md` y los 6 especializados), consulta `.agent/model-routing.json` vía `ros route` (o herramienta MCP `ros_resolve_model`).

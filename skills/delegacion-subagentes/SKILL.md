@@ -23,22 +23,25 @@ cómo se entrega y cómo se verifica.
 **Contexto:** <por qué; decisiones ya tomadas; requisito o ticket de origen>
 **Alcance permitido:** <archivos o carpetas que puede tocar; lo demás, solo lectura>
 **Skills y reglas a cargar:** <p. ej. backend-modulo-crud, rules/java/rules.md>
+**Modelo / Nivel:** <tier fast|balanced|reasoning o modelo resuelto con `ros route --agent <nombre> --task <tipo>` — `fast` por defecto en `general-purpose`; `balanced`/`reasoning` si exige lógica de negocio, arquitectura o seguridad>
 **Entrega:** <archivo donde deja su reporte + resumen de 5 líneas como máximo con su ruta>
 **Criterio de aceptación:** <comando o prueba que demuestra que terminó, y su resultado esperado>
 **Restricciones:** <sin commits ni push; sin dependencias nuevas; sin tocar la base; tiempo máximo>
 ```
 - El criterio de aceptación es **un comando o una prueba**, no «que funcione».
+- El nivel de modelo se resuelve contra `.agent/model-routing.json` (`ros route` o herramienta MCP `ros_resolve_model`) para evitar pagar modelos caros en tareas mecánicas o usar modelos económicos en decisiones de seguridad/arquitectura.
 - Sin credenciales ni datos reales en el encargo; nada externo se instala ni se consulta (`rules/common/privacidad-y-herramientas.md`).
 - Nunca se pasan secretos en el encargo; el subagente los toma del mismo gestor de secretos que el proyecto.
 - A un modelo o servicio externo solo se le envía lo que permite la política de datos del proyecto (código del cliente incluido).
 
 ## 2. Escala de esfuerzo
-| Tarea | Quién la hace |
-|---|---|
-| Trivial (typo, una línea, configuración puntual) | El agente principal, sin delegar |
-| Bug o cambio pequeño | Un subagente adecuado (`debugger` si es un fallo) |
-| Módulo o funcionalidad mediana | `planner` → implementación → `code-reviewer` + `security-reviewer` |
-| Funcionalidad grande o requisitos ambiguos | Flujo `/opsx-propose` → `/opsx-apply` → `/opsx-verify` |
+| Tarea | Quién la hace | Nivel sugerido |
+|---|---|---|
+| Trivial (typo, una línea, configuración puntual) | El agente principal, sin delegar | — |
+| Búsqueda, renombrado mecánico o sincronización documental | `general-purpose` | `fast` (promover a `balanced` si exige juicio de negocio) |
+| Bug o cambio pequeño | Un subagente adecuado (`debugger` si es un fallo) | `balanced` |
+| Módulo o funcionalidad mediana | `planner` → implementación → `code-reviewer` + `security-reviewer` | `balanced` / `reasoning` |
+| Funcionalidad grande o requisitos ambiguos | Flujo `/opsx-propose` → `/opsx-apply` → `/opsx-verify` | `reasoning` en diseño/revisión |
 
 Más agentes para algo simple gastan contexto y producen ruido. En Claude Code la orquestación la hace la conversación principal
 (`contexts/orquestacion.md`, comando `/team`): un subagente no puede lanzar otros.
@@ -48,7 +51,7 @@ El subagente escribe su reporte, spec o diff en un archivo del proyecto (p. ej. 
 devuelve solo un resumen con la ruta. En el flujo `/opsx-propose` la carpeta es `changes/<cambio>/`. Así nada se pierde entre intermediarios y otra persona puede revisar el mismo material.
 
 ## 4. Paralelo y en serie
-- En paralelo solo lo **independiente** (no comparten archivos ni dependen del resultado del otro); como máximo 3–4 a la vez.
+- En paralelo solo lo **independiente** (no comparten archivos ni dependen del resultado del otro); como máximo 2–3 a la vez.
 - En serie lo dependiente (diseño → implementación → revisión).
 - Los subagentes no se coordinan entre sí: todo pasa por quien delegó, que arbitra los conflictos con criterio de producto y calidad.
 - No se lanza la tarea dependiente «a ver qué sale»: se espera el reporte y sus conclusiones entran al siguiente encargo.
@@ -63,13 +66,9 @@ devuelve solo un resumen con la ruta. En el flujo `/opsx-propose` la carpeta es 
 ## 5b. Ciclo de convergencia (implementar → revisión independiente → verificar)
 Para una tarea con criterios de aceptación escritos:
 1. El implementador termina y entrega el diff con la salida de sus pruebas.
-2. Una **instancia nueva** de `adversarial-reviewer` (nunca la que implementó ni la de la vuelta anterior) revisa. Un subagente
-   normalmente no puede lanzar otro: lo lanza quien coordina y le devuelve el veredicto al implementador.
-3. NO APTO: se corrige en la misma rama (primero la especificación si la corrección la cambia) y se repite el paso 2.
-4. APTO o APTO CON OBSERVACIONES: se corre la verificación final (pruebas, verificadores, criterios de la especificación).
-5. **Salida:** todas las tareas marcadas y ningún P0/P1 abierto. Una tarea de pruebas se marca solo si esas pruebas corrieron y pasaron.
-6. **Estancamiento:** si una vuelta reporta los mismos P0/P1 que la anterior y no cambió código, pruebas ni especificación, se detiene y
-   se escala con ese bloqueo; no se marcan tareas para forzar la salida.
+2. Una **instancia nueva** de `adversarial-reviewer` revisa (quien coordina la lanza, nunca el implementador ni la instancia de la vuelta anterior); NO APTO → se corrige en la misma rama (primero la especificación si cambia) y se repite este paso; APTO / APTO CON OBSERVACIONES → verificación final (pruebas, verificadores, criterios de la especificación).
+3. **Salida:** todas las tareas marcadas y ningún P0/P1 abierto; una tarea de pruebas se marca solo si corrió y pasó.
+4. **Estancamiento:** misma ronda de P0/P1 sin cambio de código, pruebas ni especificación → detener y escalar, nunca forzar la salida.
 
 ## 6. Reintentos y escalamiento
 - Si un subagente falla **dos veces** en lo mismo, se cambia de enfoque (otro encargo, otra división de la tarea u otro agente).
@@ -78,8 +77,8 @@ Para una tarea con criterios de aceptación escritos:
 - Decide quien delegó los detalles técnicos; se escala a una persona solo producto, alcance, costo o riesgo.
 
 ## Checklist
-- [ ] Encargo con los ocho campos; criterio de aceptación ejecutable.
+- [ ] Encargo completo (incluido `Modelo / Nivel` resuelto con `ros route`); criterio de aceptación ejecutable.
 - [ ] Entrega en archivo con ruta.
-- [ ] Paralelo solo lo independiente.
+- [ ] Paralelo solo lo independiente (máx. 2–3 a la vez).
 - [ ] `git diff` leído y criterio ejecutado por quien delegó.
 - [ ] Revisión con veredicto antes de declarar terminado.

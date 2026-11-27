@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from agent.model_routing import list_agent_routing, resolve_model  # noqa: E402
 from agent.review_prepare import prepare_review, relocate_finding  # noqa: E402
 from agent.telemetry import (  # noqa: E402
     DEFAULT_TELEMETRY_REL,
@@ -71,6 +72,22 @@ def run_doctor(target: Path) -> dict[str, Any]:
         "mcp": (target / ".mcp.json").is_file(),
     }
 
+    host_sync_summary: dict[str, Any] = {"checked": False, "in_sync": True, "missing": 0, "drifted": 0}
+    has_claude_projections = any(
+        (target / ".claude" / sub).is_dir() for sub in ("agents", "commands", "skills")
+    )
+    if has_claude_projections:
+        from scripts.sync_agent_dirs import sync_hosts
+
+        active_sections = [s for s in ("agents", "commands", "skills") if (target / ".claude" / s).is_dir()]
+        sync_rep = sync_hosts(target, only=active_sections, check=True)
+        host_sync_summary = {
+            "checked": True,
+            "in_sync": sync_rep["in_sync"],
+            "missing": len(sync_rep["missing"]),
+            "drifted": len(sync_rep["drifted"]),
+        }
+
     return {
         "repo": str(target),
         "framework_root": str(ROOT),
@@ -88,6 +105,7 @@ def run_doctor(target: Path) -> dict[str, Any]:
             "heuristics_json": (agent_dir / "heuristics.json").is_file(),
             "thresholds_json": (agent_dir / "thresholds.json").is_file(),
             "path_rules_json": (agent_dir / "path-rules.json").is_file(),
+            "model_routing_json": (agent_dir / "model-routing.json").is_file(),
         },
         "hub_services": {
             "valkey": {"host": valkey_host, "port": valkey_port, "connected": valkey_ok, "error": valkey_err},
@@ -95,6 +113,7 @@ def run_doctor(target: Path) -> dict[str, Any]:
         },
         "telemetry": {"events": summary["total_events"], "threshold_status": evaluation["status"]},
         "detected_hosts": detected_hosts,
+        "host_sync": host_sync_summary,
     }
 
 
@@ -140,6 +159,11 @@ def init_host(target: Path, host: str, *, dry_run: bool = False) -> dict[str, An
     # Universal MCP descriptor usable by Claude Code, Gemini CLI, Antigravity, Cursor, Codex, Windsurf, Cline, OpenCode.
     _seed(".mcp.json", json.dumps(_mcp_server_config(ROOT, project_id), indent=2) + "\n")
 
+    # Provider-agnostic subagent model routing table (non-destructive)
+    src_routing = ROOT / ".agent" / "model-routing.json"
+    if src_routing.is_file():
+        _seed(".agent/model-routing.json", src_routing.read_text(encoding="utf-8"))
+
     if "gemini" in hosts or "antigravity" in hosts:
         _seed(".gemini/settings.json", json.dumps({"context": {"fileName": ["AGENTS.md", "GEMINI.md"]}}, indent=2) + "\n")
 
@@ -159,10 +183,15 @@ def init_host(target: Path, host: str, *, dry_run: bool = False) -> dict[str, An
             "Usa `ros review-prepare` y `ros verify` antes de dar una tarea por terminada.\n",
         )
 
+    host_sync_report: Optional[dict[str, Any]] = None
     if "claude" in hosts:
         src_settings = ROOT / ".claude" / "settings.json"
         if src_settings.is_file():
             _seed(".claude/settings.json", src_settings.read_text(encoding="utf-8"))
+        if any((target / p).is_dir() for p in ("agents", "commands", ".agents/skills")):
+            from scripts.sync_agent_dirs import sync_hosts
+
+            host_sync_report = sync_hosts(target, mode="copy", check=dry_run)
 
     if "generic" in hosts or "codex" in hosts or "opencode" in hosts:
         _seed(
@@ -172,7 +201,16 @@ def init_host(target: Path, host: str, *, dry_run: bool = False) -> dict[str, An
             "Conecta el servidor MCP `.mcp.json` (`python3 -m agent mcp`) o ejecuta `python3 -m agent verify`.\n",
         )
 
-    return {"target": str(target), "hosts": hosts, "dry_run": dry_run, "created": created, "skipped_existing": skipped}
+    out: dict[str, Any] = {
+        "target": str(target),
+        "hosts": hosts,
+        "dry_run": dry_run,
+        "created": created,
+        "skipped_existing": skipped,
+    }
+    if host_sync_report is not None:
+        out["host_sync"] = host_sync_report
+    return out
 
 
 def inspect_memory(project_id: Optional[str] = None, limit: int = 10) -> dict[str, Any]:
@@ -289,6 +327,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_mem.add_argument("--limit", type=int, default=10)
     p_mem.add_argument("--json", action="store_true")
 
+    p_rt = sub.add_parser("route", help="Resolve recommended model/tier for a subagent or task (provider-agnostic)")
+    p_rt.add_argument("--agent", default=None, help="Subagent name (e.g. general-purpose, debugger, security-reviewer)")
+    p_rt.add_argument("--task", default=None, help="Task category (e.g. search, crud, business-logic, security, architecture)")
+    p_rt.add_argument("--tier", default=None, help="Explicit semantic tier override: fast, balanced, reasoning")
+    p_rt.add_argument("--provider", default="all", help="AI host/provider (claude, antigravity, gemini, codex, cursor, copilot, opencode, ollama, all)")
+    p_rt.add_argument("--path", default=".", help="Repository root containing .agent/model-routing.json")
+    p_rt.add_argument("--list", action="store_true", help="Print the full subagent routing table")
+    p_rt.add_argument("--json", action="store_true")
+
+    p_sy = sub.add_parser("sync-hosts", help="Sync canonical agents/, commands/, .agents/skills/ into .claude/ host adapters")
+    p_sy.add_argument("--target", default=".")
+    p_sy.add_argument("--mode", choices=["copy", "symlink"], default="copy")
+    p_sy.add_argument("--only", default=None, help="Comma-separated subset: agents,commands,skills")
+    p_sy.add_argument("--skills-source", default=None)
+    p_sy.add_argument("--check", action="store_true", help="Check drift without writing (exits 1 if out of sync)")
+    p_sy.add_argument("--json", action="store_true")
+
     sub.add_parser("mcp", help="Start the local provider-agnostic MCP server over stdio")
     p_px = sub.add_parser("mcp-proxy", help="Wrap any MCP server and bound its tool output (ros mcp-proxy -- <command>)")
     p_px.add_argument("server", nargs=argparse.REMAINDER)
@@ -309,6 +364,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Telemetría: {rep['telemetry']['events']} eventos (umbrales={rep['telemetry']['threshold_status']})")
             active_hosts = [k for k, v in rep["detected_hosts"].items() if v]
             print(f"  Hosts detectados: {', '.join(active_hosts) or 'ninguno'}")
+            hs = rep["host_sync"]
+            if hs["checked"]:
+                print(f"  Sincronización .claude/: in_sync={hs['in_sync']} (faltantes={hs['missing']}, deriva={hs['drifted']})")
         return 0
 
     if args.command == "init-host":
@@ -442,6 +500,56 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  PostgreSQL ({pg['host']}:{pg['port']}): {'up' if pg['connected'] else 'down'} schema_ready={pg['schema_ready']} {pg['error'] or ''}")
             print(f"  Memorias: {len(pg['memories'])} | Resúmenes de sesión: {len(pg['session_summaries'])}")
         return 0
+
+    if args.command == "route":
+        repo_path = Path(args.path)
+        if args.list:
+            rep = list_agent_routing(provider=args.provider, repo_root=repo_path)
+            if args.json:
+                print(json.dumps(rep, ensure_ascii=False, indent=2))
+            else:
+                print(f"Model routing ({rep['config_path']}):")
+                for row in rep["agents"]:
+                    if args.provider != "all":
+                        print(f"  {row['agent']:22s} tier={row['tier']:9s} {args.provider}={row['model']}")
+                    else:
+                        provs = " ".join(f"{k}={v}" for k, v in sorted(row["models_by_provider"].items()))
+                        print(f"  {row['agent']:22s} tier={row['tier']:9s} {provs}")
+            return 0
+
+        rep = resolve_model(
+            agent_name=args.agent,
+            task=args.task,
+            tier=args.tier,
+            provider=args.provider,
+            repo_root=repo_path,
+        )
+        if args.json:
+            print(json.dumps(rep, ensure_ascii=False, indent=2))
+        else:
+            print(f"tier={rep['tier']} (source={rep['selection_source']}, agent={rep['agent'] or '-'}, task={rep['task'] or '-'})")
+            if rep["model"] is not None:
+                print(f"  {rep['provider']}: {rep['model']}")
+            else:
+                for prov, model in sorted(rep["models_by_provider"].items()):
+                    print(f"  {prov:12s}: {model}")
+            if rep.get("escalate_to"):
+                print(f"  escalate_to: {rep['escalate_to']}")
+        return 0
+
+    if args.command == "sync-hosts":
+        from scripts import sync_agent_dirs as sync_mod
+
+        s_args = ["--target", args.target, "--mode", args.mode]
+        if args.only:
+            s_args += ["--only", args.only]
+        if args.skills_source:
+            s_args += ["--skills-source", args.skills_source]
+        if args.check:
+            s_args.append("--check")
+        if args.json:
+            s_args.append("--json")
+        return sync_mod.main(s_args)
 
     if args.command == "mcp":
         from agent.mcp_server import serve_stdio

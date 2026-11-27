@@ -81,6 +81,19 @@ Resident Agent OS es **agnóstico al proveedor**: no te ata a Claude ni a Gemini
 
 **Proxy MCP opcional para servidores de terceros ruidosos:** si conectas otros servidores MCP que devuelven salidas gigantes, envuélvelos con `python3 -m agent mcp-proxy -- <comando del servidor>` para acotar resultados sin truncar lecturas ni ediciones de archivos.
 
+### Estructura de carpetas SSOT y ruteo de modelos entre hosts
+Para evitar duplicados manuales entre `.agent/`, `.agents/` y `.claude/`:
+- **`.agent/`** guarda solo estado y políticas del proyecto (`STATE.md`, `SPECS.md`, `thresholds.json`, `path-rules.json`, **`model-routing.json`**, `telemetry/`).
+- **`agents/`, `commands/`, `rules/`, `contexts/`, `verifiers/`, `scripts/`** en la raíz son la fuente única compartida por todos los asistentes.
+- **`.agents/skills/`** es la fuente única de skills en proyectos instalados (estándar abierto leído por Antigravity, Gemini CLI, Codex, Cursor y OpenCode).
+- **`.claude/{agents,commands,skills}/`** es una proyección generada — **nunca se edita a mano**. Mantén todo sincronizado (inyectando `model: haiku|sonnet|opus` en `.claude/agents/*.md` desde `.agent/model-routing.json`) con:
+```bash
+ros sync-hosts --target .          # sincroniza en modo copy (compatible con Linux, macOS, Windows y Docker)
+ros sync-hosts --target . --check  # detecta deriva en CI o antes de un MR
+ros route --agent general-purpose --task business-logic --provider antigravity
+```
+Cualquier asistente conectado por MCP también puede consultar la herramienta **`ros_resolve_model`** para elegir el nivel (`fast`, `balanced`, `reasoning`) y modelo exacto de su proveedor sin adivinar.
+
 **Prompt recomendado al abrir una sesión de trabajo:**
 > Lee `AGENTS.md` y `.agent/STATE.md`. Vamos a trabajar en `[describe tu tarea o requisito RF-xxx]`. Aplica las reglas obligatorias y las skills del stack que corresponda; antes de declarar terminado corre las pruebas, `python3 verifiers/run.py` y `ros thresholds`.
 

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "default_tier": "balanced",
+  "tiers": {
+    "fast": {
+      "description": "Exploración, búsqueda de código, renombrados mecánicos, sincronización documental y verificaciones puntuales de bajo costo.",
+      "providers": {
+        "claude": "haiku",
+        "antigravity": "flash",
+        "gemini": "gemini-2.5-flash",
+        "codex": "gpt-4.1-mini",
+        "cursor": "fast",
+        "copilot": "gpt-4.1-mini",
+        "opencode": "fast",
+        "ollama": "qwen2.5-coder:7b",
+        "generic": "fast"
+      }
+    },
+    "balanced": {
+      "description": "Implementación de lógica de negocio, depuración estándar, planificación y revisión de código cotidiana.",
+      "providers": {
+        "claude": "sonnet",
+        "antigravity": "inherit",
+        "gemini": "gemini-2.5-pro",
+        "codex": "o4-mini",
+        "cursor": "default",
+        "copilot": "claude-sonnet-4",
+        "opencode": "balanced",
+        "ollama": "qwen2.5-coder:14b",
+        "generic": "balanced"
+      }
+    },
+    "reasoning": {
+      "description": "Diseño arquitectónico, revisión de seguridad profunda, revisión adversaria, concurrencia/datos críticos y requisitos ambiguos.",
+      "providers": {
+        "claude": "opus",
+        "antigravity": "pro",
+        "gemini": "gemini-2.5-pro",
+        "codex": "o3",
+        "cursor": "reasoning",
+        "copilot": "o3",
+        "opencode": "reasoning",
+        "ollama": "qwen2.5-coder:32b",
+        "generic": "reasoning"
+      }
+    }
+  },
+  "agents": {
+    "general-purpose": {
+      "tier": "fast",
+      "escalate_to": "balanced",
+      "reason": "Modelo económico por defecto para búsqueda y tareas mecánicas; escalar a balanced cuando exige juicio real de negocio."
+    },
+    "code-reviewer": {
+      "tier": "balanced",
+      "escalate_to": "reasoning",
+      "reason": "Revisión de MR cotidiana en nivel equilibrado; escalar a reasoning en cambios críticos."
+    },
+    "debugger": {
+      "tier": "balanced",
+      "escalate_to": "reasoning",
+      "reason": "Diagnóstico de causa raíz estándar; escalar a reasoning en concurrencia o corrupción de datos."
+    },
+    "planner": {
+      "tier": "balanced",
+      "escalate_to": "reasoning",
+      "reason": "Desglose de planes trazables; escalar a reasoning cuando los requisitos son ambiguos."
+    },
+    "architect": {
+      "tier": "reasoning",
+      "reason": "Decisiones arquitectónicas y ADRs de alto impacto."
+    },
+    "security-reviewer": {
+      "tier": "reasoning",
+      "reason": "Evaluación de vulnerabilidades, autenticación/autorización y controles OWASP/ASVS."
+    },
+    "adversarial-reviewer": {
+      "tier": "reasoning",
+      "reason": "Revisión independiente y búsqueda de fallos sutiles contra especificación y mutantes."
+    }
+  },
+  "tasks": {
+    "search": "fast",
+    "explore": "fast",
+    "rename": "fast",
+    "docs": "fast",
+    "docs-sync": "fast",
+    "mechanical": "fast",
+    "crud": "balanced",
+    "bugfix": "balanced",
+    "refactor": "balanced",
+    "review": "balanced",
+    "tests": "balanced",
+    "plan": "balanced",
+    "business-logic": "balanced",
+    "architecture": "reasoning",
+    "security": "reasoning",
+    "security-audit": "reasoning",
+    "adversarial": "reasoning",
+    "adversarial-review": "reasoning",
+    "complex-debug": "reasoning"
+  }
+}

@@ -2,6 +2,11 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.3 (2026-11-27)
+- **Ruteo de modelos agnóstico a proveedor** (`.agent/model-routing.json`, `agent/model_routing.py`, `ros route`, herramienta MCP `ros_resolve_model`): niveles semánticos `fast`, `balanced` y `reasoning` con mapeo configurable por proveedor (`claude`, `antigravity`, `gemini`, `codex`, `cursor`, `copilot`, `opencode`, `ollama`, `generic`), promoción automática por tipo de tarea sin degradar revisores de seguridad/adversarios, y overrides por entorno (`ROS_MODEL_<TIER>`, `ROS_MODEL_<PROVIDER>_<TIER>`).
+- **Subagente `agents/general-purpose.md` y mejoras en `delegacion-subagentes`:** 7.º subagente canónico en nivel `fast` por defecto con regla de auto-escalado honesto; la skill añade el campo `Modelo / Nivel` en el encargo, reduce el límite paralelo a `2–3` y compacta el ciclo de convergencia §5b.
+- **Sincronización SSOT multi-host sin copias manuales** (`scripts/sync_agent_dirs.py`, `ros sync-hosts`, integrado en `ros init-host` y `ros doctor`): mantiene `.agents/skills/`, `agents/*.md` y `commands/*.md` como fuente única y proyecta `.claude/{agents,commands,skills}/` inyectando automáticamente `model:` por subagente desde `.agent/model-routing.json`, con `--mode copy|symlink` (Windows/Docker nativo por defecto) y `--check` para detectar deriva.
+
 ## 1.0.2 (2026-11-27)
 Lo que faltaba de las ideas de open-code-review (Apache-2.0) y Chisle (MIT); el código es propio.
 - **Revisión de archivos completos** (`ros review-prepare --scan [--scan-path <dir>]`, herramienta MCP `ros_review_prepare` con `scan`):

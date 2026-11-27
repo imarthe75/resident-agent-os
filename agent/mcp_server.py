@@ -185,6 +185,22 @@ def _tool_memory_status(args: dict[str, Any]) -> dict[str, Any]:
     return inspect_memory(project_id=args.get("project_id"), limit=int(args.get("limit") or 10))
 
 
+def _tool_resolve_model(args: dict[str, Any]) -> dict[str, Any]:
+    from agent.model_routing import list_agent_routing, resolve_model
+
+    repo = Path(args.get("path") or ".").resolve()
+    provider = str(args.get("provider") or "all")
+    if args.get("list_agents"):
+        return list_agent_routing(provider=provider, repo_root=repo)
+    return resolve_model(
+        agent_name=args.get("agent"),
+        task=args.get("task"),
+        tier=args.get("tier"),
+        provider=provider,
+        repo_root=repo,
+    )
+
+
 TOOL_SPECS: list[dict[str, Any]] = [
     {
         "name": "ros_doctor",
@@ -292,6 +308,22 @@ TOOL_SPECS: list[dict[str, Any]] = [
             },
         },
         "handler": _tool_memory_status,
+    },
+    {
+        "name": "ros_resolve_model",
+        "description": "Deterministically resolve the recommended semantic tier (fast/balanced/reasoning) and provider model for a subagent or task from .agent/model-routing.json.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Repository root path (default: current directory)"},
+                "agent": {"type": "string", "description": "Subagent name (e.g. general-purpose, debugger, security-reviewer)"},
+                "task": {"type": "string", "description": "Task category (e.g. search, crud, business-logic, security, architecture)"},
+                "tier": {"type": "string", "enum": ["fast", "balanced", "reasoning"]},
+                "provider": {"type": "string", "description": "AI provider/host (claude, antigravity, gemini, codex, cursor, copilot, opencode, ollama, all)"},
+                "list_agents": {"type": "boolean", "description": "Return the full routing table for all configured subagents"},
+            },
+        },
+        "handler": _tool_resolve_model,
     },
 ]
 
