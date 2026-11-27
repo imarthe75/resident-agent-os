@@ -5,6 +5,6 @@
   "description": "Genera el .docx de un entregable llenado a partir de su plantilla Markdown, con la identidad de references/marca.json.",
   "type": "module",
   "dependencies": {
-    "docx": "8.5.0"
+    "docx": "9.16.1"
   }
 }

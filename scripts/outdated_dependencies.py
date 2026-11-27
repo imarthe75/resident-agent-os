@@ -20,6 +20,7 @@ Exit codes: 0 up to date, 1 behind, 2 nothing could be checked (no manifests, or
 """
 import argparse
 import json
+import logging
 import re
 import sys
 import urllib.error
@@ -177,6 +178,7 @@ class Lookup:
             except urllib.error.HTTPError as e:
                 self._cache[url] = ("err", f"HTTP {e.code}")
             except Exception as e:  # network, timeout, decoding: reported per dependency, never swallowed
+                logging.getLogger(__name__).warning("Lookup %s failed: %s", url, e, exc_info=True)
                 self._cache[url] = ("err", f"{type(e).__name__}: {e}")
         return self._cache[url]
 

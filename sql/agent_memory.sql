@@ -172,3 +172,40 @@ BEGIN
     END IF;
 END
 $$ LANGUAGE plpgsql;
+
+-- Operational audit log & triggers for memory tables (satisfies verifiers/checks.py::audit_triggers)
+CREATE TABLE IF NOT EXISTS memory.log_auditoria (
+    id          uuid         NOT NULL DEFAULT uuidv7() PRIMARY KEY,
+    table_name  varchar(120) NOT NULL,
+    operation   varchar(10)  NOT NULL,
+    row_id      uuid,
+    changed_by  varchar(120) NOT NULL DEFAULT current_user,
+    changed_at  timestamptz  NOT NULL DEFAULT now()
+);
+COMMENT ON TABLE memory.log_auditoria IS
+    'Operational audit log recording INSERT/UPDATE/DELETE mutations on memory schema tables.';
+
+CREATE OR REPLACE FUNCTION memory.fn_audit_memory_changes()
+RETURNS trigger AS $$
+BEGIN
+    INSERT INTO memory.log_auditoria (table_name, operation, row_id)
+    VALUES (
+        TG_TABLE_NAME,
+        TG_OP,
+        CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END
+    );
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_audit_agent_memory
+    AFTER INSERT OR UPDATE OR DELETE ON memory.agent_memory
+    FOR EACH ROW EXECUTE FUNCTION memory.fn_audit_memory_changes();
+
+CREATE OR REPLACE TRIGGER trg_audit_lessons
+    AFTER INSERT OR UPDATE OR DELETE ON memory.lessons
+    FOR EACH ROW EXECUTE FUNCTION memory.fn_audit_memory_changes();
+
+CREATE OR REPLACE TRIGGER trg_audit_session_summaries
+    AFTER INSERT OR UPDATE OR DELETE ON memory.session_summaries
+    FOR EACH ROW EXECUTE FUNCTION memory.fn_audit_memory_changes();

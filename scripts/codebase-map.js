@@ -61,7 +61,10 @@ function listFiles(root) {
     const walk = (dir) => {
       if (files.length >= MAX_FILES) return;
       let entries = [];
-      try { entries = fs.readdirSync(path.join(root, dir), { withFileTypes: true }); } catch (err) { return; }
+      try { entries = fs.readdirSync(path.join(root, dir), { withFileTypes: true }); } catch (err) {
+        process.stderr.write(`[codebase-map] skip unreadable dir ${dir || "."}: ${err.message}\n`);
+        return;
+      }
       for (const e2 of entries) {
         const rel = dir ? `${dir}/${e2.name}` : e2.name;
         if (e2.isDirectory() && !e2.isSymbolicLink()) { if (!SKIP_DIR.test(rel)) walk(rel); }
@@ -82,6 +85,7 @@ function symbolsOf(root, rel) {
     if (fs.statSync(full).size > MAX_FILE_BYTES) return [];
     text = fs.readFileSync(full, "utf8");
   } catch (e) {
+    process.stderr.write(`[codebase-map] skip unreadable file ${rel}: ${e.message}\n`);
     return [];
   }
   const names = new Set();

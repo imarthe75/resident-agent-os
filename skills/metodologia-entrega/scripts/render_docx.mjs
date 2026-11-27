@@ -17,12 +17,12 @@ if (!docPath || docPath === true || !out || out === true) { console.error('Uso: 
 
 const marcaPath = (arg('marca') && arg('marca') !== true) ? path.resolve(arg('marca')) : path.join(ROOT, 'references', 'marca.json');
 const marcaDir = path.dirname(marcaPath);
-const marca = (() => { try { return JSON.parse(fs.readFileSync(marcaPath, 'utf8')); } catch { return {}; } })();
+const marca = (() => { try { return JSON.parse(fs.readFileSync(marcaPath, 'utf8')); } catch (err) { console.error(`[render_docx] no se pudo leer ${marcaPath}: ${err.message}`); return {}; } })();
 const ORG = (marca.organizacion || '').trim() || '«Organización»';
 const PRIM = /^[0-9A-Fa-f]{6}$/.test(marca.color_primario || '') ? marca.color_primario : '1E5FA8';
 const TXT = /^[0-9A-Fa-f]{6}$/.test(marca.color_texto || '') ? marca.color_texto : '222222';
 const FUENTE = marca.fuente || 'Calibri';
-const LOGO = (() => { if (!marca.logo) return null; try { return fs.readFileSync(path.join(marcaDir, marca.logo)); } catch { return null; } })();
+const LOGO = (() => { if (!marca.logo) return null; try { return fs.readFileSync(path.join(marcaDir, marca.logo)); } catch (err) { console.error(`[render_docx] no se pudo leer el logo ${marca.logo}: ${err.message}`); return null; } })();
 
 const md = fs.readFileSync(docPath, 'utf8').replace(/\r\n/g, '\n');
 

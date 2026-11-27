@@ -49,7 +49,7 @@ for (const d of fs.readdirSync(EX, { withFileTypes: true }).filter(x => x.isDire
     ['prueba sin fecha se rechaza', () => R.verificar(mk('confirmada', '`a.ts:1`', '`prueba:v.py`')).errores.length > 0],
     ['prueba vieja avisa', () => R.verificar(mk('confirmada', '`a.ts:1`', '`prueba:v.py@2020-01-01`')).avisos.length > 0],
   ];
-  for (const [n, fn] of casos) { total++; let r = false; try { r = fn(); } catch (e) {} if (r) ok++; else bad.push('reglas / ' + n); }
+  for (const [n, fn] of casos) { total++; let r = false; try { r = fn(); } catch (e) { console.error('[regresion] ' + n + ':', e.message); } if (r) ok++; else bad.push('reglas / ' + n); }
 }
 // captura_ext.js: registra solo con --revisado, valida el formato contra el guion
 {
