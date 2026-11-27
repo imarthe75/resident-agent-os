@@ -1,6 +1,6 @@
 # Resident Agent OS — Complete Index
 
-**Status:** ✅ Production-Ready (June 18, 2026)
+**Status:** ✅ v1.0.0 Consolidated Baseline (2026-11-26)
 
 ## 📖 Documentation Map
 
@@ -60,6 +60,8 @@
 | `scripts/hooks/compress-output.js` + `command-filters.js` | PostToolUse (Bash) | Command-aware + generic compression with `0600` spill |
 | `scripts/hooks/pre-compact.js` | PreCompact | Retry, error, and token-savings warnings |
 | `scripts/hooks/session-end.js` | Stop | Atomic `STATE.md` summary + `memory.session_summaries` |
+| `scripts/hooks/statusline.sh` | Shell / StatusLine | Compact terminal statusline (project, host, phase, saved tokens, error rate, cost) |
+| `scripts/benchmark_filters.py` | CLI / CI | Deterministic token-savings benchmark verifying 0% error marker loss |
 | `scripts/check_thresholds.py` | CLI / Cron / CI | Evaluate telemetry against `.agent/thresholds.json` |
 | `scripts/fleet_status.py` | CLI / Cron / UI | Multi-repo drift, verifiers, deps & telemetry aggregator |
 

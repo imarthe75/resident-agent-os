@@ -178,7 +178,85 @@ class TelemetryWriter:
                 fh.write(line)
         except OSError as e:
             logger.error("Failed to append telemetry event to %s: %s", self.path, e, exc_info=True)
+
+        otlp_endpoint = os.getenv("ROS_OTLP_ENDPOINT", "").strip()
+        if otlp_endpoint:
+            export_event_otlp(record, endpoint=otlp_endpoint)
         return record
+
+
+def build_otlp_log_payload(record: dict[str, Any]) -> dict[str, Any]:
+    """Build an OTLP/HTTP JSON (`resourceLogs`) payload from a single redacted telemetry event."""
+    now_ns = str(int(datetime.now(timezone.utc).timestamp() * 1_000_000_000))
+    attributes = [
+        {"key": k, "value": {"stringValue": str(record[k])}}
+        for k in ("project_id", "agent_host", "source", "session_id", "correlation_id", "event", "phase", "outcome")
+        if record.get(k) is not None
+    ]
+    for num_key in ("duration_ms", "cost_usd"):
+        if record.get(num_key) is not None:
+            attributes.append({"key": num_key, "value": {"doubleValue": float(record[num_key])}})
+    for int_key in ("tokens_in", "tokens_out", "retries", "chars_saved", "tokens_saved_est"):
+        if record.get(int_key):
+            attributes.append({"key": int_key, "value": {"intValue": str(int(record[int_key]))}})
+
+    return {
+        "resourceLogs": [
+            {
+                "resource": {
+                    "attributes": [
+                        {"key": "service.name", "value": {"stringValue": str(record.get("service") or SERVICE_NAME)}},
+                        {"key": "ros.project_id", "value": {"stringValue": str(record.get("project_id") or "default")}},
+                    ]
+                },
+                "scopeLogs": [
+                    {
+                        "scope": {"name": "resident-agent-os.telemetry", "version": "1.0.0"},
+                        "logRecords": [
+                            {
+                                "timeUnixNano": now_ns,
+                                "severityText": str(record.get("level") or "INFO"),
+                                "body": {"stringValue": str(record.get("event") or "telemetry_event")},
+                                "attributes": attributes,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def export_event_otlp(
+    record: dict[str, Any],
+    *,
+    endpoint: Optional[str] = None,
+    timeout: float = 1.5,
+) -> bool:
+    """Export a single redacted telemetry record to an OTLP/HTTP JSON endpoint (`ROS_OTLP_ENDPOINT`).
+
+    Uses only Python stdlib (`urllib.request`). Returns True iff the endpoint responded with HTTP 2xx.
+    """
+    from urllib.error import URLError
+    from urllib.parse import urlparse
+    from urllib.request import Request, urlopen
+
+    url = (endpoint or os.getenv("ROS_OTLP_ENDPOINT", "")).strip()
+    if not url:
+        return False
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        logger.error("Invalid ROS_OTLP_ENDPOINT '%s': only http:// or https:// URLs are allowed", url)
+        return False
+
+    body = json.dumps(build_otlp_log_payload(record), ensure_ascii=False).encode("utf-8")
+    req = Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urlopen(req, timeout=timeout) as resp:  # nosec B310 - scheme validated above
+            return 200 <= getattr(resp, "status", 0) < 300
+    except (URLError, OSError, TimeoutError) as exc:
+        logger.error("Failed to export OTLP telemetry event to %s: %s", url, exc, exc_info=True)
+        return False
 
 
 def read_events(path: Path | str, limit: Optional[int] = None) -> list[dict[str, Any]]:

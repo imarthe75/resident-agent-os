@@ -3,6 +3,7 @@
 import io
 import json
 import logging
+import os
 import subprocess
 import sys
 import tempfile
@@ -141,6 +142,70 @@ class TestTelemetry(unittest.TestCase):
         events = read_events(self.agent_dir / "telemetry" / "events.jsonl")
         self.assertEqual(events[-1]["outcome"], "error")
         self.assertEqual(events[-1]["retries"], 1)
+
+    def test_otlp_http_exporter_posts_valid_resource_logs(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from agent.telemetry import export_event_otlp
+
+        received = []
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length).decode("utf-8")
+                received.append(json.loads(body))
+                self.send_response(200)
+                self.end_headers()
+
+            def log_message(self, format, *args):
+                return
+
+        srv = HTTPServer(("127.0.0.1", 0), _Handler)
+        port = srv.server_address[1]
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        try:
+            url = f"http://127.0.0.1:{port}/v1/logs"
+            writer = TelemetryWriter(self.agent_dir / "telemetry" / "events.jsonl", session_id="s-otlp", project_id="proj-z")
+            prev = os.environ.get("ROS_OTLP_ENDPOINT")
+            os.environ["ROS_OTLP_ENDPOINT"] = url
+            try:
+                writer.emit("skill_execute", phase="execute", outcome="ok", duration_ms=42.5, tokens_saved_est=120)
+            finally:
+                if prev is None:
+                    os.environ.pop("ROS_OTLP_ENDPOINT", None)
+                else:
+                    os.environ["ROS_OTLP_ENDPOINT"] = prev
+
+            self.assertEqual(len(received), 1)
+            res_logs = received[0]["resourceLogs"][0]
+            log_rec = res_logs["scopeLogs"][0]["logRecords"][0]
+            self.assertEqual(log_rec["body"]["stringValue"], "skill_execute")
+            # Reject invalid non-http(s) scheme
+            self.assertFalse(export_event_otlp({"event": "x"}, endpoint="file:///etc/passwd"))
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    def test_statusline_and_filter_benchmark(self):
+        import shutil
+        import subprocess
+        from scripts import benchmark_filters
+
+        writer = TelemetryWriter(self.agent_dir / "telemetry" / "events.jsonl", session_id="s-st", project_id="proj-st")
+        writer.emit("compress_output", phase="post_tool_use", outcome="ok", chars_saved=8000, tokens_saved_est=2000)
+        statusline_sh = Path(__file__).resolve().parents[1] / "scripts" / "hooks" / "statusline.sh"
+        env = {**os.environ, "ROS_TELEMETRY_PATH": str(writer.path), "AGENT_DIR": str(self.agent_dir)}
+        proc = subprocess.run(["bash", str(statusline_sh)], capture_output=True, text=True, check=True, env=env)
+        self.assertIn("[ROS v1.0.0 | proj-st |", proc.stdout)
+        self.assertIn("saved:2.0k tok", proc.stdout)
+
+        if shutil.which("node") or os.getenv("ROS_NODE_BIN"):
+            report = benchmark_filters.run_benchmark()
+            self.assertTrue(report["ok"])
+            self.assertTrue(report["all_markers_preserved"])
+            self.assertGreater(report["total_reduction_pct"], 50.0)
 
 
 if __name__ == "__main__":
