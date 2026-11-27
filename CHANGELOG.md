@@ -16,6 +16,11 @@ Lo que faltaba de las ideas de open-code-review (Apache-2.0) y Chisle (MIT); el 
 - **Salida de comandos que fallan** (`scripts/hooks/run-filtered.js`, PreToolUse): pruebas, compilaciones e instalaciones corren a través
   de un filtro que conserva errores y resúmenes y devuelve el mismo código de salida. Solo con `ROS_FILTER_FAILED=1` o en
   `bypassPermissions`; nunca si una regla `deny`/`ask` nombra al programa, ni en comandos con tuberías, redirecciones o sustituciones.
+  Incluye soporte nativo para Windows (`win32` vía `--b64`) y fallback `bash` → `sh` para Alpine/entornos sin Bash.
+- **Pruebas aisladas multiplataforma y manual unificado** (`scripts/sandboxed_tests.py`, `docs/MANUAL_INSTALACION_Y_USO.md`,
+  `scripts/hooks/statusline.sh`): ejecutor aislado mediante Docker (`--network none --read-only`, compatible con Windows nativo, macOS y
+  Linux), fallback `python3`/`python` en `statusline.sh` y manual único de instalación, prompts por asistente, arranque de `resident-ui` y
+  compatibilidad por sistema operativo.
 
 ## 1.0.1 (2026-11-27)
 La serie 1.x sucede a la 2.x: 1.0.0 es la línea base del framework y es **más nueva** que 2.20.0 (las herramientas del kit fijan la etiqueta
