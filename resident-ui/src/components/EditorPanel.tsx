@@ -1,65 +1,94 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
+import { useEffect, useState } from "react";
 
 export default function EditorPanel() {
-  const codeTemplate = `# 🌌 Resident Agent OS - Execution Environment
-# Running memory-aware secure algorithms
+  const [files, setFiles] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
-import time
-from memory.semantic_cache import SemanticCache
-from memory.long_term_memory import LongTermMemory
+  useEffect(() => {
+    fetch("/api/files", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        const list = Array.isArray(data.files) ? data.files : [];
+        setFiles(list);
+        if (list.length > 0) setSelected(list[0]);
+      })
+      .catch((err) => {
+        console.error("[EditorPanel] failed to list files:", err);
+        setError("No se pudieron listar los archivos del workspace.");
+      });
+  }, []);
 
-def run_agent_loop():
-    print("🤖 [Agent] Bootstrapping cognitive services...")
-    cache = SemanticCache(host="localhost", port=6379)
-    db_memory = LongTermMemory()
-    
-    # 1. Fetch specifications (OpenSpec contract validation)
-    print("📜 [OpenSpec] Fetching SPECS.md contracts...")
-    
-    # 2. Heuristics analysis
-    print("🧠 [Heuristics] Running loop validation limits...")
-    time.sleep(1)
-    
-    # 3. Execution (Superpowers TDD Mode)
-    print("✅ [Superpowers] TDD loop passed! No regressions detected.")
+  useEffect(() => {
+    if (!selected) return;
+    fetch(`/api/files?path=${encodeURIComponent(selected)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.content === "string") {
+          setContent(data.content);
+          setError(null);
+        } else {
+          setError(data.error || "No se pudo leer el archivo.");
+        }
+      })
+      .catch((err) => {
+        console.error("[EditorPanel] failed to read file:", err);
+        setError("Error de red leyendo el archivo.");
+      });
+  }, [selected]);
 
-if __name__ == "__main__":
-    run_agent_loop()
-`;
+  const lang = selected.endsWith(".json")
+    ? "json"
+    : selected.endsWith(".yml") || selected.endsWith(".yaml")
+      ? "yaml"
+      : "markdown";
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex flex-col h-full shadow-lg">
-      <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="w-3 h-3 rounded-full bg-red-500/80" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-          <span className="w-3 h-3 rounded-full bg-green-500/80" />
-          <span className="text-xs font-mono text-zinc-400 ml-2">agent_runtime.py</span>
-        </div>
-        <span className="text-[10px] bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded text-zinc-400 font-mono">
-          Python
-        </span>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-full">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col space-y-2 overflow-y-auto max-h-[620px]">
+        <div className="text-xs font-mono font-bold text-zinc-400 uppercase">Workspace Files ({files.length})</div>
+        {files.map((f) => (
+          <button
+            key={f}
+            onClick={() => setSelected(f)}
+            className={`text-left px-2.5 py-1.5 rounded text-xs font-mono truncate cursor-pointer ${
+              selected === f ? "bg-green-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            }`}
+            title={f}
+          >
+            {f}
+          </button>
+        ))}
       </div>
-      <div className="flex-1 min-h-[450px]">
-        <Editor
-          height="100%"
-          defaultLanguage="python"
-          defaultValue={codeTemplate}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: "on",
-            scrollbar: {
-              vertical: "visible",
-              horizontal: "visible"
-            },
-            padding: { top: 12 },
-            automaticLayout: true
-          }}
-        />
+
+      <div className="md:col-span-3 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex flex-col h-full shadow-lg">
+        <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2 flex items-center justify-between">
+          <span className="text-xs font-mono text-zinc-300">{selected || "Sin archivo seleccionado"}</span>
+          <span className="text-[10px] bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded text-zinc-400 font-mono">
+            {lang} (solo lectura)
+          </span>
+        </div>
+        {error && <div className="p-3 text-xs font-mono text-red-400">{error}</div>}
+        <div className="flex-1 min-h-[480px]">
+          <Editor
+            height="100%"
+            language={lang}
+            value={content}
+            theme="vs-dark"
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: "on",
+              padding: { top: 12 },
+              automaticLayout: true,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

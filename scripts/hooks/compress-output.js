@@ -37,6 +37,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { filterCommandOutput } = require("./command-filters");
+const telemetry = require("./telemetry-lib");
 
 const ANSI = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
 const IMPORTANT = new RegExp(
@@ -127,6 +129,8 @@ function spill(original) {
     for (const f of old.slice(0, Math.max(0, old.length - KEEP_FILES))) fs.rmSync(path.join(dir, f), { force: true });
     return file;
   } catch (e) {
+    // Explicit fallback: if writing the spill file fails, return null so shrink() performs lossless cleanup only.
+    process.stderr.write(`[compress-output] spill write failed: ${e.message}\n`);
     return null;
   }
 }
@@ -147,14 +151,31 @@ function processPayload(payload) {
   const resp = payload.tool_response;
   if (!resp || typeof resp !== "object" || Array.isArray(resp) || resp.isImage) return null;
   if (typeof resp.stdout !== "string" && typeof resp.stderr !== "string") return null;
+  const t0 = Date.now();
+  const cmd = payload.tool_input && typeof payload.tool_input.command === "string" ? payload.tool_input.command : "";
   const updated = { ...resp };
   let saved = 0;
+  let originalLen = 0;
   for (const key of ["stdout", "stderr"]) {
     if (typeof resp[key] !== "string") continue;
-    updated[key] = shrink(resp[key]);
+    originalLen += resp[key].length;
+    const preFiltered = key === "stdout" && cmd ? filterCommandOutput(cmd, resp[key]) : resp[key];
+    updated[key] = shrink(preFiltered);
     saved += resp[key].length - updated[key].length;
   }
-  return saved >= MIN_SAVING ? updated : null;
+  if (saved >= MIN_SAVING) {
+    telemetry.appendEvent(telemetry.resolveAgentDir(), {
+      event: "compress_output",
+      phase: "post_tool_use",
+      outcome: "ok",
+      duration_ms: Date.now() - t0,
+      chars_saved: saved,
+      tokens_saved_est: Math.round(saved / 4),
+      detail: { command: cmd ? cmd.slice(0, 120) : undefined, original_chars: originalLen, compressed_chars: originalLen - saved },
+    });
+    return updated;
+  }
+  return null;
 }
 
 function main() {
@@ -170,7 +191,8 @@ function main() {
         );
       }
     } catch (e) {
-      // No replacement: the original output reaches the model unchanged.
+      // Explicit fallback: malformed stdin never blocks the Bash tool pipeline; original output passes through.
+      process.stderr.write(`[compress-output] invalid hook payload ignored: ${e.message}\n`);
     }
     process.exit(0);
   });

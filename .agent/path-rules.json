@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "description": "Reglas quirúrgicas por ruta (inspirado en open-code-review .opencodereview/rule.json). Cada regla solo se inyecta cuando el cambio toca un archivo que coincide con `paths`.",
+  "rules": [
+    {
+      "id": "PATH-SQL-01",
+      "paths": ["sql/*.sql", "**/*.sql"],
+      "severity": "P1",
+      "rule": "Toda tabla nueva debe usar PK uuid DEFAULT uuidv7(), timestamptz, ser idempotente (IF NOT EXISTS), incluir COMMENT ON (calificado con esquema en índices) y nunca contener credenciales literales."
+    },
+    {
+      "id": "PATH-HOOKS-01",
+      "paths": ["scripts/hooks/*.js", "hooks/hooks.json", ".claude/settings.json"],
+      "severity": "P1",
+      "rule": "Los hooks nunca pueden bloquear por falta de herramienta opcional, deben registrar errores sin silenciarlos, mantener tests en tests/hooks/ y usar el esquema unificado de telemetry-lib.js."
+    },
+    {
+      "id": "PATH-UI-API-01",
+      "paths": ["resident-ui/src/app/api/**/*.ts", "resident-ui/src/lib/*.ts"],
+      "severity": "P1",
+      "rule": "Cero datos simulados o hardcodeados; devolver 503 en /api/health/ready si una dependencia requerida falla, validar rutas contra path traversal y propagar X-Request-Id."
+    },
+    {
+      "id": "PATH-VERIFIERS-01",
+      "paths": ["verifiers/*.py"],
+      "severity": "P2",
+      "rule": "Todo verificador nuevo debe registrarse en REGISTRY, devolver CUMPLE/NO_CUMPLE/NO_EVALUADO sin inventar hallazgos y agregar casos positivo, negativo y NO_EVALUADO en tests/."
+    }
+  ]
+}

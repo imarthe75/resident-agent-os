@@ -58,6 +58,16 @@ COMMENT ON COLUMN memory.agent_memory.uaccreacion IS
 COMMENT ON COLUMN memory.agent_memory.row_version IS
     'Row version for optimistic locking';
 
+-- Hub-and-Spoke project scoping (ADR-0006): one central memory DB serves many repositories cleanly.
+ALTER TABLE memory.agent_memory
+    ADD COLUMN IF NOT EXISTS project_id varchar(120) NOT NULL DEFAULT 'default';
+COMMENT ON COLUMN memory.agent_memory.project_id IS
+    'Project/repository identifier for Hub-and-Spoke multi-project isolation.';
+CREATE INDEX IF NOT EXISTS ix_agent_memory__project_id
+    ON memory.agent_memory (project_id);
+COMMENT ON INDEX memory.ix_agent_memory__project_id IS
+    'Index for scoping memory searches by project_id';
+
 -- Evidence level of a lesson (ADR-0003 D6): CIERTO (reproduced with real evidence), PROBABLE (inferred from consistent evidence, not run),
 -- HIPOTESIS (plausible, unverified). Rows that existed before this column were never graded, so they are HIPOTESIS, not PROBABLE.
 ALTER TABLE memory.agent_memory
@@ -78,28 +88,28 @@ CREATE INDEX IF NOT EXISTS ix_agent_memory__embedding_hnsw
     ON memory.agent_memory
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
-COMMENT ON INDEX ix_agent_memory__embedding_hnsw IS
+COMMENT ON INDEX memory.ix_agent_memory__embedding_hnsw IS
     'HNSW index for fast cosine distance similarity search on embeddings';
 
 -- Supporting indexes
 CREATE INDEX IF NOT EXISTS ix_agent_memory__session_id
     ON memory.agent_memory (session_id);
-COMMENT ON INDEX ix_agent_memory__session_id IS
+COMMENT ON INDEX memory.ix_agent_memory__session_id IS
     'Index for fast filtering by session_id';
 
 CREATE INDEX IF NOT EXISTS ix_agent_memory__memory_type
     ON memory.agent_memory (memory_type);
-COMMENT ON INDEX ix_agent_memory__memory_type IS
+COMMENT ON INDEX memory.ix_agent_memory__memory_type IS
     'Index for fast filtering by memory_type (lesson, decision, etc.)';
 
 CREATE INDEX IF NOT EXISTS ix_agent_memory__importance_desc
     ON memory.agent_memory (importance_score DESC);
-COMMENT ON INDEX ix_agent_memory__importance_desc IS
+COMMENT ON INDEX memory.ix_agent_memory__importance_desc IS
     'Index for sorting/filtering by importance score (highest first)';
 
 CREATE INDEX IF NOT EXISTS ix_agent_memory__fccreacion_desc
     ON memory.agent_memory (fccreacion DESC);
-COMMENT ON INDEX ix_agent_memory__fccreacion_desc IS
+COMMENT ON INDEX memory.ix_agent_memory__fccreacion_desc IS
     'Index for temporal queries (most recent memories first)';
 
 -- Backwards compatibility: keep memory.lessons with its original schema
@@ -117,8 +127,28 @@ CREATE INDEX IF NOT EXISTS ix_lessons__embedding_hnsw
     ON memory.lessons
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
-COMMENT ON INDEX ix_lessons__embedding_hnsw IS
+COMMENT ON INDEX memory.ix_lessons__embedding_hnsw IS
     'HNSW index for legacy lessons table compatibility';
+
+-- Session summaries (non-vector operational log written by session-end hook / loop close)
+CREATE TABLE IF NOT EXISTS memory.session_summaries (
+    id          uuid         NOT NULL DEFAULT uuidv7() PRIMARY KEY,
+    project_id  varchar(120) NOT NULL DEFAULT 'default',
+    session_id  uuid         NOT NULL,
+    summary     text         NOT NULL,
+    metrics     jsonb        NOT NULL DEFAULT '{}',
+    created_at  timestamptz  NOT NULL DEFAULT now()
+);
+ALTER TABLE memory.session_summaries
+    ADD COLUMN IF NOT EXISTS project_id varchar(120) NOT NULL DEFAULT 'default';
+COMMENT ON TABLE memory.session_summaries IS
+    'Operational session summaries (non-vector). Keeps memory.agent_memory and memory.lessons strictly for real embeddings.';
+CREATE INDEX IF NOT EXISTS ix_session_summaries__project_id
+    ON memory.session_summaries (project_id);
+CREATE INDEX IF NOT EXISTS ix_session_summaries__session_id
+    ON memory.session_summaries (session_id);
+CREATE INDEX IF NOT EXISTS ix_session_summaries__created_at_desc
+    ON memory.session_summaries (created_at DESC);
 
 -- Idempotent migration: copy lessons → agent_memory
 DO $$

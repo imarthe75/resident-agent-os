@@ -19,10 +19,8 @@ Sigue estos pasos en orden. **No hagas commit, push ni instales dependencias**: 
    `scripts/latest_versions.py`, `scripts/outdated_dependencies.py`, `scripts/patch_validator.py`, `scripts/codebase-map.js` y
    `.agent/versions-policy.json`; y `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` como `AGENTS.md` y `CLAUDE.md`. Si un
    archivo ya existe, **no lo reemplaces**: anótalo como conflicto.
-3. **Skills, subagentes y comandos:** copia `skills/` a `.claude/skills/` y a `.agents/skills/` (Claude Code y Gemini CLI), `agents/*.md` a
-   `.claude/agents/` y `commands/*.md` a `.claude/commands/`. Mismo criterio: lo existente no se pisa.
-4. **Hooks:** si el proyecto no tiene `.claude/settings.json`, copia el del framework. Si ya existe, agrega solo la sección `hooks`, sin
-   quitar nada, y muestra el resultado.
+3. **Skills, subagentes, comandos y hosts de IA (agnóstico de proveedor):** copia `skills/` a `.claude/skills/` y a `.agents/skills/` (estándar compartido por Claude Code, Gemini CLI, Antigravity, Codex y otros), `agents/*.md` a `.claude/agents/` y `commands/*.md` a `.claude/commands/`. Mismo criterio: lo existente no se pisa. Para conectar el servidor MCP local y generar la configuración del asistente que use el equipo (Claude, Gemini, Antigravity, Codex, Cursor, Copilot, OpenCode o genérico), corre `python3 -m agent init-host --host <host|all> --target . --dry-run` y aplica tras aprobación.
+4. **Hooks y reglas por ruta:** si el proyecto no tiene `.claude/settings.json`, copia el del framework. Si ya existe, agrega solo la sección `hooks`, sin quitar nada, y muestra el resultado. Copia `.agent/thresholds.json` y `.agent/path-rules.json` solo si el proyecto aún no los tiene.
 5. **Conflictos:** para cada archivo que ya existía, muestra las diferencias y propone cómo combinarlos: se conserva lo propio del proyecto
    y se agregan las reglas del framework; si dos reglas se contradicen, gana la más estricta. No combines sin que la persona lo apruebe.
 6. **Sección «Proyecto» de `AGENTS.md`:** llénala leyendo el repositorio (manifiestos `pom.xml`/`build.gradle`/`package.json`/

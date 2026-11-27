@@ -11,8 +11,9 @@ secrets/
 *.ppk
 *.pub
 
-# Memoria privada del agente (brain ephémero)
+# Memoria privada del agente (brain ephémero) y telemetría local
 .agent/brain/
+.agent/telemetry/
 
 # Node.js
 node_modules/

@@ -156,12 +156,14 @@ class LongTermMemory:
         importance_score: float = 0.5,
         metadata: Optional[dict] = None,
         evidence_level: str = "HIPOTESIS",
+        project_id: Optional[str] = None,
     ) -> None:
         """
-        Guarda contenido en la tabla memory.agent_memory con metadatos.
+        Guarda contenido en la tabla memory.agent_memory con metadatos y project_id (Hub-and-Spoke).
         """
         validate_embedding(embedding)
         evidence_level = validate_evidence_level(evidence_level)
+        pid = (project_id or os.getenv("ROS_PROJECT_ID") or "default").strip() or "default"
         if metadata is None:
             metadata = {}
         try:
@@ -170,10 +172,11 @@ class LongTermMemory:
                     cur.execute(
                         """
                         INSERT INTO memory.agent_memory
-                            (session_id, content, embedding, memory_type, importance_score, metadata, evidence_level)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            (project_id, session_id, content, embedding, memory_type, importance_score, metadata, evidence_level)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
+                            pid,
                             session_id,
                             content,
                             embedding,
@@ -183,9 +186,9 @@ class LongTermMemory:
                             evidence_level,
                         ),
                     )
-            logger.info(f"Memory stored: {memory_type}")
+            logger.info("Memory stored: %s (project=%s)", memory_type, pid)
         except psycopg2.Error as e:
-            logger.error(f"Failed to store memory: {e}")
+            logger.error("Failed to store memory: %s", e, exc_info=True)
             raise
 
     def search_memory(
@@ -194,13 +197,17 @@ class LongTermMemory:
         limit: int = 3,
         memory_type_filter: Optional[str] = None,
         min_evidence: Optional[str] = None,
+        project_id: Optional[str] = None,
     ) -> list:
         """
-        Busca en memory.agent_memory usando HNSW cosine distance. Filtros opcionales: memory_type y `min_evidence`
-        (p. ej. "PROBABLE" excluye las HIPOTESIS: una hipótesis no debe recuperarse como si fuera un hecho).
+        Busca en memory.agent_memory usando HNSW cosine distance. Filtros opcionales: project_id, memory_type y `min_evidence`
+        (p. ej. "PROBABLE" excluye las HIPOTESIS).
         Cada fila: (content, memory_type, importance_score, similarity, evidence_level).
         """
         where, params = [], []
+        if project_id:
+            where.append("project_id = %s")
+            params.append(project_id)
         if memory_type_filter:
             where.append("memory_type = %s")
             params.append(memory_type_filter)
@@ -218,6 +225,55 @@ class LongTermMemory:
                     return cur.fetchall()
         except psycopg2.Error as e:
             logger.error("Failed to search memory: %s", e, exc_info=True)
+            return []
+
+    def list_memories(self, project_id: Optional[str] = None, limit: int = 20) -> list[dict[str, Any]]:
+        """List recent non-vector metadata from memory.agent_memory (for CLI/MCP/UI inspection)."""
+        where = " WHERE project_id = %s" if project_id else ""
+        params = (project_id, limit) if project_id else (limit,)
+        sql = (
+            "SELECT id::text, project_id, session_id::text, content, memory_type, importance_score, "
+            "evidence_level, fccreacion::text "
+            f"FROM memory.agent_memory{where} ORDER BY fccreacion DESC LIMIT %s"
+        )
+        try:
+            with self._get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, params)
+                    rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0], "project_id": r[1], "session_id": r[2], "content": r[3],
+                    "memory_type": r[4], "importance_score": r[5], "evidence_level": r[6], "created_at": r[7],
+                }
+                for r in rows
+            ]
+        except psycopg2.Error as e:
+            logger.error("Failed to list memories: %s", e, exc_info=True)
+            return []
+
+    def list_session_summaries(self, project_id: Optional[str] = None, limit: int = 20) -> list[dict[str, Any]]:
+        """List recent operational session summaries from memory.session_summaries."""
+        where = " WHERE project_id = %s" if project_id else ""
+        params = (project_id, limit) if project_id else (limit,)
+        sql = (
+            "SELECT id::text, project_id, session_id::text, summary, metrics, created_at::text "
+            f"FROM memory.session_summaries{where} ORDER BY created_at DESC LIMIT %s"
+        )
+        try:
+            with self._get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, params)
+                    rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0], "project_id": r[1], "session_id": r[2], "summary": r[3],
+                    "metrics": r[4], "created_at": r[5],
+                }
+                for r in rows
+            ]
+        except psycopg2.Error as e:
+            logger.error("Failed to list session summaries: %s", e, exc_info=True)
             return []
 
     def close(self) -> None:

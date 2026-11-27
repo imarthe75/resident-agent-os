@@ -44,6 +44,27 @@ class TestObservabilityMin(unittest.TestCase):
         r = run({"package.json": json.dumps({"dependencies": {"@angular/core": "^21.0.0"}})}, self)
         self.assertEqual(r.status, c.NO_EVALUADO)
 
+    def test_nextjs_api_and_observability_production(self):
+        t, root = tree({
+            "package.json": json.dumps({"dependencies": {"next": "^16.4.0"}}),
+            "src/app/api/health/route.ts": "export async function GET() { return Response.json({ status: 'ok' }); }\n",
+            "src/app/api/health/ready/route.ts": "export async function GET() { return Response.json({ status: 'down' }, { status: 503 }); }\n",
+            "src/middleware.ts": "export function middleware(req) { const id = req.headers.get('x-request-id'); console.info(JSON.stringify({ id })); }\n",
+            ".agent/thresholds.json": json.dumps({"signals": {"latency_p95_ms": 5000}}),
+        })
+        self.addCleanup(t.cleanup)
+        self.assertEqual(c.observability_min(root).status, c.CUMPLE)
+        self.assertEqual(c.observability_production(root).status, c.CUMPLE)
+
+    def test_observability_production_flags_missing_readiness_logs_503_and_thresholds(self):
+        t, root = tree({
+            "app/main.py": "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/health')\ndef h(): return {'ok': True}\n"
+        })
+        self.addCleanup(t.cleanup)
+        r = c.observability_production(root)
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        self.assertEqual(len(r.detail), 4)
+
 
 if __name__ == "__main__":
     unittest.main()

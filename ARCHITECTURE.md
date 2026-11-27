@@ -2,12 +2,14 @@
 
 ## Executive Summary
 
-**Resident Agent OS** es un framework Python de producción que implementa un agente cognitivo persistente, local-first, sin dependencias de APIs externas de IA. Unifica cuatro paradigmas:
+**Resident Agent OS** es un sistema operativo de desarrollo para agentes de IA, local-first y **agnóstico de proveedor o asistente** (funciona con Claude Code, Gemini CLI, Antigravity, Codex, Cursor, Windsurf, Cline, Copilot CLI, OpenCode u otros clientes MCP). Unifica seis pilares:
 
 1. **OpenSpec** (Fission-AI) — Contratos vivos y especificaciones estructuradas
 2. **Superpowers** (obra) — Loop determinista y resiliente con pipelines cognitivos
 3. **Ponytail** (DietrichGebert) — Reglas de código mínimo: la escalera de eficiencia (`rules/common/efficiency.md`)
-4. **ECC** (affaan-m) — Skills modulares, herramientas ejecutables, control determinista
+4. **ECC** (affaan-m) — Skills modulares, herramientas ejecutables, control determinista y límites de reintentos/tokens
+5. **Observabilidad real + Hub-and-Spoke** (ADR-0005 / ADR-0006) — Telemetría JSONL compartida entre runtime y hooks, 4 señales con umbrales escritos, panel `resident-ui` sin datos simulados, monitor de flota y aislamiento multi-proyecto (`project_id`)
+6. **CLI único `ros` + Servidor MCP local + Revisión determinista** (ADR-0006) — Un solo comando (`ros` / `python -m agent`), protocolo MCP stdio con *spill* privado `0600`, selección/bundling determinista de diffs y reubicación de líneas contra el archivo real
 
 ---
 

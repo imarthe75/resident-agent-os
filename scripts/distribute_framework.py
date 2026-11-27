@@ -22,10 +22,14 @@ from pathlib import Path
 
 SOURCE_DEFAULT = Path(__file__).resolve().parent.parent
 ITEMS = [".agent", "agents", "rules", "skills", "contexts", "hooks", "verifiers", "prompts", "commands", "templates",
-         "scripts/hooks", "scripts/codebase-map.js", "scripts/ponytail_audit.py", "docs/HEURISTICAS_MASTER_GUIDE.md", "docs/GUIA_POR_ROL.md",
+         "scripts/hooks", "scripts/codebase-map.js", "scripts/ponytail_audit.py", "scripts/check_thresholds.py",
+         "scripts/fleet_status.py", "docs/HEURISTICAS_MASTER_GUIDE.md", "docs/GUIA_POR_ROL.md",
          "docs/resident_agent_genesis.md", "sql/auditoria_estandar_completo.sql", "sql/AUDITORIA_LEEME.md", "VERSION"]
-PROJECT_SPECIFIC = {".agent/CONTEXT.md", ".agent/MAP.md", ".agent/STATE.md", ".agent/SPECS.md", ".agent/PROFILE.json"}
-SKIP_DIRS = {"__pycache__", ".git", "node_modules"}
+PROJECT_SPECIFIC = {
+    ".agent/CONTEXT.md", ".agent/MAP.md", ".agent/STATE.md", ".agent/SPECS.md",
+    ".agent/PROFILE.json", ".agent/thresholds.json", ".agent/path-rules.json",
+}
+SKIP_DIRS = {"__pycache__", ".git", "node_modules", "telemetry"}
 MANIFEST = ".framework-manifest.json"
 EXCLUDED_REPO_NAMES = {".git", ".vscode", ".claude", "data", "node_modules"}
 

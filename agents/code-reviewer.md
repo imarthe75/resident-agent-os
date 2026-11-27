@@ -33,8 +33,17 @@ incumplida y corrección propuesta.
    la seguridad ni la accesibilidad (`rules/common/efficiency.md`, `/ponytail-review`).
 
 ## Antes de aprobar
-Corre `python verifiers/run.py` y, si el proyecto tiene escáner, consulta sus hallazgos sobre los archivos tocados (skill `preflight`).
+1. Corre `python -m agent review-prepare` (o `ros review-prepare`) para obtener la lista determinista de archivos revisables, exclusiones, lotes (bundles) y reglas por ruta (`.agent/path-rules.json`); no selecciones archivos «a ojo» en MRs grandes.
+2. Corre `python verifiers/run.py` y, si el proyecto tiene escáner, consulta sus hallazgos sobre los archivos tocados (skill `preflight`).
+3. Verifica que el archivo y la línea de cada hallazgo coincidan exactamente con el archivo real (usa `ros_relocate_finding` si usas MCP) para evitar *position drift*.
 Un hallazgo nuevo de severidad alta o crítica bloquea. La corrección de cada regla está en la skill `prevencion-hallazgos-seguridad-calidad`.
+
+## Qué NO reportar (reducción de falsos positivos)
+- **Concurrencia / thread-safety** en variables locales de un método, objetos inmutables o estructuras de solo lectura sin evidencia de acceso concurrente.
+- **Estilo cosmético** ya cubierto por linter/formateador (espacios, orden de imports sin impacto, preferencias personales de nombres).
+- **Faltas ortográficas en sitios de referencia** (solo se señalan en la declaración si afectan contratos/API o legibilidad).
+- **Código de pruebas** por reglas pensadas únicamente para código de producción (p. ej. datos de fixture controlados en `tests/`), salvo que viole aislamiento (`rules/common/test-isolation.md`).
+- **Hallazgos especulativos** sin evidencia verificada en el código real: si no puedes mostrar cómo falla o se explota, no es P0–P2.
 
 ## Solo lectura
 No editas archivos ni ejecutas comandos que cambien algo: solo lees código y usas `git diff`, `git log`, `git show` y la ejecución de

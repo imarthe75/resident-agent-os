@@ -21,36 +21,47 @@
 
 ### Python Packages
 
-#### `agent/` — Execution Engine
+#### `agent/` — Execution Engine, CLI & MCP
 - **`__init__.py`** — Public API exports
-- **`exceptions.py`** — 8 custom exception types
+- **`__main__.py`** / **`cli.py`** — Unified `ros` CLI (`doctor`, `init-host`, `verify`, `thresholds`, `fleet`, `review-prepare`, `relocate`, `memory`, `mcp`)
+- **`mcp_server.py`** — Provider-agnostic local MCP server over stdio with output bounding & private `0600` spill
+- **`review_prepare.py`** — Deterministic diff selection, smart bundling, `.agent/path-rules.json` matching & line relocation
+- **`telemetry.py`** — Structured JSON logs, secret redaction, `.agent/telemetry/events.jsonl`, 4 signals & threshold checks
+- **`exceptions.py`** — Custom exception hierarchy
 - **`heuristic_engine.py`** — Machine-readable rule evaluation
-- **`loop.py`** — 10-phase ResidentAgentLoop (THE CORE)
+- **`loop.py`** — 10-phase ResidentAgentLoop with telemetry, token budget & failure-streak guardrails
 - **`skill_base.py`** — Skill ABC with Pydantic validation
 - **`state_parser.py`** — Atomic STATE.md JSON persistence
 
-#### `memory/` — Cognitive Memory System
+#### `memory/` — Cognitive Memory System (Hub-and-Spoke `project_id`)
 - **`__init__.py`** — Package exports
 - **`agent_state.py`** — LoopState dataclass + session tracking
-- **`long_term_memory.py`** — PostgreSQL + pgvector with HNSW
-- **`semantic_cache.py`** — Valkey semantic cache <5ms
+- **`long_term_memory.py`** — PostgreSQL + pgvector with HNSW, evidence levels (`CIERTO`/`PROBABLE`/`HIPOTESIS`) & `project_id` scoping
+- **`semantic_cache.py`** — Valkey exact + opt-in semantic cache <5ms
 
 ### Configuration & Infrastructure
 
 | File | Purpose | Format |
 |------|---------|--------|
-| `requirements.txt` | Python dependencies (5) | pip |
+| `pyproject.toml` / `requirements.txt` | Package metadata (`ros` entrypoint) & Python dependencies | TOML / pip |
 | `.agent/heuristics.json` | Machine-readable rules | JSON |
-| `sql/agent_memory.sql` | pgvector schema + HNSW | PostgreSQL |
-| `hooks/hooks.json` | Claude Code harness hooks | JSON |
+| `.agent/thresholds.json` | Written alert thresholds for production signals | JSON |
+| `.agent/path-rules.json` | Surgical path-based review rules | JSON |
+| `sql/agent_memory.sql` | pgvector schema + HNSW + `memory.session_summaries` + `project_id` | PostgreSQL |
+| `templates/mcp/mcp.json.example` | Universal MCP config for any AI host | JSON |
+| `hooks/hooks.json` / `.claude/settings.json` | Lifecycle hooks | JSON |
 
 ### Automation Scripts
 
 | File | Trigger | Purpose |
 |------|---------|---------|
-| `scripts/hooks/pre-compact.js` | PreToolUse | Retry/token warnings |
-| `scripts/hooks/post-edit.js` | PostToolUse (on_edit) | Syntax validation |
-| `scripts/hooks/session-end.js` | Stop | Session persistence |
+| `scripts/codebase-map.js` | SessionStart | Compact symbol/directory map |
+| `scripts/hooks/post-edit.js` | PostToolUse (on_edit) | Syntax validation (exit 2) + STATE/telemetry tracking |
+| `scripts/hooks/compress-output.js` + `command-filters.js` | PostToolUse (Bash) | Command-aware + generic compression with `0600` spill |
+| `scripts/hooks/pre-compact.js` | PreCompact | Retry, error, and token-savings warnings |
+| `scripts/hooks/session-end.js` | Stop | Atomic `STATE.md` summary + `memory.session_summaries` |
+| `scripts/check_thresholds.py` | CLI / Cron / CI | Evaluate telemetry against `.agent/thresholds.json` |
+| `scripts/fleet_status.py` | CLI / Cron / UI | Multi-repo drift, verifiers, deps & telemetry aggregator |
 
 ---
 

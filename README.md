@@ -258,10 +258,14 @@ reglas de negocio) arma una capa encima que **especializa** piezas del framework
 archivo o agrega una sección al final, y declara para cada pieza propia cuál pieza genérica cubre. Un proyecto de esa organización instala
 la capa; cualquier otro, solo el framework. Las mejoras genéricas se hacen aquí primero y la capa las recibe al subir de versión.
 
-**Claude Code y Gemini CLI con las mismas skills.** El formato `SKILL.md` es el mismo en ambos: copia `skills/` a `.claude/skills/` (Claude
-Code) y a `.agents/skills/` (Gemini CLI, que también lee `.gemini/skills/`). Copia `agents/*.md` a `.claude/agents/` para usarlos como
-subagentes de Claude Code. Para que Gemini CLI lea `AGENTS.md` (por omisión solo lee `GEMINI.md`), copia
-`templates/.gemini/settings.json` a la raíz del proyecto. No hace falta ninguna extensión para compartir las skills.
+**Agnóstico de proveedor y de asistente de IA.** El núcleo (`AGENTS.md`, `rules/`, `skills/`, `verifiers/`, el CLI `ros` y el servidor MCP local) funciona con **cualquier asistente o proveedor de IA**: Claude Code, Gemini CLI, Antigravity, Codex, Cursor, Windsurf, Cline, Copilot CLI, OpenCode u otros. Para inicializar la configuración del host (y `.mcp.json`) sin pisar nada existente:
+
+```bash
+python -m agent init-host --host all --target /ruta/al/proyecto
+# o eligiendo uno: --host claude | gemini | antigravity | codex | cursor | copilot | opencode | generic
+```
+
+**Arquitectura Hub-and-Spoke.** En lugar de levantar Valkey + PostgreSQL + `resident-ui` en cada repositorio, puedes correr **un único Hub central** (`docker compose up -d`) y conectar todos tus proyectos mediante `ROS_PROJECT_ID` y el servidor MCP local (`python -m agent mcp`), manteniendo en cada repo únicamente la capa ligera de reglas, skills, verificadores y hooks.
 
 ---
 
@@ -300,7 +304,14 @@ Al terminar cada sesión:
 | Motor de heurísticas que no traga errores | valida operadores al cargar; las reglas guarda fallan cerradas | `agent/heuristic_engine.py` |
 | Contrato de spec real | id exacto + estado propio `APROBADO`; requisitos en EARS y convergencia contra la salida real de las pruebas | `agent/specs.py`, `commands/opsx-*.md`, `changes/TEMPLATE-spec.md` |
 | Decisiones tipadas | preguntas cerradas + probabilidad; el código decide con umbrales | `agent/decisions.py`, `.agent/decisions.json` |
-| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO`: PK uuid, auditoría, autorización de endpoints y webhooks fail-closed (FastAPI, Spring, NestJS, Express; rutas públicas declaradas en `.agent/public-routes.txt`), errores silenciados (Python, Java, Kotlin, TypeScript, JavaScript), versiones vigentes de plataformas (npm, Maven, Gradle, imágenes) y de cada dependencia directa, stubs, pruebas aisladas, volúmenes en `./data`, trazabilidad requisito ↔ prueba y observabilidad mínima (health check e id de correlación) | `verifiers/` |
+| Verificadores de restricciones | `CUMPLE / NO_CUMPLE / NO_EVALUADO`: PK uuid, auditoría, autorización de endpoints y webhooks fail-closed (FastAPI, Spring, NestJS, Express; rutas públicas declaradas en `.agent/public-routes.txt`), errores silenciados (Python, Java, Kotlin, TypeScript, JavaScript), versiones vigentes de plataformas (npm, Maven, Gradle, imágenes) y de cada dependencia directa, stubs, pruebas aisladas, volúmenes en `./data`, trazabilidad requisito ↔ prueba, observabilidad mínima (`observability_min`) y de producción (`observability_production`) | `verifiers/` |
+| Telemetría real y umbrales | logs JSON con redacción de secretos, stream `.agent/telemetry/events.jsonl` compartido entre `ResidentAgentLoop` y hooks, 4 señales (p95, error, costo, abstención) y alerta para cron/CI (`check_thresholds.py`) | `agent/telemetry.py`, `.agent/thresholds.json`, `scripts/check_thresholds.py` |
+| Panel Resident UI conectado | Next.js + SSE (`/api/health`, `/api/health/ready`, `/api/state`, `/api/memory?project=`, `/api/specs`, `/api/files`, `/api/fleet`, `/api/events`) leyendo datos reales de `.agent/`, Valkey y PostgreSQL sin datos simulados | `resident-ui/` |
+| Monitor de flota | agrega deriva del framework, verificadores, dependencias y telemetría/ahorro de hooks en múltiples repositorios (`data/fleet-status.json`) | `scripts/fleet_status.py` |
+| CLI unificado `ros` + multi-host | `ros doctor \| init-host \| verify \| thresholds \| fleet \| review-prepare \| relocate \| memory \| mcp` para cualquier asistente de IA | `agent/cli.py`, `pyproject.toml`, `templates/mcp/` |
+| Servidor MCP local | JSON-RPC stdio sin SDK externo (`ros_doctor`, `ros_verify`, `ros_review_prepare`, `ros_relocate_finding`, `ros_check_thresholds`, `ros_fleet_status`, `ros_memory_status`) con compresión y *spill* privado `0600` | `agent/mcp_server.py` |
+| Revisión determinista y reglas por ruta | selección exacta de cambios Git, exclusión de secretos/binarios, *smart bundling*, `.agent/path-rules.json` y reubicación de líneas contra el archivo real | `agent/review_prepare.py`, `.agent/path-rules.json` |
+| Filtros por comando en hooks | compacta ruido de `git`, `pytest`, `node --test`, `jest`/`vitest`, `mvn`/`gradle`, `npm`/`pip`/`docker` y `grep`/`rg` preservando errores y resúmenes | `scripts/hooks/command-filters.js`, `scripts/hooks/compress-output.js` |
 | Observabilidad desde el diseño | cada requisito con la señal que lo demuestra en producción; health check, id de correlación y logs estructurados | `rules/common/observability.md`, `changes/TEMPLATE-spec.md` |
 | Ritmo con agentes | ciclos cortos por tarea (planear, implementar y revisar en horas), MR pequeños y roles que se solapan | `skills/metodologia-entrega/`, `rules/common/delivery-process.md` |
 | Revisión adversaria y convergencia | subagente que parte de que algo falla, vuelve a correr la evidencia citada y busca mutantes sobrevivientes; ciclo implementar → revisión por una instancia nueva → verificar, que se detiene si el bloqueo se repite sin cambios | `agents/adversarial-reviewer.md`, `commands/adversarial.md`, `skills/delegacion-subagentes/` |

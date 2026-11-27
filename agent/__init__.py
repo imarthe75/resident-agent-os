@@ -15,6 +15,16 @@ from agent.heuristic_engine import HeuristicEngine
 from agent.loop import ResidentAgentLoop
 from agent.skill_base import Skill
 from agent.state_parser import read_state, write_state
+from agent.telemetry import (
+    JsonFormatter,
+    TelemetryWriter,
+    configure_structured_logging,
+    evaluate_thresholds,
+    load_thresholds,
+    read_events,
+    redact,
+    summarize_events,
+)
 
 __all__ = [
     "ResidentAgentError",
@@ -31,4 +41,12 @@ __all__ = [
     "Skill",
     "read_state",
     "write_state",
+    "JsonFormatter",
+    "TelemetryWriter",
+    "configure_structured_logging",
+    "evaluate_thresholds",
+    "load_thresholds",
+    "read_events",
+    "redact",
+    "summarize_events",
 ]

@@ -15,8 +15,11 @@ pip install -r requirements.txt
 ## Start Services
 
 ```bash
-# Boot Valkey (short-term cache) and PostgreSQL (long-term memory)
-docker compose up -d valkey postgres
+# Define POSTGRES_PASSWORD in .env first (no default password is shipped)
+echo 'POSTGRES_PASSWORD=change_me_local_only' > .env
+
+# Boot Valkey (short-term cache), PostgreSQL + pgvector (long-term memory), and Resident UI
+docker compose up -d agent-cache agent-db resident-ui
 
 # Verify services
 docker compose ps
@@ -24,9 +27,10 @@ docker compose ps
 
 ## Initialize Database Schema
 
+`docker-compose.yml` mounts `sql/agent_memory.sql` into `/docker-entrypoint-initdb.d/` so a fresh database initializes automatically. To re-apply idempotently at any time:
+
 ```bash
-# Apply the memory schema and HNSW vector indexes
-docker compose exec postgres psql -U admin -d db_resident_knowledge -f sql/agent_memory.sql
+docker compose exec -T agent-db psql -U admin -d db_resident_knowledge < sql/agent_memory.sql
 ```
 
 ## Basic Usage: The 10-Phase Loop
@@ -305,13 +309,36 @@ except SchemaValidationError as e:
 
 ## Hooks Integration
 
-The framework supports three lifecycle hooks in `hooks/hooks.json`:
+The framework ships five lifecycle hooks configured in `.claude/settings.json` and `hooks/hooks.json`:
 
-- **pre-compact.js** — Warns about retry attempts and token usage (advisory only)
-- **post-edit.js** — Validates Python/JavaScript syntax after file edits
-- **session-end.js** — Persists session summary to STATE.md and PostgreSQL
+- **codebase-map.js** (`SessionStart`) — Builds a compact directory/symbol map at session start
+- **post-edit.js** (`PostToolUse: Edit|Write|MultiEdit`) — Validates Python/JavaScript syntax (exit 2 on error), tracks retries in `STATE.md`, and logs telemetry
+- **compress-output.js** (`PostToolUse: Bash`) — Shrinks long Bash output while spilling originals privately (`0600`) and logs estimated tokens saved
+- **pre-compact.js** (`PreCompact`) — Warns about retries, recent errors, and high token estimates
+- **session-end.js** (`Stop`) — Appends session summary to `STATE.md`, emits `session_end` telemetry, and persists to `memory.session_summaries` when PostgreSQL is configured
 
-These are executed by the Claude Code harness automatically.
+All loop phases and hooks write the same JSONL schema to `.agent/telemetry/events.jsonl`. Use the unified provider-agnostic CLI (`ros` or `python -m agent`) from any terminal or AI host:
+
+```bash
+# Diagnose runtimes, Hub services, and detected AI hosts
+python3 -m agent doctor
+
+# Generate non-destructive config (.mcp.json + host files) for any AI assistant
+python3 -m agent init-host --host all --target /path/to/repo
+
+# Deterministic review prep (bundles + .agent/path-rules.json) and line relocation
+python3 -m agent review-prepare --from main --json
+python3 -m agent relocate --file app/main.py --line 42 --snippet "def handler():"
+
+# Verifiers, alert thresholds, multi-repo fleet, and Hub memory inspection
+python3 -m agent verify --path .
+python3 -m agent thresholds --agent-dir .agent
+python3 -m agent fleet --parent /path/to/repos --out data/fleet-status.json
+python3 -m agent memory --project my-project
+
+# Start the local stdio MCP server (compatible with Claude, Gemini, Antigravity, Codex, Cursor, Windsurf, Cline, Copilot, OpenCode)
+python3 -m agent mcp
+```
 
 ## Architecture Overview
 
@@ -366,20 +393,20 @@ These are executed by the Claude Code harness automatically.
 ### "PostgreSQL unavailable"
 ```bash
 docker compose ps
-# Should see: postgres — Up
-# If down, restart: docker compose restart postgres
+# Should see: agent-db — Up
+# If down, restart: docker compose restart agent-db
 ```
 
 ### "Valkey unavailable"
 ```bash
 docker compose ps
-# Should see: valkey — Up
-# If down, restart: docker compose restart valkey
+# Should see: agent-cache — Up
+# If down, restart: docker compose restart agent-cache
 ```
 
 ### "Schema not ready"
 ```bash
-docker compose exec postgres psql -U admin -d db_resident_knowledge -f sql/agent_memory.sql
+docker compose exec -T agent-db psql -U admin -d db_resident_knowledge < sql/agent_memory.sql
 ```
 
 ### "Skill exceeded ECC limit"

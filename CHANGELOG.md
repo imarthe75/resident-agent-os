@@ -2,6 +2,25 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.0 (2026-11-26) — Baseline Agentic OS / MCP / Framework
+Primera línea base consolidada `1.0.0` (parte de la serie previa `2.x` incorporando Agentic OS, servidor MCP agnóstico de proveedor, arquitectura Hub-and-Spoke, telemetría real e ideas de Chisle v3.13 y Alibaba Open Code Review):
+- **Plantilla CI de MR en GitLab** (`templates/ci/mr-review.gitlab-ci.yml`): `resource_group` por MR, `interruptible: true`, `ros review-prepare` y verificadores deterministas.
+- **Telemetría estructurada y umbrales del propio agente** (`agent/telemetry.py`, `.agent/thresholds.json`, `scripts/check_thresholds.py`):
+  `ResidentAgentLoop` emite logs JSON con `correlation_id` y redacción de secretos, y escribe eventos con latencia/costo/resultado en `.agent/telemetry/events.jsonl`. `check_thresholds.py` evalúa las 4 señales de producción y sale con código `1` al superar umbrales.
+- **Hooks unificados y persistencia honesta** (`scripts/hooks/telemetry-lib.js`, `post-edit.js`, `compress-output.js`, `pre-compact.js`, `session-end.js`, `sql/agent_memory.sql`):
+  todos los hooks escriben al mismo JSONL (incluyendo tokens ahorrados y errores de sintaxis en `STATE.md`), y `session-end.js` guarda resúmenes parametrizados en `memory.session_summaries` sin contaminar `memory.lessons`.
+- **`resident-ui/` conectado a datos reales**: endpoints `/api/health`, `/api/health/ready` (`503`), `/api/state`, `/api/memory` (sonda RESP real a Valkey y `psql` a PostgreSQL), `/api/specs` (`GET`/`PUT`), `/api/files`, `/api/fleet`, `/api/events` (SSE) y `src/middleware.ts` con `X-Request-Id`; cero datos simulados en `agentStore.ts`.
+- **Verificadores y pruebas de integración** (`verifiers/checks.py`, `tests/test_pgvector_integration.py`, `tests/hooks/hooks-lifecycle.test.js`):
+  `observability_min` soporta backends Next.js App Router, nuevo verificador `observability_production`, prueba de integración real contra PostgreSQL + pgvector (`ROS_TEST_PG_DSN`), y actualización de `RESIDENT_AGENT_OS_QUICKSTART.md` y `resident-ui/README.md`.
+- **Monitor de flota multi-repositorio** (`scripts/fleet_status.py` + vista `/fleet` en `resident-ui`):
+  agrega deriva (`distribute_framework`), verificadores, dependencias y telemetría/ahorro de hooks en un solo reporte JSON/CLI.
+- **CLI unificado `ros` y soporte multi-proveedor** (`agent/cli.py`, `agent/__main__.py`, `pyproject.toml`, `templates/mcp/mcp.json.example`):
+  `ros doctor | init-host | verify | thresholds | fleet | review-prepare | relocate | memory | mcp`. Funciona con Claude Code, Gemini CLI, Antigravity, Codex, Cursor, Windsurf, Cline, Copilot CLI, OpenCode y cualquier cliente MCP.
+- **Servidor MCP local agnóstico** (`agent/mcp_server.py`): JSON-RPC 2.0 sobre stdio (7 herramientas) con acotado de salidas largas y *spill* privado `0600`.
+- **Arquitectura Hub-and-Spoke (`project_id`)**: aislamiento por proyecto en `sql/agent_memory.sql`, `LongTermMemory`, telemetría, hooks y `resident-ui` (`/api/memory?project=`, migrado a `src/proxy.ts`).
+- **Revisión determinista + filtros conscientes del comando** (`agent/review_prepare.py`, `.agent/path-rules.json`, `scripts/hooks/command-filters.js`, `agents/code-reviewer.md`):
+  selección exacta de diffs sin secretos/binarios, *smart bundling*, reglas por ruta, reubicación de líneas (`relocate_finding`), presupuestos duros de tokens y racha de fallos en `ResidentAgentLoop`, listas «Qué NO reportar», y filtros de salida para `git`, `pytest`, `node --test`, `jest`/`vitest`, `mvn`/`gradle`, `npm`/`pip`/`docker` y `grep`/`rg`.
+
 ## 2.20.0
 Ideas tomadas del repositorio público `jev-demo` de LIDR; el texto es propio.
 - **El modelo responde, el código decide** (`rules/common/ai-features.md`): preguntas cerradas con probabilidad, umbrales versionados y

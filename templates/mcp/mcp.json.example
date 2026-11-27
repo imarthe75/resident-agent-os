@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "resident-agent-os": {
+      "command": "python3",
+      "args": ["-m", "agent", "mcp"],
+      "env": {
+        "PYTHONPATH": "/path/to/resident-agent-os",
+        "ROS_PROJECT_ID": "my-project",
+        "VALKEY_HOST": "127.0.0.1",
+        "POSTGRES_HOST": "127.0.0.1"
+      }
+    }
+  }
+}

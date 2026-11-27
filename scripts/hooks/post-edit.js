@@ -1,26 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * Post-edit hook: validate syntax of edited Python/JavaScript files.
+ * Post-edit hook: validate syntax of edited Python/JavaScript files and emit structured telemetry.
  * Exits 0 on success and 2 on a syntax error: Claude Code treats exit code 2 from a PostToolUse hook as a blocking error and feeds stderr
- * back to the model (exit 1 is only a non-blocking warning, so the old exit 1 never stopped anything).
+ * back to the model.
  */
 
 const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const telemetry = require("./telemetry-lib");
 
 function getFilePath() {
-  // Priority 1: Claude Code environment variable
   if (process.env.CLAUDE_TOOL_FILE) {
     return process.env.CLAUDE_TOOL_FILE;
   }
 
-  // Priority 2: stdin JSON
   try {
-    let stdinData = "";
     if (!process.stdin.isTTY) {
-      stdinData = fs.readFileSync(0, "utf-8");
+      const stdinData = fs.readFileSync(0, "utf-8");
       const json = JSON.parse(stdinData);
       if (json.tool_input && json.tool_input.path) {
         return json.tool_input.path;
@@ -30,10 +28,12 @@ function getFilePath() {
       }
     }
   } catch (e) {
-    // Ignore JSON parse errors, fall through to argv
+    // Explicit fallback: non-JSON or empty stdin falls through to CLI argv.
+    if (process.env.ROS_HOOK_DEBUG === "1") {
+      process.stderr.write(`[post-edit] stdin parse skipped: ${e.message}\n`);
+    }
   }
 
-  // Priority 3: command-line argument
   if (process.argv[2]) {
     return process.argv[2];
   }
@@ -65,26 +65,69 @@ function checkSyntax(filePath) {
     if (ext === ".py") {
       if (!runPython(["-c", PY_CHECK, filePath])) {
         console.warn(`[post-edit] ⚠️  ${filePath} — no Python interpreter found, syntax not checked`);
-        return true;
+        return { ok: true, checked: false, error: null };
       }
       console.log(`[post-edit] ✅ ${filePath} — syntax OK`);
-      return true;
+      return { ok: true, checked: true, error: null };
     } else if ([".js", ".mjs", ".cjs"].includes(ext)) {
-      execFileSync("node", ["--check", filePath], { stdio: "pipe" });
+      execFileSync(process.execPath, ["--check", filePath], { stdio: "pipe" });
       console.log(`[post-edit] ✅ ${filePath} — syntax OK`);
-      return true;
+      return { ok: true, checked: true, error: null };
     } else {
       console.log(`[post-edit] ℹ️  ${filePath} — no syntax check for this extension`);
-      return true;
+      return { ok: true, checked: false, error: null };
     }
   } catch (e) {
+    const errText = e.stderr ? e.stderr.toString() : e.message;
     console.error(`[post-edit] ❌ SYNTAX ERROR in ${filePath}:`);
-    console.error(e.stderr ? e.stderr.toString() : e.message);
-    return false;
+    console.error(errText);
+    return { ok: false, checked: true, error: errText.slice(0, 500) };
   }
 }
 
+function recordEditOutcome(filePath, result, durationMs) {
+  const agentDir = telemetry.resolveAgentDir();
+  if (!fs.existsSync(agentDir) && !process.env.ROS_TELEMETRY_PATH) {
+    return;
+  }
+  const explicitTarget = Boolean(process.env.AGENT_DIR || process.env.ROS_TELEMETRY_PATH);
+  const projectRoot = path.dirname(agentDir);
+  const resolvedFile = path.resolve(filePath);
+  if (!explicitTarget && !resolvedFile.startsWith(projectRoot + path.sep)) {
+    return;
+  }
+  let retries = 0;
+  if (!result.ok && fs.existsSync(agentDir)) {
+    const state = telemetry.ensureSessionState(agentDir);
+    const key = path.basename(filePath);
+    state.retry_counts = state.retry_counts || {};
+    state.retry_counts[key] = (state.retry_counts[key] || 0) + 1;
+    retries = state.retry_counts[key];
+    state.current_skill = key;
+    state.errors = Array.isArray(state.errors) ? state.errors : [];
+    state.errors.push({
+      skill: key,
+      error: result.error || "syntax error",
+      phase: "post_edit",
+      timestamp: new Date().toISOString(),
+    });
+    state.updated_at = new Date().toISOString();
+    telemetry.writeStateAtomic(agentDir, state);
+  }
+  telemetry.appendEvent(agentDir, {
+    event: "post_edit",
+    phase: "post_edit",
+    skill: path.basename(filePath),
+    outcome: result.ok ? "ok" : "syntax_error",
+    level: result.ok ? "INFO" : "ERROR",
+    duration_ms: durationMs,
+    retries,
+    detail: { file: filePath, checked: result.checked, error: result.error || undefined },
+  });
+}
+
 function main() {
+  const t0 = Date.now();
   const filePath = getFilePath();
 
   if (!filePath) {
@@ -97,8 +140,9 @@ function main() {
     process.exit(0);
   }
 
-  const success = checkSyntax(filePath);
-  process.exit(success ? 0 : 2);
+  const result = checkSyntax(filePath);
+  recordEditOutcome(filePath, result, Date.now() - t0);
+  process.exit(result.ok ? 0 : 2);
 }
 
 main();

@@ -1,0 +1,25 @@
+# Plantilla genérica de GitLab CI para revisión determinista + verificadores de Resident Agent OS.
+# Inspirada en alibaba/open-code-review (resource_group por MR + interruptible) — sin credenciales ni endpoints externos.
+# Copia o incluye este archivo en `.gitlab-ci.yml` de tu proyecto.
+
+stages:
+  - verify
+
+ros-mr-verify:
+  stage: verify
+  image: python:3.12-slim
+  interruptible: true
+  resource_group: mr-review-$CI_MERGE_REQUEST_IID
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  before_script:
+    - pip install --no-cache-dir pyyaml pydantic python-dotenv
+  script:
+    - python -m agent review-prepare --from "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" --to "${CI_COMMIT_SHA}" --json > mr-review-plan.json
+    - python verifiers/run.py --only pk_uuid,audit_triggers,endpoints_auth,no_stubs,tests_isolated,no_silent_except,webhooks_fail_closed,spec_traceability,observability_min,observability_production
+    - python -m agent thresholds --agent-dir .agent || true
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - mr-review-plan.json

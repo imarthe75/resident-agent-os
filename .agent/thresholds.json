@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "description": "Umbrales escritos de alerta para las 4 señales de producción del Agente Residente (rules/common/observability.md §8-§9). Ajustar con datos medidos del proyecto; si una señal se omite aquí se reporta como NO_MONITOREADA.",
+  "signals": {
+    "latency_p95_ms": 5000,
+    "error_rate": 0.15,
+    "cost_per_run_usd": 0.25,
+    "abstention_rate": 0.3
+  }
+}

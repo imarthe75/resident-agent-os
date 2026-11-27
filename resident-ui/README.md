@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resident UI — Panel de Observabilidad y Control
 
-## Getting Started
+Interfaz Next.js 16 + Electron (opcional) conectada **únicamente a datos reales** del Agente Residente: `.agent/STATE.md`, `.agent/SPECS.md`, `.agent/heuristics.json`, `.agent/thresholds.json`, `.agent/telemetry/events.jsonl`, `data/fleet-status.json`, Valkey (`agent-cache`) y PostgreSQL + pgvector (`agent-db`).
 
-First, run the development server:
+Cuando un servicio externo está apagado o una variable no está configurada, el panel lo declara explícitamente como `DESCONECTADO` o `SIN_DATOS` — nunca muestra métricas simuladas.
+
+## Endpoints de backend (`/api/*`)
+
+| Ruta | Método | Propósito |
+| :--- | :---: | :--- |
+| `/api/health` | `GET` | Liveness probe (sin dependencias externas, siempre rápido). |
+| `/api/health/ready` | `GET` | Readiness probe: verifica `.agent/`, `PING` TCP/RESP a Valkey y conexión a PostgreSQL (`503` si `.agent/` no es legible o `?strict=1` y alguna dependencia cayó). |
+| `/api/state` | `GET` | Estado de máquina (`STATE.md`), specs (`SPECS.md`), reglas (`heuristics.json`), perfil (`PROFILE.json`), telemetría, 4 señales de producción y evaluación contra `thresholds.json`. |
+| `/api/memory` | `GET` | Claves reales de Valkey (`SCAN`) y registros de `memory.agent_memory` y `memory.session_summaries` en PostgreSQL (soporta `?project=<id>` para modo Hub-and-Spoke). |
+| `/api/specs` | `GET` / `PUT` | Lectura y guardado atómico de `.agent/SPECS.md`. |
+| `/api/files` | `GET` | Explorador de solo lectura acotado a `.agent/`, `rules/`, `changes/` y `DECISIONS/`. |
+| `/api/fleet` | `GET` | Reporte multi-repositorio generado por `scripts/fleet_status.py` (`ros fleet`). |
+| `/api/events` | `GET` | Stream SSE (`text/event-stream`) en vivo de `.agent/telemetry/events.jsonl`. |
+
+Todas las rutas `/api/*` propagan o generan `X-Request-Id` vía `src/proxy.ts` (convención Next.js 16) y emiten logs estructurados JSON (excluyendo el probe `/api/health`).
+
+## Variables de entorno
+
+| Variable | Valor por omisión | Uso |
+| :--- | :--- | :--- |
+| `AGENT_DIR` | `../.agent` (o `/app/.agent` en Docker) | Directorio de estado, specs, umbrales y telemetría |
+| `DATA_DIR` | `../data` (o `/app/data` en Docker) | Directorio donde vive `fleet-status.json` |
+| `WORKSPACE_ROOT` | `..` (o `/workspace` en Docker) | Raíz para el explorador de `rules/`, `changes/`, `DECISIONS/` |
+| `VALKEY_HOST` / `VALKEY_PORT` | `127.0.0.1` / `6379` | Sonda RESP y listado de claves |
+| `POSTGRES_HOST` / `POSTGRES_PORT` | `127.0.0.1` / `5432` | Sonda TCP y consulta `psql` a `memory.*` |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `db_resident_knowledge` / `admin` / *(vacío)* | Credenciales de lectura para `/api/memory` |
+
+## Arranque
+
+Con Docker Compose desde la raíz de `resident-agent-os`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d --build agent-cache agent-db resident-ui
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+En local (sin Docker):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run dev
+# http://localhost:3000
+```

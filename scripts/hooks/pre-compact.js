@@ -1,52 +1,57 @@
 #!/usr/bin/env node
 
 /**
- * Pre-compact hook: advisory warnings about context state.
+ * Pre-compact hook: advisory warnings about context state and hook/loop telemetry.
  * Always exits 0 (never blocks the harness).
  */
 
-const fs = require("fs");
-const path = require("path");
+const telemetry = require("./telemetry-lib");
 
-const AGENT_DIR = process.env.AGENT_DIR || ".agent";
-const STATE_PATH = path.join(AGENT_DIR, "STATE.md");
-const TOKEN_WARN_THRESHOLD = parseInt(process.env.TOKEN_WARN_THRESHOLD || "40000");
-
-function readState() {
-  if (!fs.existsSync(STATE_PATH)) {
-    return null;
-  }
-
-  try {
-    const content = fs.readFileSync(STATE_PATH, "utf-8");
-    const match = content.match(/```json\s*([\s\S]*?)\s*```/);
-    if (match) {
-      return JSON.parse(match[1]);
-    }
-  } catch (e) {
-    console.warn(`[pre-compact] Failed to read STATE.md: ${e.message}`);
-  }
-  return null;
-}
+const TOKEN_WARN_THRESHOLD = parseInt(process.env.TOKEN_WARN_THRESHOLD || "40000", 10);
 
 function main() {
-  const state = readState();
-  if (!state) {
-    process.exit(0);
+  const agentDir = telemetry.resolveAgentDir();
+  const state = telemetry.readState(agentDir);
+  const events = telemetry.readEvents(agentDir, 200);
+  const summary = telemetry.summarizeEvents(events);
+
+  if (state) {
+    const currentSkill = state.current_skill;
+    if (currentSkill && state.retry_counts && state.retry_counts[currentSkill] > 0) {
+      console.warn(
+        `[pre-compact] ⚠️  Skill '${currentSkill}' has ${state.retry_counts[currentSkill]} retry(ies).`
+      );
+    }
+
+    if (state.context_token_estimate >= TOKEN_WARN_THRESHOLD) {
+      console.warn(
+        `[pre-compact] ⚠️  Context token estimate (${state.context_token_estimate}) is high.`
+      );
+    }
   }
 
-  const currentSkill = state.current_skill;
-  if (currentSkill && state.retry_counts && state.retry_counts[currentSkill] > 0) {
+  if (summary.syntax_errors > 0 || summary.errors > 0) {
     console.warn(
-      `[pre-compact] ⚠️  Skill '${currentSkill}' has ${state.retry_counts[currentSkill]} retry(ies).`
+      `[pre-compact] ⚠️  Recent telemetry shows ${summary.errors} error(s) (${summary.syntax_errors} syntax) across ${summary.total_events} event(s).`
     );
   }
 
-  if (state.context_token_estimate >= TOKEN_WARN_THRESHOLD) {
-    console.warn(
-      `[pre-compact] ⚠️  Context token estimate (${state.context_token_estimate}) is high.`
+  if (summary.chars_saved > 0) {
+    console.log(
+      `[pre-compact] ℹ️  Output compression saved ${summary.chars_saved} chars (~${summary.tokens_saved_est} tokens) in recent session telemetry.`
     );
   }
+
+  telemetry.appendEvent(agentDir, {
+    event: "pre_compact",
+    phase: "pre_compact",
+    outcome: summary.errors > 0 ? "degraded" : "ok",
+    detail: {
+      recent_events: summary.total_events,
+      recent_errors: summary.errors,
+      tokens_saved_est: summary.tokens_saved_est,
+    },
+  });
 
   process.exit(0);
 }

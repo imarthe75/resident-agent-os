@@ -522,46 +522,97 @@ def spec_traceability(root: Path) -> Result:
                   [f"{m}: ninguna prueba cita este requisito" for m in missing], len(reqs))
 
 
-# ----------------------------------------------------------------------------- observability_min
+# ----------------------------------------------------------------------------- observability_min & observability_production
 _OBS_KINDS = {
     "spring": {"build": ("pom.xml", "build.gradle", "build.gradle.kts"), "marker": r"spring-boot",
                "files": (".java", ".kt", ".xml", ".gradle", ".kts", ".properties", ".yml", ".yaml"),
                "health": r"spring-boot-starter-actuator|Mapping\(\s*(?:value\s*=\s*)?[\"'][^\"']*health",
+               "readiness": r"management\.endpoint\.health\.probes\.enabled|livenessState|readinessState|/health/ready|/readyz?|/readiness",
+               "structured_log": r"logging\.structured\.format|logstash-logback-encoder|JsonLayout|net\.logstash\.logback",
+               "status_503": r"SERVICE_UNAVAILABLE|503",
                "correlation": r"micrometer-tracing|spring-cloud-sleuth|opentelemetry|MDC\.put\s*\(|X-Request-Id|X-Correlation-Id|traceparent"},
     "fastapi": {"build": (), "marker": r"FastAPI\(", "files": (".py", ".toml", ".txt", ".cfg"),
                 "health": r"[\"']/[\w/-]*(health|healthz|ready|readiness|live|liveness)[\"']",
+                "readiness": r"[\"']/[\w/-]*(ready|readiness|readyz)[\"']|[\"']/[\w/-]*(live|liveness|livez)[\"']",
+                "structured_log": r"structlog|pythonjsonlogger|python-json-logger|JsonFormatter|json\.dumps",
+                "status_503": r"HTTP_503_SERVICE_UNAVAILABLE|status_code\s*=\s*503|\b503\b",
                 "correlation": r"opentelemetry|X-Request-Id|X-Correlation-Id|request_id_ctx|correlation_id|asgi-correlation-id|traceparent"},
     "node": {"build": ("package.json",), "marker": r"\"(express|@nestjs/core|fastify)\"", "files": (".ts", ".js", ".mjs", ".json"),
              "health": r"[\"'`]/[\w/-]*(health|healthz|ready|readiness|live|liveness)[\"'`]|@nestjs/terminus",
+             "readiness": r"[\"'`]/[\w/-]*(ready|readiness|readyz)[\"'`]|@nestjs/terminus",
+             "structured_log": r"\bpino\b|winston|bunyan|JSON\.stringify\s*\(",
+             "status_503": r"status\(\s*503\s*\)|status:\s*503|SERVICE_UNAVAILABLE",
              "correlation": r"opentelemetry|x-request-id|x-correlation-id|AsyncLocalStorage|cls-rtracer|genReqId|nestjs-cls|traceparent"},
+    "nextjs-api": {"build": ("package.json",), "marker": r"\"next\"", "files": (".ts", ".tsx", ".js", ".mjs", ".json"),
+                   "requires_api_dir": True,
+                   "health": r"api/health/route\.(ts|js)|[\"'`]/api/(health|healthz|ready|live)[\"'`]",
+                   "readiness": r"api/health/ready/route\.(ts|js)|[\"'`]/api/health/ready[\"'`]|[\"'`]/api/ready[\"'`]",
+                   "structured_log": r"\bpino\b|JSON\.stringify\s*\(",
+                   "status_503": r"status:\s*503|\b503\b",
+                   "correlation": r"opentelemetry|x-request-id|x-correlation-id|traceparent"},
 }
 
 
-def observability_min(root: Path) -> Result:
-    """STATIC: a backend (Spring Boot, FastAPI, Express/NestJS/Fastify) exposes a health check (Actuator or a /health, /ready, /live route)
-    and carries a correlation id through its logs (Micrometer Tracing, OpenTelemetry, MDC, X-Request-Id/X-Correlation-Id/traceparent).
-    Without them a failure in production cannot be told apart from a stopped service, nor one request followed across services
-    (rules/common/observability.md). Structured (JSON) logs are a rule, not checked here. Frontends are not evaluated."""
-    found, bad = [], []
+def _detected_obs_backends(root: Path):
+    """Yield (kind, spec, combined_text, rel_paths_str) for each detected backend in `root`."""
     for kind, spec in _OBS_KINDS.items():
         if spec["build"]:
-            present = any(re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace")) for f in _files(root, spec["build"])
-                          if f.name in spec["build"])
+            present = any(
+                re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace"))
+                for f in _files(root, spec["build"])
+                if f.name in spec["build"]
+            )
         else:
-            present = any(re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace")) for f in _files(root, (".py",))
-                          if not _is_test(str(f.relative_to(root))))
+            present = any(
+                re.search(spec["marker"], f.read_text(encoding="utf-8", errors="replace"))
+                for f in _files(root, (".py",))
+                if not _is_test(str(f.relative_to(root)))
+            )
         if not present:
             continue
+        files = [f for f in _files(root, spec["files"]) if f.is_file() and not _is_test(str(f.relative_to(root)))]
+        rels = [f.relative_to(root).as_posix() for f in files]
+        if spec.get("requires_api_dir") and not any("/api/" in r or r.startswith("api/") for r in rels):
+            continue
+        text = "\n".join(rels) + "\n" + "\n".join(f.read_text(encoding="utf-8", errors="replace") for f in files)
+        yield kind, spec, text
+
+
+def observability_min(root: Path) -> Result:
+    """STATIC: a backend (Spring Boot, FastAPI, Express/NestJS/Fastify, or Next.js with /api routes) exposes a health check
+    and carries a correlation id through its logs (rules/common/observability.md §1-§2). Pure frontends are not evaluated."""
+    found, bad = [], []
+    for kind, spec, text in _detected_obs_backends(root):
         found.append(kind)
-        text = "\n".join(f.read_text(encoding="utf-8", errors="replace") for f in _files(root, spec["files"])
-                         if f.is_file() and not _is_test(str(f.relative_to(root))))
         if not re.search(spec["health"], text, re.IGNORECASE):
             bad.append(f"{kind}: sin health check (Actuator o una ruta /health, /ready o /live)")
         if not re.search(spec["correlation"], text, re.IGNORECASE):
             bad.append(f"{kind}: sin id de correlación en los logs (Micrometer Tracing, OpenTelemetry, MDC o X-Request-Id)")
     if not found:
-        return Result("observability_min", NO_EVALUADO, "static", ["no se encontró un backend Spring Boot, FastAPI, Express, NestJS ni Fastify"], 0)
+        return Result("observability_min", NO_EVALUADO, "static", ["no se encontró un backend Spring Boot, FastAPI, Express, NestJS, Fastify ni Next.js API"], 0)
     return Result("observability_min", NO_CUMPLE if bad else CUMPLE, "static", bad, len(found))
+
+
+def observability_production(root: Path) -> Result:
+    """STATIC: production observability checks from rules/common/observability.md §1, §3, §9:
+    separated readiness probe, structured JSON logs, explicit 503 on down dependencies, and written alert thresholds."""
+    found, bad = [], []
+    has_thresholds = (root / ".agent" / "thresholds.json").is_file() or any(
+        "threshold" in f.name.lower() for f in _files(root, (".json", ".yml", ".yaml"))
+    )
+    for kind, spec, text in _detected_obs_backends(root):
+        found.append(kind)
+        if not re.search(spec["readiness"], text, re.IGNORECASE):
+            bad.append(f"{kind}: sin sonda de preparación separada (/health/ready, /ready o probes de Actuator)")
+        if not re.search(spec["structured_log"], text, re.IGNORECASE):
+            bad.append(f"{kind}: sin logs estructurados JSON (structlog, JsonFormatter, pino o logging.structured.format)")
+        if not re.search(spec["status_503"], text, re.IGNORECASE):
+            bad.append(f"{kind}: sin respuesta HTTP 503 para dependencias caídas")
+    if not found:
+        return Result("observability_production", NO_EVALUADO, "static", ["no se encontró un backend evaluable"], 0)
+    if not has_thresholds:
+        bad.append("sin archivo de umbrales escritos (.agent/thresholds.json o equivalente; rules/common/observability.md §9)")
+    return Result("observability_production", NO_CUMPLE if bad else CUMPLE, "static", bad, len(found))
 
 
 # ----------------------------------------------------------------------------- dependencies_current
@@ -598,4 +649,5 @@ REGISTRY: Dict[str, Callable[..., Result]] = {"pk_uuid": pk_uuid, "compose_volum
                                               "no_stubs": no_stubs, "tests_isolated": tests_isolated, "no_silent_except": no_silent_except,
                                               "webhooks_fail_closed": webhooks_fail_closed,
                                               "spec_traceability": spec_traceability,
-                                              "observability_min": observability_min}
+                                              "observability_min": observability_min,
+                                              "observability_production": observability_production}

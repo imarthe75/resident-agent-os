@@ -47,8 +47,22 @@ services:
       - /app/node_modules
       - ./.agent:/app/.agent
       - ./data:/app/data
+      - ./rules:/workspace/rules:ro
+      - ./changes:/workspace/changes:ro
+      - ./DECISIONS:/workspace/DECISIONS:ro
     environment:
       - NODE_ENV=development
+      - AGENT_DIR=/app/.agent
+      - DATA_DIR=/app/data
+      - WORKSPACE_ROOT=/workspace
+      - VALKEY_HOST=agent-cache
+      - VALKEY_PORT=6379
+      - POSTGRES_HOST=agent-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_DB=${POSTGRES_DB:-db_resident_knowledge}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
     depends_on:
       - agent-cache
+      - agent-db
     restart: unless-stopped

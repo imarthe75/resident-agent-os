@@ -19,8 +19,12 @@ después y reemplaza a las piezas genéricas que sustituye. A mano:
 2. Copia `skills/estandares-desarrollo/templates/AGENTS.md` y `CLAUDE.md` a la raíz del repositorio y llena la sección «Proyecto»: qué es,
    stack y versiones, cómo se levanta y se prueba, servicios externos (sin credenciales).
 3. Si el proyecto ya tenía `AGENTS.md`/`CLAUDE.md`, conserva lo propio y añade las secciones del framework; gana la regla más estricta.
-4. Para Claude Code, copia `agents/*.md` a `.claude/agents/` (subagentes) y `commands/*.md` a `.claude/commands/` (comandos `/team`,
-   `/review`, `/audit`, `/debug`, `/opsx-*`). Para Gemini CLI, copia `templates/.gemini/settings.json` a la raíz y las skills a `.agents/skills/`.
+4. Conecta el framework al asistente de IA que use tu equipo (Claude Code, Gemini CLI, Antigravity, Codex, Cursor, Windsurf, Cline, Copilot CLI, OpenCode u otro cliente MCP) sin sobrescribir archivos existentes:
+   ```bash
+   python3 -m agent init-host --host all --target /ruta/al/repo
+   python3 -m agent doctor --path /ruta/al/repo
+   ```
+   Para Claude Code además copia `agents/*.md` a `.claude/agents/` y `commands/*.md` a `.claude/commands/`; para Gemini CLI / Antigravity / Codex copia `skills/` a `.agents/skills/`. Si operan varios proyectos, levanta **un único Hub central** (`docker compose up -d`) y conecta cada repositorio con `ROS_PROJECT_ID` y el servidor MCP `.mcp.json`.
 5. Haz commit en una rama y fusiónalo por Merge Request revisado, como cualquier cambio.
 
 Para comprobarlo, pregúntale al agente: «¿qué reglas obligatorias tienes para este proyecto?». Debe responder con las de `AGENTS.md`.
