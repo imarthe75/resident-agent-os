@@ -312,11 +312,20 @@ def versions_current(root: Path, resolved=None) -> Result:
             elif base == "postgres":
                 cmp_major("postgres (imagen)", rel, tag, "postgresql")
             elif base == "pgvector":
-                m = re.match(r"pg(\d+)", tag)
+                m = re.search(r"(?:^|-)pg(\d+)", tag)
                 if m:
                     cmp_major("pgvector (imagen)", rel, m.group(1), "postgresql")
             elif base == "valkey":
-                cmp_major("valkey (imagen)", rel, tag, "valkey")
+                info = cur.get("valkey") or {}
+                fm = _mm(tag)
+                if not fm:
+                    continue
+                if not info.get("version"):
+                    unresolved.add("valkey")
+                else:
+                    checked += 1
+                    if fm < _mm(info["version"]):
+                        bad.append(f"{rel}: valkey (imagen) {tag} (vigente: {info['version']}, canal {info.get('channel')})")
 
     detail = list(bad)
     if unresolved:

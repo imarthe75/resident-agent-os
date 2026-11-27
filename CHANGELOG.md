@@ -2,6 +2,10 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.5 (2026-11-27)
+- **Detección más precisa de imágenes en `verifiers/checks.py` (`versions_current`):** `valkey` ahora compara `(mayor, menor)` (detecta atrasos como `valkey:9.1` frente a `9.2.1`) y `pgvector` reconoce también etiquetas con prefijo de versión de extensión (`0.8.0-pg18`, `0.8.7-pg18-bookworm`), con pruebas unitarias en `tests/test_latest_versions.py`.
+- **Guía de instalación en proyectos existentes (`INSTALAR.md`):** mantiene la regla de no romper volúmenes sin aprobación, pero exige destacar al cierre cualquier plataforma o imagen atrasada (`postgres`/`pgvector`, `valkey`, `node`, `java`) y ofrecer explícitamente su migración controlada (con respaldo previo si ya hay datos).
+
 ## 1.0.4 (2026-11-27)
 - **Infraestructura al día (`docker-compose.yml`, `commands/new-project.md`):** actualización a `pgvector/pgvector:pg19` (PostgreSQL 19.0 + `uuidv7()` nativo + pgvector 0.8.7) y `valkey/valkey:9.2`, verificada contra `sql/agent_memory.sql` (idempotente) y `tests/test_pgvector_integration.py`. Quienes migren un volumen previo `./data/postgres` de PostgreSQL 18 requieren respaldo y restauración (`pg_dump`/`pg_restore`).
 - **Compatibilidad transitiva por política en `scripts/outdated_dependencies.py`:** al analizar `package.json`, consulta los pares `channel: compatible` de `.agent/versions-policy.json` (p. ej. `typescript` con `typescript-eslint`) cuando el paquete restrictivo aparece en el `package-lock.json` hermano (como dependencia transitiva de `eslint-config-next`), evitando falsos positivos en `verifiers/run.py --only dependencies_current` hasta que el ecosistema amplíe su soporte.

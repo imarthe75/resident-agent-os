@@ -264,6 +264,43 @@ class TestVerifier(unittest.TestCase):
         self.assertEqual(self.run_v({"README.md": "x"}).status, c.NO_EVALUADO)
         self.assertEqual(self.run_v({"Dockerfile": "FROM scratch\nFROM ${BASE}\n"}).status, c.NO_EVALUADO)
 
+    def test_valkey_minor_and_prefixed_pgvector_tags_are_flagged(self):
+        cur_19 = {
+            **CUR,
+            "postgresql": {"version": "19.0", "channel": "latest"},
+            "valkey": {"version": "9.2.1", "channel": "latest"},
+        }
+        r = self.run_v(
+            {
+                "docker-compose.yml": (
+                    "services:\n"
+                    "  db:\n"
+                    "    image: pgvector/pgvector:0.8.0-pg18-bookworm\n"
+                    "  cache:\n"
+                    "    image: valkey/valkey:9.1\n"
+                )
+            },
+            cur_19,
+        )
+        self.assertEqual(r.status, c.NO_CUMPLE)
+        text = "\n".join(r.detail)
+        self.assertIn("pgvector (imagen) 18", text)
+        self.assertIn("valkey (imagen) 9.1", text)
+
+        ok = self.run_v(
+            {
+                "docker-compose.yml": (
+                    "services:\n"
+                    "  db:\n"
+                    "    image: pgvector/pgvector:0.8.7-pg19\n"
+                    "  cache:\n"
+                    "    image: valkey/valkey:9.2\n"
+                )
+            },
+            cur_19,
+        )
+        self.assertEqual((ok.status, ok.detail), (c.CUMPLE, []))
+
     def test_registered(self):
         self.assertIn("versions_current", c.REGISTRY)
 

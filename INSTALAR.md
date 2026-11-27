@@ -46,7 +46,9 @@ Sigue estos pasos en orden. **No hagas commit, push ni instales dependencias**: 
 9. **Rutas públicas:** si el proyecto tiene rutas públicas a propósito (inicio de sesión, registro), propón el contenido de
    `.agent/public-routes.txt` con el motivo de cada una para que la persona lo confirme.
 10. **Reporte final:** lo copiado, conflictos y cómo se propone resolverlos, preguntas abiertas de la sección «Proyecto», dependencias
-    atrasadas, salida de los verificadores y lo que falta para fusionar.
+    atrasadas, salida de los verificadores y lo que falta para fusionar. Si `versions_current` reporta plataformas o imágenes atrasadas
+    (p. ej. `postgres`/`pgvector`, `valkey`, `node`, `java`), **destácalas al cierre y ofrece explícitamente aplicar la actualización**
+    (con respaldo previo `pg_dump` si ya existe un volumen de datos) en cuanto la persona lo confirme.
 
 Privacidad: no envíes nada del proyecto a servicios externos durante la instalación (`rules/common/privacidad-y-herramientas.md`). Las
 consultas de versiones solo envían nombres de paquetes públicos a sus registros oficiales.
