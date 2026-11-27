@@ -62,6 +62,7 @@
 | `scripts/hooks/pre-compact.js` | PreCompact | Retry, error, and token-savings warnings |
 | `scripts/hooks/session-end.js` | Stop | Atomic `STATE.md` summary + `memory.session_summaries` |
 | `scripts/hooks/statusline.sh` | Shell / StatusLine | Compact terminal statusline (project, host, phase, saved tokens, error rate, cost) |
+| `scripts/sandboxed_tests.py` | CLI / CI (Win/Mac/Linux) | Cross-platform isolated test runner via Docker (`--network none --read-only`) |
 | `scripts/benchmark_filters.py` | CLI / CI | Deterministic token-savings benchmark verifying 0% error marker loss |
 | `scripts/check_thresholds.py` | CLI / Cron / CI | Evaluate telemetry against `.agent/thresholds.json` |
 | `scripts/fleet_status.py` | CLI / Cron / UI | Multi-repo drift, verifiers, deps & telemetry aggregator |

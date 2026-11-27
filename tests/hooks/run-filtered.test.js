@@ -18,7 +18,9 @@ test("only rewrites when opted in or in bypassPermissions", () => {
   assert.match(decideRewrite(bash("npm test", { permission_mode: "bypassPermissions" }), env, "linux").rewrite, /run-filtered\.js' -- bash -c 'npm test'/);
   assert.ok(decideRewrite(bash("pytest -q"), { ...env, ROS_FILTER_FAILED: "1" }, "linux").rewrite);
   assert.equal(decideRewrite(bash("pytest -q", { permission_mode: "bypassPermissions" }), { ...env, ROS_FILTER_FAILED: "0" }, "linux").rewrite, null);
-  assert.equal(decideRewrite(bash("pytest -q"), { ...env, ROS_FILTER_FAILED: "1" }, "win32").rewrite, null);
+  const winRewrite = decideRewrite(bash("pytest -q"), { ...env, ROS_FILTER_FAILED: "1" }, "win32");
+  assert.ok(winRewrite.rewrite);
+  assert.match(winRewrite.rewrite, /run-filtered\.js" --b64 [A-Za-z0-9+/=]+$/);
 });
 
 test("leaves complex commands, other programs and permission-ruled programs alone", () => {
@@ -45,4 +47,12 @@ test("runner keeps the exit code and the failure while dropping passing noise", 
   assert.match(r.stdout, /AssertionError/);
   assert.match(r.stdout, /1 failed, 40 passed/);
   assert.doesNotMatch(r.stdout, /test_ok_20 PASSED/);
+
+  // Same filtering behavior through the cross-platform --b64 runner used on win32
+  const b64 = Buffer.from(`pytest -v >/dev/null 2>&1 || true; ${script}`, "utf8").toString("base64");
+  const r2 = spawnSync(process.execPath, [HOOK, "--b64", b64], { encoding: "utf8" });
+  assert.equal(r2.status, 3);
+  assert.match(r2.stdout, /test_bad FAILED/);
+  assert.match(r2.stdout, /AssertionError/);
+  assert.doesNotMatch(r2.stdout, /test_ok_20 PASSED/);
 });

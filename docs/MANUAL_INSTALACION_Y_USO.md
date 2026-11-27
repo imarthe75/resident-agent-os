@@ -162,13 +162,13 @@ Matriz verificada directamente contra el código del repositorio:
 | Verificadores (`python verifiers/run.py`) | Nativo | Nativo | Nativo | Nativo |
 | Frontend `resident-ui` (local o Docker Compose) | Nativo | Nativo | Nativo (`npm run dev` / Docker Desktop) | Nativo |
 | Hooks Node principales (`post-edit`, `compress-output`, `command-filters`, `pre-compact`, `session-end`, `codebase-map`) | Nativo | Nativo | Nativo (usa `path.join`, `os.tmpdir()` y `process.execPath`) | Nativo |
-| Hook `statusline.sh` (`.claude/settings.json`) | Nativo | Nativo | Requiere **Git Bash** (Claude Code en Windows lo usa por defecto) | Nativo |
-| Hook `run-filtered.js` (filtra comandos fallidos `exit ≠ 0`) | Nativo | Nativo | **Desactivado en `win32`** (`bash -c` no portable; deja el comando intacto) | Nativo |
-| `scripts/sandboxed-tests.sh` | Nativo | Nativo | **No nativo** (script Bash) | Nativo |
+| Hook `statusline.sh` (`.claude/settings.json`) | Nativo | Nativo | Requiere **Git Bash** (Claude Code en Windows lo usa por defecto; fallback `python3`/`python`) | Nativo |
+| Hook `run-filtered.js` (filtra comandos fallidos `exit ≠ 0`) | Nativo (`-- bash -c`) | Nativo (`-- bash -c`) | **Nativo** (`--b64 <base64>` + `spawnSync(..., { shell: true })`, sin choques de comillas) | Nativo |
+| Pruebas aisladas sin red ni credenciales heredadas | `scripts/sandboxed-tests.sh` (`srt`/`bwrap`) o `scripts/sandboxed_tests.py` (Docker) | `scripts/sandboxed-tests.sh` (`srt`) o `scripts/sandboxed_tests.py` (Docker) | **Nativo con Docker Desktop:** `python scripts/sandboxed_tests.py --image <img-py> --node-image node:26-alpine` (`--network none --read-only`) | Ambos (`.sh` y `.py`) |
 
 **Recomendación en Windows:**
-- Para **100% de paridad** con Linux y macOS (incluyendo `run-filtered.js`, `statusline.sh` y `sandboxed-tests.sh`), trabaja dentro de **WSL2 (Ubuntu)** con Docker Desktop integrado.
-- En **Windows nativo** (PowerShell + Git Bash) funciona todo el núcleo (`ros`, servidor MCP, `mcp-proxy`, verificadores, hooks principales de sintaxis/compresión/telemetría y `resident-ui`); únicamente se omite `run-filtered.js` (sin romper ningún comando) y `sandboxed-tests.sh`.
+- **Windows nativo** (PowerShell + Git Bash + Docker Desktop) ya soporta **todo el framework**: `ros`, servidor MCP, `mcp-proxy`, verificadores, todos los hooks incluido `run-filtered.js`, `resident-ui` y pruebas aisladas con `scripts/sandboxed_tests.py --network none`.
+- **WSL2 (Ubuntu)** sigue siendo ideal si prefieres usar `scripts/sandboxed-tests.sh` con `bubblewrap` sin Docker.
 
 ---
 

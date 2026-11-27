@@ -33,7 +33,8 @@ class SandboxIsolation(unittest.TestCase):
     def test_proxy_refuses_a_destination_outside_the_allowlist(self):
         import urllib.error
         import urllib.request
-        self.assertTrue(os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy"), "srt did not set its proxy")
+        if os.environ.get("ROS_SANDBOX_BACKEND") != "docker":
+            self.assertTrue(os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy"), "srt did not set its proxy")
         with self.assertRaises((urllib.error.URLError, OSError)):
             urllib.request.urlopen("https://example.com", timeout=5)
 
