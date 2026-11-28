@@ -84,12 +84,15 @@ def inspect_repo(
         drift_status = "DESVIADO" if drift_flag else "OK"
         drift_reason: str | None = None
         fw_ver, exp_ver = drift_info["version"][0], drift_info["version"][1]
+        missing_paths = [str(p) for p in drift_info["missing"]][:30]
+        modified_paths = [str(p) for p in drift_info["modified"]][:30]
         missing_n, modified_n = len(drift_info["missing"]), len(drift_info["modified"])
     else:
         drift_flag = False
         drift_status = NO_EVALUADO
         drift_reason = "scripts/distribute_framework.py no está presente en este proyecto"
         fw_ver, exp_ver = None, None
+        missing_paths, modified_paths = [], []
         missing_n, modified_n = 0, 0
 
     selected = [name for name in REGISTRY if with_network or name not in NETWORK_VERIFIERS]
@@ -98,13 +101,36 @@ def inspect_repo(
     no_cumple = sum(1 for r in v_results if r.status == NO_CUMPLE)
     no_evaluado = sum(1 for r in v_results if r.status == NO_EVALUADO)
     failed_names = [r.verifier for r in v_results if r.status == NO_CUMPLE]
+    verifier_details = [
+        {
+            "verifier": r.verifier,
+            "status": r.status,
+            "method": r.method,
+            "checked": r.checked,
+            "detail": list(r.detail)[:25],
+        }
+        for r in v_results
+    ]
 
     outdated_count: int | None = None
+    outdated_details: list[dict[str, Any]] = []
     if with_deps and outdated_mod is not None:
         rows = outdated_mod.analyze(repo)
-        outdated_count = sum(
-            1 for r in rows if not r.get("unresolved") and (r.get("deprecated") or r.get("lag") in ("major", "minor"))
-        )
+        flagged = [
+            r for r in rows if not r.get("unresolved") and (r.get("deprecated") or r.get("lag") in ("major", "minor"))
+        ]
+        outdated_count = len(flagged)
+        outdated_details = [
+            {
+                "file": r.get("file"),
+                "name": r.get("name"),
+                "current": r.get("current"),
+                "target": r.get("target") or r.get("latest"),
+                "lag": r.get("lag"),
+                "deprecated": bool(r.get("deprecated")),
+            }
+            for r in flagged[:40]
+        ]
 
     agent_dir = repo / ".agent"
     events = read_events(agent_dir / DEFAULT_TELEMETRY_REL)
@@ -122,13 +148,17 @@ def inspect_repo(
         "expected_version": exp_ver,
         "missing_files": missing_n,
         "modified_files": modified_n,
+        "missing_paths": missing_paths,
+        "modified_paths": modified_paths,
         "verifiers": {
             "cumple": cumple,
             "no_cumple": no_cumple,
             "no_evaluado": no_evaluado,
             "failed_names": failed_names,
+            "results": verifier_details,
         },
         "outdated_dependencies": outdated_count,
+        "outdated_details": outdated_details,
         "telemetry": {
             "total_events": summary["total_events"],
             "measured_runs": summary["measured_runs"],

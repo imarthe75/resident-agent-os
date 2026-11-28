@@ -29,6 +29,7 @@ const ROUTES = [
   { path: "/dashboard", name: "dashboard", expectedText: "Traza del Ciclo Cognitivo" },
   { path: "/fleet", name: "fleet", expectedText: "Monitor de Flota" },
   { path: "/gates", name: "gates", expectedText: "Compuertas y Verificadores" },
+  { path: "/audit", name: "audit", expectedText: "Auditoría Local de Estándares" },
   { path: "/capabilities", name: "capabilities", expectedText: "Catálogo de Capacidades" },
   { path: "/editor", name: "editor", expectedText: "Archivos del Espacio" },
   { path: "/specs", name: "specs", expectedText: "Especificaciones" },
@@ -90,7 +91,7 @@ page.on("response", (res) => {
 
 async function saveShot(name) {
   if (!SCREENSHOT_DIR) return;
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${name}.png`), fullPage: true, caret: "initial" });
 }
 
 async function checkNoNextOverlay(routeName) {
@@ -181,6 +182,32 @@ try {
       await saveShot("02-gates-verifiers");
     }
 
+    if (route.name === "audit") {
+      const runAuditBtn = page.getByRole("button", { name: /Ejecutar Auditoría Local/i });
+      await runAuditBtn.waitFor({ state: "visible", timeout: 8000 });
+      const auditRespPromise = page.waitForResponse(
+        (res) => res.url().includes("/api/audit") && res.request().method() === "POST",
+        { timeout: 30000 }
+      );
+      await runAuditBtn.click();
+      const auditRes = await auditRespPromise;
+      const auditJson = await auditRes.json();
+      await page.waitForTimeout(500);
+      if (!auditJson.available || !auditJson.documentation_audit || !Array.isArray(auditJson.standards_matrix)) {
+        throw new Error(`Resultado inesperado en POST /api/audit: ${JSON.stringify(auditJson.summary)}`);
+      }
+      await saveShot("09-audit-local");
+      const docsTabBtn = page.getByRole("button", { name: /^Documentación y Manuales \(/i });
+      await docsTabBtn.click();
+      await page.waitForTimeout(400);
+      await saveShot("10-audit-docs-manuals");
+      extra.auditSummary = {
+        totalFindings: auditJson.summary?.total_findings ?? 0,
+        docsCount: auditJson.documentation_audit?.total_documents ?? 0,
+        standardsControls: auditJson.standards_matrix.length,
+      };
+    }
+
     if (route.name === "capabilities") {
       const searchInput = page.locator('input[placeholder*="Buscar"]').first();
       await searchInput.waitFor({ state: "visible", timeout: 8000 });
@@ -228,6 +255,16 @@ try {
     }
 
     if (route.name === "fleet") {
+      const repoBtn = page.locator("tbody tr button[aria-expanded]").first();
+      if (await repoBtn.isVisible().catch(() => false)) {
+        await repoBtn.click();
+        await page.waitForTimeout(300);
+        const expandedAttr = await repoBtn.getAttribute("aria-expanded");
+        if (expandedAttr !== "true") {
+          throw new Error("Al hacer clic en el repositorio de /fleet no se expandió el detalle");
+        }
+        extra.fleetExpanded = true;
+      }
       await saveShot("07-fleet");
     }
 

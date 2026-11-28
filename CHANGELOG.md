@@ -2,6 +2,14 @@
 
 Bitácora de cambios por versión (el README describe el estado vigente).
 
+## 1.0.8 (2026-11-27)
+- **Auditoría Local de Estándares — Micro-Centinela (`scripts/micro_audit.py`, `ros audit`, `/api/audit` y pestaña `/audit` en `resident-ui`):**
+  - Motor determinista local que señala exactamente **qué módulo/parte del desarrollo, archivo y línea** incumple estándares de **Seguridad** (secretos redactados, inyección SQL/comandos, `eval`, XSS, TLS, CORS, Dockerfile/Compose), **Desarrollo/BD** (integrado con `verifiers/checks.py`), **Accesibilidad WCAG 2.1**, **Documentación y Manuales** (`README.md`, manuales de instalación/usuario, enlaces rotos, borradores `TBD`/`LOREM IPSUM`, `COMMENT ON` en SQL, OpenAPI en endpoints), **CMMI v3.0**, **ISO/IEC 27001:2022** y **Metodología y Estándares CASMARTS** (6 campos de especificación C&A, criterios subjetivos, WCAG obligatorio, auditoría SQL CASMART, `@PreAuthorize`, pruebas y entregables `ART-*` — activados automáticamente cuando el kit está instalado, y declarados `NO_EVALUADO` cuando no).
+  - Nivel 2: detecta y ejecuta opcionalmente herramientas instaladas en `PATH` (`semgrep`, `gitleaks`, `trivy` — reportando `NO_INSTALADO` si faltan), importa `data/hallazgos.json`, `data/outdated-dependencies.json` y `data/*.sarif`, compara contra la corrida previa (`NUEVO` / `PERSISTE` / `solventados`) y consulta opcionalmente a Centinela corporativo si `PREFLIGHT_URL` está configurado.
+  - Nueva pestaña **`/audit` («Auditoría Local»)** en `resident-ui` con 5 sub-vistas (`Por Módulo`, `Hallazgos Detallados` con botón «Copiar prompt de corrección», `Documentación y Manuales`, `CMMI / ISO / CASMARTS` y `Motores y Centinela`), validada en Chromium real con Playwright (`tests/e2e-browser.mjs`).
+- **Drilldown expandible en Monitor de Flota (`scripts/fleet_status.py` + `FleetPanel.tsx`):**
+  - Al hacer clic en el nombre de cualquier repositorio en `/fleet`, se expande el panel de detalle con la ruta completa, comando copiable de Micro-Auditoría, detalle por verificador (`archivo:línea` y lista de `failed_names`), sincronización/deriva del framework (corrigiendo `al día (null)` → `NO_EVALUADO`), dependencias atrasadas y desglose completo de telemetría/umbrales.
+
 ## 1.0.7 (2026-11-27)
 - **Auditoría completa de verificadores dentro de Docker (`docker-compose.yml`):** monta la raíz del repositorio en solo lectura (`./:/workspace:ro`) junto con `./.agent:/workspace/.agent` y `./data:/workspace/data` en lectura/escritura, permitiendo que `POST /api/verifiers` dentro de `resident-ui` evalúe el 100% del repositorio (`8 CUMPLE, 0 NO_CUMPLE, 3 NO_EVALUADO` en modo offline) manteniendo `/app` aislado de Turbopack y `/api/files` restringido por lista blanca estricta (HTTP 404 para `.env`, `docker-compose.yml`, etc.).
 - **Suite E2E real en Chromium (`resident-ui/tests/e2e-browser.mjs`) y correcciones detectadas en navegador real:**

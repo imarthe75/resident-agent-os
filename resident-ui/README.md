@@ -9,6 +9,7 @@ Cuando un servicio externo está apagado o un artefacto aún no existe, el panel
 - `/dashboard` — **Núcleo del Agente**: estado de fase, KPIs de telemetría, ahorro real de tokens por hooks, historial seleccionable de sesiones, traza del ciclo cognitivo y flujo de telemetría con filtros y exportación JSONL.
 - `/fleet` — **Monitor de Flota**: estado multi-repositorio de `data/fleet-status.json`.
 - `/gates` — **Compuertas y Verificadores**: ejecución y consulta de `verifiers/run.py`, filtros por estado, rutas públicas justificadas (`.agent/public-routes.txt`), compuertas de etapa (`.agent/gates/*.yml`) y salud de dependencias (`.agent/versions-policy.json` + `data/outdated-dependencies.json`).
+- `/audit` — **Auditoría Local (Micro-Centinela)**: identifica qué módulo, archivo y línea incumple estándares de Seguridad, Desarrollo/BD, Accesibilidad WCAG, Documentación y Manuales, CMMI v3.0, ISO 27001 y Estándares CASMARTS (si el kit está instalado), con prompts copiables de corrección, herramientas externas opcionales (`semgrep`/`gitleaks`/`trivy`) y consulta opcional a `PREFLIGHT_URL`.
 - `/capabilities` — **Catálogo de Capacidades**: buscador en tiempo real de skills (`SKILL.md`), comandos slash (`commands/*.md`) y reglas por ruta (`.agent/path-rules.json`).
 - `/editor` — **Archivos del Espacio**: visor de solo lectura con Monaco Editor servido localmente desde `/vs`.
 - `/specs` — **Especificaciones y ADRs**: editor atómico de `.agent/SPECS.md`, trazabilidad con `docs/specs/*/spec.md` y registro de decisiones técnicas (`.agent/decisions.json` + `DECISIONS/*.md`).
@@ -28,6 +29,7 @@ Cuando un servicio externo está apagado o un artefacto aún no existe, el panel
 | `/api/fleet` | `GET` | Reporte multi-repositorio generado por `scripts/fleet_status.py` (`ros fleet`). |
 | `/api/events` | `GET` | Stream SSE (`text/event-stream`) en vivo de `.agent/telemetry/events.jsonl`. |
 | `/api/verifiers` | `GET` / `POST` | Lee `data/verifiers-report.json`, `.agent/public-routes.txt` y `.agent/gates/*.yml`; `POST` ejecuta `verifiers/run.py --json` (sin red por defecto; `with_network: true` opcional) con argumentos seguros y timeout acotado. |
+| `/api/audit` | `GET` / `POST` | Lee `data/micro-audit-report.json` o ejecuta `scripts/micro_audit.py --json` (Seguridad, Desarrollo/BD, WCAG, Documentación/Manuales, CMMI, ISO 27001, Estándares CASMARTS si el kit está instalado, herramientas externas opcionales y `PREFLIGHT_URL`). |
 | `/api/dependencies` | `GET` | Lee `.agent/versions-policy.json` y `data/outdated-dependencies.json` con política de pisos mínimos y dependencias vencidas. |
 | `/api/doctor` | `GET` | Diagnóstico equivalente a `ros doctor`: runtimes, hosts de IA detectados, sincronización SSOT `.agents/` → `.claude/` y hooks configurados. |
 | `/api/routing` | `GET` | Política `.agent/model-routing.json` e inventario de subagentes (`agents/*.md`) con nivel (`fast`/`balanced`/`reasoning`) y modelo resuelto por proveedor. |

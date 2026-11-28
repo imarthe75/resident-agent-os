@@ -157,6 +157,7 @@ Abre en tu navegador: **`http://localhost:3000`**
 | `/dashboard` | Estado vivo (`STATE.md`), traza de las 11 fases del bucle, **stream SSE en tiempo real** con filtros y exportación JSONL, las 4 señales de producción, ahorro real de tokens por hooks e historial seleccionable de sesiones. |
 | `/fleet` | Estado multi-repositorio (deriva del framework, verificadores, dependencias y telemetría) generado con `ros fleet --roots /ruta/a/repos --out data/fleet-status.json`. |
 | `/gates` | Compuertas y verificadores (`verifiers/run.py`), ejecución controlada bajo demanda, rutas públicas justificadas (`.agent/public-routes.txt`), compuertas de etapa (`.agent/gates/*.yml`) y salud de dependencias (`.agent/versions-policy.json` + `data/outdated-dependencies.json`). |
+| `/audit` | Auditoría Local de Estándares («Micro-Centinela»): indica qué módulo, archivo y línea incumple Seguridad, Desarrollo/BD, Accesibilidad WCAG, Documentación y Manuales, CMMI v3.0, ISO 27001 y Estándares CASMARTS (si el kit está instalado), con guía de remediación y prompt copiable. |
 | `/capabilities` | Catálogo buscable de skills (`SKILL.md`), comandos slash (`commands/*.md`) y reglas activadas por ruta (`.agent/path-rules.json`). |
 | `/editor` | Explorador de solo lectura con Monaco Editor 100% local (`/vs`) para `.agent/`, `rules/`, `changes/` y `DECISIONS/`. |
 | `/specs` | Lectura y guardado atómico de `.agent/SPECS.md`, trazabilidad con `docs/specs/*/spec.md` y registro de decisiones técnicas (`.agent/decisions.json` + ADRs en `DECISIONS/`). |

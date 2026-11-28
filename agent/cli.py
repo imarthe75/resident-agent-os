@@ -283,6 +283,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_th.add_argument("--require-data", action="store_true")
     p_th.add_argument("--json", action="store_true")
 
+    p_aud = sub.add_parser("audit", help="Run local standards micro-audit (Security, Dev/DB, WCAG, CMMI, ISO 27001)")
+    p_aud.add_argument("--path", default=".")
+    p_aud.add_argument("--data-dir", default=None)
+    p_aud.add_argument("--with-network", action="store_true")
+    p_aud.add_argument("--no-tools", action="store_true")
+    p_aud.add_argument("--out", default=None)
+    p_aud.add_argument("--json", action="store_true")
+    p_aud.add_argument("--fail-on-high", action="store_true")
+
     p_fl = sub.add_parser("fleet", help="Scan multiple repositories for drift, verifiers, and telemetry")
     p_fl.add_argument("--parent", default=None)
     p_fl.add_argument("--target", action="append", default=[])
@@ -389,6 +398,24 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.json:
             v_args.append("--json")
         return vrun.main(v_args)
+
+    if args.command == "audit":
+        from scripts import micro_audit as ma_mod
+
+        a_args = ["--path", args.path]
+        if args.data_dir:
+            a_args += ["--data-dir", args.data_dir]
+        if args.with_network:
+            a_args.append("--with-network")
+        if args.no_tools:
+            a_args.append("--no-tools")
+        if args.out:
+            a_args += ["--out", args.out]
+        if args.json:
+            a_args.append("--json")
+        if args.fail_on_high:
+            a_args.append("--fail-on-high")
+        return ma_mod.main(a_args)
 
     if args.command == "thresholds":
         from scripts import check_thresholds as ct

@@ -10,6 +10,7 @@ import {
   readCapabilities,
   readDecisionsAndTraceability,
   readDependenciesHealth,
+  readMicroAuditReport,
   readModelRouting,
   readVerifiersReport,
   runVerifiersNow,
@@ -252,4 +253,71 @@ test("summarizeTelemetry computes real hook savings and per-session history with
   assert.equal(summary.sessions_history[0].ecc_limit_breached, true);
   assert.deepEqual(summary.sessions_history[0].failed_phases, ["execute"]);
   assert.equal(parseFrontmatter("---\nname: demo\n---\nbody").meta.name, "demo");
+});
+
+test("micro-audit: missing report vs populated report with docs and casmarts profile", () => {
+  const ws = makeTempWorkspace();
+  try {
+    const empty = readMicroAuditReport(ws.root, ws.dataDir);
+    assert.equal(empty.available, false);
+    assert.equal(empty.findings.length, 0);
+
+    fs.writeFileSync(
+      path.join(ws.dataDir, "micro-audit-report.json"),
+      JSON.stringify({
+        generated_at: "2026-11-27T22:00:00Z",
+        repo: ws.root,
+        scanned_files: 12,
+        with_network: false,
+        with_tools: false,
+        summary: {
+          total_findings: 1,
+          by_severity: { CRITICA: 0, ALTA: 1, MEDIA: 0, BAJA: 0 },
+          by_pillar: { seguridad: 1, desarrollo: 0, accesibilidad: 0, documentacion: 0, casmarts: 0, cmmi: 0, iso27001: 0, dependencias: 0 },
+          modules_affected: 1,
+          controls_cumple: 4,
+          controls_no_cumple: 1,
+          controls_no_evaluado: 2,
+          baseline_compared: false,
+          new_findings: 0,
+          persisted_findings: 0,
+          resolved_since_previous: 0,
+        },
+        modules: [{ module: "backend", total: 1, critica: 0, alta: 1, media: 0, baja: 0, pillars: ["seguridad"] }],
+        standards_matrix: [{ framework: "CMMI v3.0", control_id: "VER", name: "Pruebas", status: "CUMPLE", evidence: "OK" }],
+        documentation_audit: { total_documents: 2, broken_links: 0, draft_markers: 0, checks: [], documents: [] },
+        casmarts_profile: { detected: true, profile: "Kit CASMARTS activo", markers: ["rules/centinela/rules.md"] },
+        findings: [
+          {
+            id: "SEC-CMD-INJECTION:backend/a.py:3",
+            rule: "SEC-CMD-INJECTION",
+            pillar: "seguridad",
+            standard: "OWASP A03",
+            severity: "ALTA",
+            module: "backend",
+            file: "backend/a.py",
+            line: 3,
+            snippet: "os.system(cmd)",
+            title: "Shell exec",
+            remediation: "Usa subprocess con lista.",
+            fix_prompt: "Corrige backend/a.py:3",
+            source: "micro-sast",
+            diff_status: "SIN_BASE",
+          },
+        ],
+        external_tools: [],
+        imported_sources: [],
+        preflight: { configured: false, available: false, findings: [], reason: "no config" },
+        scope_notice: "Local",
+      })
+    );
+
+    const loaded = readMicroAuditReport(ws.root, ws.dataDir);
+    assert.equal(loaded.available, true);
+    assert.equal(loaded.findings.length, 1);
+    assert.equal(loaded.casmarts_profile?.detected, true);
+    assert.equal(loaded.documentation_audit?.total_documents, 2);
+  } finally {
+    ws.cleanup();
+  }
 });

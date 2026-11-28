@@ -61,26 +61,51 @@ export interface ThresholdEvaluation {
   checks: Record<string, ThresholdCheck>;
 }
 
+export interface FleetVerifierDetail {
+  verifier: string;
+  status: string;
+  method: string;
+  checked: number;
+  detail: string[];
+}
+
+export interface FleetOutdatedDep {
+  file: string | null;
+  name: string;
+  current: string | null;
+  target: string | null;
+  lag: string | null;
+  deprecated: boolean;
+}
+
 export interface FleetRepoRow {
   name: string;
   path: string;
   drift: boolean;
+  drift_status?: string;
+  drift_reason?: string | null;
   framework_version: string | null;
   expected_version: string | null;
   missing_files: number;
   modified_files: number;
+  missing_paths?: string[];
+  modified_paths?: string[];
   verifiers: {
     cumple: number;
     no_cumple: number;
     no_evaluado: number;
     failed_names: string[];
+    results?: FleetVerifierDetail[];
   };
   outdated_dependencies: number | null;
+  outdated_details?: FleetOutdatedDep[];
   telemetry: {
     total_events: number;
+    measured_runs?: number;
     errors: number;
     latency_p95_ms: number | null;
     total_cost_usd: number;
+    chars_saved_by_hooks?: number;
     tokens_saved_by_hooks_est: number;
     threshold_status: string;
     breaches: string[];

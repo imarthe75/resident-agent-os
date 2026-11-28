@@ -725,3 +725,223 @@ export function readDecisionsAndTraceability(workspaceRoot: string, agentDir: st
     doc_specs,
   };
 }
+
+export interface MicroAuditFinding {
+  id: string;
+  rule: string;
+  pillar: string;
+  standard: string;
+  severity: "CRITICA" | "ALTA" | "MEDIA" | "BAJA";
+  module: string;
+  file: string | null;
+  line: number | null;
+  snippet: string;
+  title: string;
+  remediation: string;
+  fix_prompt: string;
+  source: string;
+  diff_status: "NUEVO" | "PERSISTE" | "SIN_BASE";
+}
+
+export interface MicroAuditReportPayload {
+  available: boolean;
+  runner_available: boolean;
+  generated_at: string | null;
+  repo: string | null;
+  scanned_files: number;
+  with_network: boolean;
+  with_tools: boolean;
+  summary: {
+    total_findings: number;
+    by_severity: Record<string, number>;
+    by_pillar: Record<string, number>;
+    modules_affected: number;
+    controls_cumple: number;
+    controls_no_cumple: number;
+    controls_no_evaluado: number;
+    baseline_compared: boolean;
+    new_findings: number;
+    persisted_findings: number;
+    resolved_since_previous: number;
+  } | null;
+  modules: Array<{
+    module: string;
+    total: number;
+    critica: number;
+    alta: number;
+    media: number;
+    baja: number;
+    pillars: string[];
+  }>;
+  standards_matrix: Array<{
+    framework: string;
+    control_id: string;
+    name: string;
+    status: "CUMPLE" | "NO_CUMPLE" | "NO_EVALUADO";
+    evidence: string;
+  }>;
+  documentation_audit: {
+    total_documents: number;
+    broken_links: number;
+    draft_markers: number;
+    checks: Array<{ id: string; name: string; status: string; evidence: string }>;
+    documents: Array<{
+      path: string;
+      kind: string;
+      format: string;
+      size_bytes: number;
+      has_h1: boolean | null;
+      has_draft_marker: boolean;
+      broken_links: string[];
+    }>;
+  } | null;
+  casmarts_profile: {
+    detected: boolean;
+    profile: string;
+    markers: string[];
+  } | null;
+  findings: MicroAuditFinding[];
+  external_tools: Array<{
+    tool: string;
+    description: string;
+    status: string;
+    findings: number;
+    hint: string | null;
+  }>;
+  imported_sources: Array<{ source: string; status: string; findings?: number; error?: string }>;
+  preflight: {
+    configured: boolean;
+    available: boolean;
+    asset?: string;
+    known_asset?: boolean;
+    last_audit?: string | null;
+    engines_seen?: string[];
+    findings: Array<Record<string, unknown>>;
+    reason?: string | null;
+  } | null;
+  scope_notice: string;
+  command: string;
+}
+
+const lastMicroAuditCache = new Map<string, Omit<MicroAuditReportPayload, "available" | "runner_available" | "command">>();
+
+export function readMicroAuditReport(workspaceRoot: string, dataDir: string): MicroAuditReportPayload {
+  const reportPath = path.join(dataDir, "micro-audit-report.json");
+  const runnerAvailable = fs.existsSync(path.join(workspaceRoot, "scripts", "micro_audit.py"));
+  const command = "python3 scripts/micro_audit.py --path . --out data/micro-audit-report.json";
+
+  const parsed = readJsonSafe<Omit<MicroAuditReportPayload, "available" | "runner_available" | "command">>(reportPath);
+  const raw = parsed.ok ? parsed.data : lastMicroAuditCache.get(path.resolve(dataDir)) || null;
+
+  if (!raw) {
+    return {
+      available: false,
+      runner_available: runnerAvailable,
+      generated_at: null,
+      repo: workspaceRoot,
+      scanned_files: 0,
+      with_network: false,
+      with_tools: true,
+      summary: null,
+      modules: [],
+      standards_matrix: [],
+      documentation_audit: null,
+      casmarts_profile: null,
+      findings: [],
+      external_tools: [],
+      imported_sources: [],
+      preflight: null,
+      scope_notice:
+        "Auditoría local shift-left sobre código, documentación, manuales y controles verificables de seguridad, desarrollo, WCAG, CMMI v3.0, ISO 27001 y Estándares CASMARTS.",
+      command,
+    };
+  }
+
+  return {
+    available: true,
+    runner_available: runnerAvailable,
+    generated_at: raw.generated_at || null,
+    repo: raw.repo || workspaceRoot,
+    scanned_files: raw.scanned_files || 0,
+    with_network: Boolean(raw.with_network),
+    with_tools: raw.with_tools !== false,
+    summary: raw.summary || null,
+    modules: Array.isArray(raw.modules) ? raw.modules : [],
+    standards_matrix: Array.isArray(raw.standards_matrix) ? raw.standards_matrix : [],
+    documentation_audit: raw.documentation_audit || null,
+    casmarts_profile: raw.casmarts_profile || null,
+    findings: Array.isArray(raw.findings) ? raw.findings : [],
+    external_tools: Array.isArray(raw.external_tools) ? raw.external_tools : [],
+    imported_sources: Array.isArray(raw.imported_sources) ? raw.imported_sources : [],
+    preflight: raw.preflight || null,
+    scope_notice: raw.scope_notice || "",
+    command,
+  };
+}
+
+export function runMicroAuditNow(
+  workspaceRoot: string,
+  dataDir: string,
+  opts: { withNetwork?: boolean; withTools?: boolean } = {}
+) {
+  const scriptPath = path.join(workspaceRoot, "scripts", "micro_audit.py");
+  if (!fs.existsSync(scriptPath)) {
+    return {
+      ok: false,
+      error: `No se encontró scripts/micro_audit.py en ${workspaceRoot}`,
+      report: readMicroAuditReport(workspaceRoot, dataDir),
+    };
+  }
+
+  const withNetwork = Boolean(opts.withNetwork);
+  const withTools = opts.withTools !== false;
+  const args = [scriptPath, "--path", workspaceRoot, "--data-dir", dataDir, "--json"];
+  if (withNetwork) args.push("--with-network");
+  if (!withTools) args.push("--no-tools");
+
+  const res = spawnSync("python3", args, {
+    encoding: "utf-8",
+    timeout: withNetwork || withTools ? 60000 : 30000,
+    env: { ...process.env, PYTHONPATH: workspaceRoot },
+    maxBuffer: 10 * 1024 * 1024,
+  });
+
+  if (res.error) {
+    console.error("[workspaceInspector] Failed running scripts/micro_audit.py:", res.error);
+    return {
+      ok: false,
+      error: `No se pudo ejecutar python3 scripts/micro_audit.py: ${res.error.message}`,
+      report: readMicroAuditReport(workspaceRoot, dataDir),
+    };
+  }
+
+  const stdout = (res.stdout || "").trim();
+  let parsed: Omit<MicroAuditReportPayload, "available" | "runner_available" | "command">;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch (err) {
+    console.error("[workspaceInspector] Invalid JSON from scripts/micro_audit.py:", err, res.stderr);
+    return {
+      ok: false,
+      error: `Salida inválida de scripts/micro_audit.py: ${(res.stderr || stdout).slice(0, 240)}`,
+      report: readMicroAuditReport(workspaceRoot, dataDir),
+    };
+  }
+
+  lastMicroAuditCache.set(path.resolve(dataDir), parsed);
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+    const reportPath = path.join(dataDir, "micro-audit-report.json");
+    const tmpPath = path.join(dataDir, `.micro-audit.${process.pid}.${Date.now()}.tmp`);
+    fs.writeFileSync(tmpPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
+    fs.renameSync(tmpPath, reportPath);
+  } catch (err) {
+    console.error("[workspaceInspector] Could not persist data/micro-audit-report.json:", err);
+  }
+
+  return {
+    ok: true,
+    error: null,
+    report: readMicroAuditReport(workspaceRoot, dataDir),
+  };
+}

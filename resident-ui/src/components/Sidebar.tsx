@@ -28,6 +28,13 @@ const NAV_ITEMS = [
       "Ejecuta y revisa las comprobaciones automáticas del código (UUIDs, seguridad, sin TODOs, observabilidad), las rutas públicas justificadas, las compuertas de etapa y la salud de dependencias.",
   },
   {
+    name: "🔎 Auditoría Local",
+    path: "/audit",
+    helpTitle: "Auditoría Local (Micro-Centinela)",
+    helpText:
+      "Indica qué módulo, archivo y línea incumple estándares de Seguridad, Desarrollo/BD, Accesibilidad WCAG, Documentación y Manuales, CMMI v3.0, ISO 27001 y Estándares CASMARTS (si el kit está instalado).",
+  },
+  {
     name: "📚 Catálogo de Capacidades",
     path: "/capabilities",
     helpTitle: "Catálogo de Capacidades",
